@@ -1,0 +1,63 @@
+@import "../../../vars";
+
+.filters {
+  box-shadow: 1px 1px 5px 1px rgb(235, 230, 230);
+  border-radius: 10px;
+  padding: 30px;
+  text-align: center;
+  display: flex;
+  flex-flow: column wrap;
+  justify-content: space-around;
+  select {
+    padding: 7px 15px;
+    border: none;
+    border-radius: 10px;
+    box-shadow: 1px 1px 5px 1px rgb(230, 221, 221);
+    background: white;
+  }
+  .checkbox-item {
+    text-align: start;
+    display: flex;
+    align-items: center;
+    p {
+      font-size: 0.8em;
+    }
+    border-bottom: 1px solid gray;
+    margin-bottom: 10px;
+  }
+  input {
+    width: 100%;
+    border: none;
+    padding: 3px;
+    border-radius: 5px;
+    font-size: 0.9em;
+    box-shadow: 1px 1px 7px 1px rgb(226, 219, 219);
+  }
+  h5 {
+    margin-top: 20px;
+  }
+  .keys {
+    margin-top: 5px;
+    display: flex;
+    flex-flow: row wrap;
+    overflow-y: auto;
+    max-height: 50px;
+
+    button {
+      padding: 5px;
+      border-radius: 5px;
+      background: rgb(236, 229, 229);
+      margin: 3px;
+      border: none;
+    }
+  }
+
+  .btn {
+    font-size: 1em;
+    padding: 5px 10px;
+  }
+}
+
+.filter-item {
+  margin: 15px 0;
+}

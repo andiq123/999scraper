@@ -1,0 +1,35 @@
+.tooltip {
+  z-index: 1;
+  position: absolute;
+  top: 56px;
+  background: white;
+  box-shadow: 0 1px 5px 1px rgb(172, 161, 161);
+  border-radius: 20px;
+  padding: 10px;
+  width: auto;
+  min-height: 150px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+
+  p {
+    font-weight: bold;
+  }
+  animation: openUp 300ms ease-in forwards;
+}
+
+@keyframes openUp {
+  0% {
+    top: 90px;
+    opacity: 0;
+  }
+
+  50% {
+    top: 53px;
+    opacity: 1;
+  }
+
+  100% {
+    top: 56px;
+  }
+}

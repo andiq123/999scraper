@@ -1,0 +1,23 @@
+@import "../../../vars";
+
+.main {
+  background: $gradient-background;
+  background: fixed;
+  width: 100vw;
+  height: 100vh;
+  padding: 15px 25px;
+  position: relative;
+  .sidebar {
+    width: 15%;
+
+    top: 0;
+    left: 0;
+  }
+
+  .content {
+    width: 77%;
+    position: absolute;
+    top: 15px;
+    left: 20%;
+  }
+}

@@ -1,0 +1,14 @@
+<div class="products">
+    <form #form="ngForm" (submit)="onSubmit(form)">
+        <div class="search-section">
+            <input name="search" ngModel type="text" required placeholder="Search...">
+            <button class="btn active" type="submit" [disabled]="form.invalid">Search</button>
+        </div>
+    </form>
+    <div class="products-container" *ngIf="!loading && products">
+        <app-product-item *ngFor="let product of products" [product]="product"></app-product-item>
+    </div>
+    <div class="loading" *ngIf="loading">
+        <app-loading></app-loading>
+    </div>
+</div>

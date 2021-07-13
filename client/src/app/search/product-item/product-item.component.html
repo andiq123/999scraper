@@ -1,0 +1,22 @@
+<div class="product isGood" [ngClass]="{'isGood': product.isGood}" (mouseleave)="onCloseToolTip()">
+    <a [href]="product.urlToProduct" target="_blank">
+        <div class="image-container">
+            <img [src]="product.thumbnailURL" [alt]="product.title">
+        </div>
+    </a>
+    <div class="name-container" (mouseenter)="onShowToolTip()">
+        <p>{{product.title.slice(0, 25) + "..." | titlecase}}</p>
+        <app-tooltip [text]="product.title" *ngIf="showToolTip"></app-tooltip>
+    </div>
+    <div class="price-container">
+        <p>Price: <strong>{{product.price || product.priceString}}
+                <ng-container *ngIf="product.price" [ngSwitch]="product.currency">
+                    <ng-container *ngSwitchCase="currency.MDL">MDL</ng-container>
+                    <ng-container *ngSwitchCase="currency.Euro">Euro</ng-container>
+                    <ng-container *ngSwitchCase="currency.Dollars">Dollars</ng-container>
+                    <ng-container *ngSwitchDefault></ng-container>
+                </ng-container>
+            </strong>
+        </p>
+    </div>
+</div>

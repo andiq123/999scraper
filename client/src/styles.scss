@@ -1,0 +1,38 @@
+/* You can add global styles to this file, and also import other style files */
+@import "./_vars.scss";
+@import url("https://fonts.googleapis.com/css2?family=Otomanopee+One&family=Poppins&display=swap");
+
+*,
+*::after,
+*::before {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+.btn {
+  width: auto;
+  margin: 10px;
+  padding: 5px 8px;
+  outline: none;
+  border: transparent;
+  font-size: $font-size;
+  background: transparent;
+  font-weight: bold;
+  border-radius: 10px;
+  transition: all 200ms ease-in-out;
+  &:hover {
+    background: $secondary-color;
+    cursor: pointer;
+  }
+
+  &.active {
+    background: $status-color;
+    color: white;
+    box-shadow: 1px 1px 5px 1px rgb(209, 203, 203);
+    &:hover {
+      background: darken($status-color, 5%);
+    }
+  }
+}

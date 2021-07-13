@@ -1,0 +1,57 @@
+@import "../../../vars";
+.products {
+  .search-section {
+    input {
+      border: none;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: $font-size;
+      box-shadow: 1px 1px 7px 1px rgb(226, 219, 219);
+    }
+    button {
+      font-size: 1.2em;
+      margin-left: 20px;
+      &:disabled {
+        filter: blur(1px);
+        background: rgb(138, 139, 202);
+      }
+    }
+  }
+  .products-container {
+    margin: 50px 0;
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: flex-start;
+    align-items: center;
+  }
+  .loading {
+    margin: 50px auto;
+    width: 100px;
+  }
+}
+
+.btn {
+  width: auto;
+  margin: 10px;
+  padding: 5px 10px;
+  outline: none;
+  border: transparent;
+  font-size: $font-size;
+  background: transparent;
+  font-weight: bold;
+  border-radius: 10px;
+  transition: all 200ms ease-in-out;
+  &:hover {
+    background: $secondary-color;
+    cursor: pointer;
+  }
+
+  &.active {
+    background: $status-color;
+    color: white;
+    box-shadow: 1px 1px 5px 1px rgb(209, 203, 203);
+    &:hover {
+      background: darken($status-color, 5%);
+    }
+  }
+}

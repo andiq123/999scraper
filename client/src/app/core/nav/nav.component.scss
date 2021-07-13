@@ -1,0 +1,12 @@
+@import "../../../vars";
+.navigation {
+  box-shadow: 1px 1px 5px 1px rgb(235, 230, 230);
+  border-radius: 10px;
+  padding: 30px;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+
