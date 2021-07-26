@@ -9,6 +9,15 @@
         <app-product-item *ngFor="let product of products" [product]="product"></app-product-item>
     </div>
     <div class="loading" *ngIf="loading">
-        <app-loading></app-loading>
+        <ng-container *ngIf="progress$ | async as progress ngIfElse apploading">
+            <div class="loading-bar"
+                *ngIf="progress.progressPercentage > 0 && progress.progressPercentage < 95 ngIfElse apploading">
+                <div class="inner-progress">
+                    <div class="charger" [ngStyle]="{'width': progress.progressPercentage + '%'}"></div>
+                </div>
+                <div class="percentage">{{progress.progressPercentage}}%</div>
+            </div>
+        </ng-container>
+        <app-loading #apploading></app-loading>
     </div>
 </div>

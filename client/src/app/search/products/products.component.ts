@@ -1,7 +1,10 @@
 import { HttpEvent, HttpEventType } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { NgForm } from '@angular/forms';
+import { Observable } from 'rxjs';
+import { SignalrService } from 'src/app/core/signalr.service';
 import { IProduct } from 'src/app/shared/models/product';
+import { IProgress } from 'src/app/shared/models/progress';
 import { SearchService } from '../search.service';
 
 @Component({
@@ -12,10 +15,15 @@ import { SearchService } from '../search.service';
 export class ProductsComponent implements OnInit {
   products!: IProduct[];
   loading: boolean = false;
-  constructor(private searchService: SearchService) {}
+  progress$!: Observable<IProgress | null>;
+
+  constructor(
+    private searchService: SearchService,
+    private signalr: SignalrService
+  ) {}
 
   ngOnInit(): void {
-    // this.loadProducts('iphone');
+    this.progress$ = this.signalr.progressChanged$;
   }
 
   onSubmit(form: NgForm) {

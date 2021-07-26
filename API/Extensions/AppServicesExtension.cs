@@ -14,7 +14,15 @@ namespace API.Extensions
         {
             services.AddScoped<IProductRepository, ProductRepository>();
             services.AddScoped<IRedisRepository, RedisRepository>();
-            services.AddCors(policy => policy.AddDefaultPolicy(x => x.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+
+            services.AddCors(policy => policy.AddDefaultPolicy(x =>
+             x.AllowAnyHeader()
+             .AllowAnyMethod()
+             .AllowAnyOrigin()
+             .AllowCredentials()
+             .WithOrigins("https://localhost:4200")));
+            services.AddSignalR();
+
 
             services.AddSingleton<ConnectionMultiplexer>(c =>
             {

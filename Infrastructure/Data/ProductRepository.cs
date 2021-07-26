@@ -55,6 +55,7 @@ namespace Infrastructure.Data
                     document = await GetDocument.GetDocumentAsync(_client, url);
                     var rawProducts = document.QuerySelectorAll(".ads-list-detail-item   ");
                     populateTheList(ref productList, ref rawProducts, ref indexer);
+
                     var percentage = (int)Math.Round((decimal)i / totalPages * 100);
                     ProgressChanged.Invoke(this, new ProgressReport(i, totalPages, percentage));
                 }

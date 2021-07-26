@@ -52,11 +52,4 @@ export class SearchService {
     filters.productSearchCriteria = searchCriteria;
     this.filtersSource.next(filters);
   }
-
-  getEvents() {
-    return this.http.get(this.baseUrl + 'products/events', {
-      reportProgress: true,
-      observe: 'events',
-    });
-  }
 }

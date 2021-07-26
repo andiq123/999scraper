@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using API.Hubs;
 using Core.Entities;
 using Core.Interfaces;
 using Infrastructure.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace API.Controllers
 {
@@ -16,8 +18,10 @@ namespace API.Controllers
     {
         private readonly IProductRepository _repo;
         private readonly IRedisRepository _redisRepository;
-        public ProductsController(IProductRepository repo, IRedisRepository redisRepository)
+        private readonly IHubContext<ProgressHub> _hubContext;
+        public ProductsController(IProductRepository repo, IRedisRepository redisRepository, IHubContext<ProgressHub> hubContext)
         {
+            _hubContext = hubContext;
             _redisRepository = redisRepository;
             _repo = repo;
         }
@@ -25,10 +29,10 @@ namespace API.Controllers
         [HttpPost]
         public async Task<ActionResult<ProductsContainer>> GetAsync([FromBody] Filters filters)
         {
-            // _repo.ProgressChanged += async (object sender, ProgressReport args) =>
-            // {
-
-            // };
+            _repo.ProgressChanged += async (object sender, ProgressReport args) =>
+            {
+                await _hubContext.Clients.All.SendAsync("ProgressChanged", args);
+            };
 
             if (!string.IsNullOrEmpty(filters.RedisId))
             {
@@ -52,30 +56,5 @@ namespace API.Controllers
             return Ok(fromRedis);
         }
 
-
-
-        [HttpGet("events")]
-        public async Task<ActionResult<Product>> GetHttpEventsAsync()
-        {
-            string[] data = new string[] {
-                "Hello World!",
-                "Hello Galaxy!",
-                "Hello Universe!"
-            };
-
-
-
-            for (int i = 0; i < data.Length; i++)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(1));
-                string dataItem = $"data: {data[i]}\n\n";
-                byte[] dataItemBytes = Encoding.UTF8.GetBytes(dataItem);
-                await Response.Body.WriteAsync(dataItemBytes, 0, dataItemBytes.Length);
-                await Response.Body.FlushAsync();
-                Response.Body.Close();
-            }
-
-            return Ok(new Product { Id = 1, Title = "grisha" });
-        }
     }
 }

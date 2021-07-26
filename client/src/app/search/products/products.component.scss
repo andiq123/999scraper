@@ -26,7 +26,33 @@
   }
   .loading {
     margin: 50px auto;
-    width: 100px;
+    width: 70%;
+
+    .loading-bar {
+      width: 100%;
+      padding: 10px;
+      display: flex;
+      flex-flow: row wrap;
+      align-items: center;
+
+      .inner-progress {
+        box-shadow: 1px 1px 5px 1px rgb(219, 212, 212);
+        border: none;
+        height: 20px;
+        flex: 1;
+        margin-right: 10px;
+        border-radius: 25px;
+        overflow: hidden;
+        .charger {
+          background-color: rgb(100, 100, 172);
+
+          height: 100%;
+        }
+      }
+      .percentage {
+        flex: 0.2;
+      }
+    }
   }
 }
 
