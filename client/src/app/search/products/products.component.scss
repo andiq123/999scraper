@@ -45,7 +45,7 @@
         overflow: hidden;
         .charger {
           background-color: rgb(100, 100, 172);
-
+          transition: 200ms ease-in-out all;
           height: 100%;
         }
       }

@@ -11,17 +11,19 @@ namespace API
 {
     public class Startup
     {
-        private readonly IConfiguration _configuration;
-        public Startup(IConfiguration configuration)
+        private readonly IConfiguration _config;
+
+        public Startup(IConfiguration config)
         {
-            _configuration = configuration;
+            _config = config;
         }
 
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddServices(_configuration);
+            services.AddServices(_config);
+            services.AddIdentity(_config);
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
@@ -45,7 +47,10 @@ namespace API
             app.UseRouting();
             app.UseCors();
 
+            app.UseAuthentication();
             app.UseAuthorization();
+
+
 
             app.UseEndpoints(endpoints =>
             {

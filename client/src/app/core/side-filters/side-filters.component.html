@@ -24,8 +24,9 @@
     <div class="filter-item">
         <h3>Exclude Words:</h3>
         <input #input type="text" placeholder="Word..." (keydown.enter)="onAddKey($event)">
-        <div class="keys" *ngIf="filters.keysToExclude as  itemsToExclude">
+        <div class="keys" *ngIf="filters.keysToExclude as itemsToExclude">
             <button *ngFor="let word of itemsToExclude" (click)="removeWordFromList(word)">{{word}}</button>
         </div>
+        <button *ngIf="filters.keysToExclude.length>0" class="clearButton" (click)="onClearKeys()">Clear</button>
     </div>
 </div>

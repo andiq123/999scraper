@@ -1,20 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 using API.Hubs;
 using Core.Entities;
 using Core.Interfaces;
 using Infrastructure.Helpers;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 
 namespace API.Controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class ProductsController : ControllerBase
+    [Authorize]
+    public class ProductsController : BaseApiController
     {
         private readonly IProductRepository _repo;
         private readonly IRedisRepository _redisRepository;
@@ -25,6 +21,7 @@ namespace API.Controllers
             _redisRepository = redisRepository;
             _repo = repo;
         }
+
 
         [HttpPost]
         public async Task<ActionResult<ProductsContainer>> GetAsync([FromBody] Filters filters)

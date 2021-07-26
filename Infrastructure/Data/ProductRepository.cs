@@ -108,8 +108,11 @@ namespace Infrastructure.Data
                     {
                         productOBJ.IsBoosted = false;
                     }
-                    productList.Add(productOBJ);
-                    indexer++;
+                    if (productList.FirstOrDefault(x => x.Title.ToLower() == productOBJ.Title.ToLower()) == null)
+                    {
+                        productList.Add(productOBJ);
+                        indexer++;
+                    }
                 }
                 catch (System.Exception)
                 {

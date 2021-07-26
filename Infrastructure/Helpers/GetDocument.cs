@@ -11,13 +11,12 @@ namespace Infrastructure.Helpers
     {
         public static async Task<IHtmlDocument> GetDocumentAsync(HttpClient client, string url)
         {
-            var debug = 1;
+            var debug = 0;
             if (debug == 0)
             {
                 using (HttpResponseMessage request = await client.GetAsync(new Uri(url), HttpCompletionOption.ResponseHeadersRead))
                 {
                     var respone = await request.Content.ReadAsStringAsync();
-                    await File.WriteAllTextAsync("html.html", respone);
                     return new HtmlParser().ParseDocument(respone);
                 }
             }

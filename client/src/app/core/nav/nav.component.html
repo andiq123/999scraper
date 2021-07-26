@@ -5,8 +5,10 @@
     <div class="actions">
         <button class="btn" routerLink="/" routerLinkActive="active"
             [routerLinkActiveOptions]="{exact:true}">Home</button>
-        <button class="btn" routerLink="/search" routerLinkActive="active">Search</button>
         <button class="btn">About</button>
-
+        <ng-container *ngIf="(user$ | async) ">
+            <button class="btn">Favorites</button>
+            <button class="btn" (click)="onLogout()">Logout</button>
+        </ng-container>
     </div>
 </div>

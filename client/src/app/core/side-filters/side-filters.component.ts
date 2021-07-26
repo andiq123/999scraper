@@ -51,5 +51,7 @@ export class SideFiltersComponent implements OnInit, OnDestroy {
     );
   }
 
-
+  onClearKeys() {
+    this.filters.keysToExclude = [];
+  }
 }

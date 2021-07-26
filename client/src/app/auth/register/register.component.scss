@@ -1,0 +1,38 @@
+@import "../../../vars";
+
+.login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50vh;
+  text-align: center;
+  .login-container {
+    width: 40%;
+    min-width: 300px;
+    form {
+      width: 100%;
+      display: flex;
+      flex-flow: column;
+      input,
+      button {
+        padding: 10px;
+        margin: 8px;
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 1px 5px 1px rgb(219, 212, 212);
+      }
+      button {
+        cursor: pointer;
+        transition: background-color 200ms ease-in-out;
+        background-color: $status-color;
+        &:hover {
+          background-color: darken($status-color, 5%);
+        }
+        &:disabled {
+          cursor: no-drop;
+          filter: contrast(70%);
+        }
+      }
+    }
+  }
+}

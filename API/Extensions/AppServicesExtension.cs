@@ -1,7 +1,6 @@
-
-
 using Core.Interfaces;
 using Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
@@ -23,7 +22,7 @@ namespace API.Extensions
              .WithOrigins("https://localhost:4200")));
             services.AddSignalR();
 
-
+            services.AddDbContext<DataContext>(x => x.UseSqlite(config.GetConnectionString("DefaultConnection")));
             services.AddSingleton<ConnectionMultiplexer>(c =>
             {
                 var configuration = ConfigurationOptions.Parse(config.GetConnectionString("Redis"), true);

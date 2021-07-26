@@ -1,0 +1,27 @@
+@import "../../../vars";
+.home {
+  height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  flex-flow: column;
+  .info {
+    text-align: center;
+  }
+  .buttons-container {
+    button {
+      cursor: pointer;
+      color: white;
+      font-size: 1.9em;
+      background-color: $status-color;
+      border: none;
+      padding: 10px;
+      border-radius: 10px;
+      margin: 10px;
+      box-shadow: 0 1px 5px 1px rgb(216, 207, 207);
+      &:hover {
+        background-color: darken($status-color, 5%);
+      }
+    }
+  }
+}

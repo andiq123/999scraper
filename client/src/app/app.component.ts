@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { AuthService } from './auth/auth.service';
 import { SignalrService } from './core/signalr.service';
 
 @Component({
@@ -8,5 +9,7 @@ import { SignalrService } from './core/signalr.service';
 })
 export class AppComponent {
   title = 'client';
-  constructor() {}
+  constructor(private authService: AuthService) {
+    this.authService.loadUser();
+  }
 }

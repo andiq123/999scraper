@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
-import { BehaviorSubject } from 'rxjs';
+import { Subject } from 'rxjs';
 import { IProgress } from '../shared/models/progress';
 
 @Injectable({
@@ -10,7 +10,7 @@ export class SignalrService {
   private connection: signalR.HubConnection;
   private url = 'https://localhost:5001/progress';
 
-  private progressChangedSource = new BehaviorSubject<IProgress | null>(null);
+  private progressChangedSource = new Subject<IProgress | null>();
   public progressChanged$ = this.progressChangedSource.asObservable();
 
   constructor() {

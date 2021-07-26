@@ -8,6 +8,23 @@
   display: flex;
   flex-flow: column wrap;
   justify-content: space-around;
+  .filter-item {
+    margin: 15px 0;
+    .clearButton {
+      font-size: 0.7em;
+      margin-top: 20px;
+      border: none;
+      background-color: rgb(187, 115, 115);
+      border-radius: 5px;
+      padding: 3px;
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 1px 5px 1px rgb(228, 223, 223);
+      &:hover {
+        background-color: darken(rgb(187, 115, 115), 5%);
+      }
+    }
+  }
   select {
     padding: 7px 15px;
     border: none;
@@ -56,8 +73,4 @@
     font-size: 1em;
     padding: 5px 10px;
   }
-}
-
-.filter-item {
-  margin: 15px 0;
 }

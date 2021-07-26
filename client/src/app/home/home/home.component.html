@@ -1,1 +1,11 @@
-<p>home works!</p>
+<div class="home">
+    <div class="info">
+        <h1>Welcome to 999Scraper</h1>
+        <p>Here you can browse through 999.md without annoying ads!</p>
+    </div>
+
+    <div *ngIf="!(user$ | async)" class="buttons-container">
+        <Button routerLink="/auth/login">Login</Button>
+        <Button routerLink="/auth/register">Register</Button>
+    </div>
+</div>
