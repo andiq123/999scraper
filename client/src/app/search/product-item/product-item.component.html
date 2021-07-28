@@ -1,4 +1,4 @@
-<div class="product isGood" [ngClass]="{'isGood': product.isGood}" (mouseleave)="onCloseToolTip()">
+<div class="product" (mouseleave)="onCloseToolTip()">
     <a [href]="product.urlToProduct" target="_blank">
         <div class="image-container">
             <img [src]="product.thumbnailURL" [alt]="product.title">
@@ -18,5 +18,8 @@
                 </ng-container>
             </strong>
         </p>
+    </div>
+    <div class="actions">
+        <button (click)="onAddToFav()" class="AddToFav" [disabled]="addedToFav">Add to Favorite</button>
     </div>
 </div>

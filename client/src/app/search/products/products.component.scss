@@ -1,5 +1,11 @@
 @import "../../../vars";
 .products {
+  .noProducts {
+    width: 100%;
+    text-align: center;
+    color: rgb(212, 126, 126);
+    margin-top: 100px;
+  }
   .search-section {
     input {
       border: none;
@@ -27,7 +33,8 @@
   .loading {
     margin: 50px auto;
     width: 70%;
-
+    display: flex;
+    justify-content: center;
     .loading-bar {
       width: 100%;
       padding: 10px;

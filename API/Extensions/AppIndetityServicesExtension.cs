@@ -17,13 +17,18 @@ namespace API.Extensions
             services.AddScoped<TokenService>();
 
             services.AddIdentityCore<AppUser>(opt =>
-            {
-                opt.Password.RequiredUniqueChars = 0;
-                opt.Password.RequireNonAlphanumeric = false;
-                opt.Password.RequireUppercase = false;
-            })
-            .AddEntityFrameworkStores<DataContext>()
-            .AddSignInManager<SignInManager<AppUser>>();
+             {
+                 opt.Password.RequiredUniqueChars = 0;
+                 opt.Password.RequireNonAlphanumeric = false;
+                 opt.Password.RequireUppercase = false;
+                 opt.User.RequireUniqueEmail = true;
+             })
+            .AddRoles<IdentityRole>()
+            .AddRoleManager<RoleManager<IdentityRole>>()
+            .AddRoleValidator<RoleValidator<IdentityRole>>()
+            .AddSignInManager<SignInManager<AppUser>>()
+            .AddEntityFrameworkStores<DataContext>();
+
 
             services.AddAuthentication(auth =>
             {

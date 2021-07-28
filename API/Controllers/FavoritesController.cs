@@ -5,9 +5,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Core.Entities;
 using Infrastructure.Data;
-using Infrastructure.IdentityEntities;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -47,7 +45,7 @@ namespace API.Controllers
         }
 
         [HttpDelete("{productId}")]
-        public async Task<ActionResult> RemoveFromFavoritesAsync([FromQuery] Guid productId)
+        public async Task<ActionResult> RemoveFromFavoritesAsync(Guid productId)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var user = await _context.Users.Include(x => x.Products).FirstOrDefaultAsync(x => x.Id == userId);

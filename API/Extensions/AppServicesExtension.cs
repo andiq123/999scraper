@@ -1,4 +1,5 @@
 using Core.Interfaces;
+using Infrastructure.AutoMapper;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -13,6 +14,7 @@ namespace API.Extensions
         {
             services.AddScoped<IProductRepository, ProductRepository>();
             services.AddScoped<IRedisRepository, RedisRepository>();
+            services.AddAutoMapper(typeof(Mapper));
 
             services.AddCors(policy => policy.AddDefaultPolicy(x =>
              x.AllowAnyHeader()

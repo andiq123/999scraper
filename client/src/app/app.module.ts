@@ -8,6 +8,9 @@ import { CoreModule } from './core/core.module';
 import { FormsModule } from '@angular/forms';
 import { ToastrModule } from 'ngx-toastr';
 import { AuthInterceptor } from './core/_interceptors/auth.interceptor';
+import { ngxLoadingAnimationTypes, NgxLoadingModule } from 'ngx-loading';
+import { SharedModule } from './shared/shared.module';
+import { LoadingInterceptor } from './core/_interceptors/loading.interceptor';
 
 @NgModule({
   declarations: [AppComponent],
@@ -23,9 +26,18 @@ import { AuthInterceptor } from './core/_interceptors/auth.interceptor';
       positionClass: 'toast-bottom-right',
       preventDuplicates: true,
     }),
+    NgxLoadingModule.forRoot({
+      animationType: ngxLoadingAnimationTypes.threeBounce,
+      backdropBackgroundColour: 'rgba(0,0,0,0.1)',
+      backdropBorderRadius: '4px',
+      primaryColour: '#ffffff',
+      secondaryColour: '#ffffff',
+      tertiaryColour: '#ffffff',
+    }),
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
+    { provide: HTTP_INTERCEPTORS, useClass: LoadingInterceptor, multi: true },
   ],
   bootstrap: [AppComponent],
 })

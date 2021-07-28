@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, ReplaySubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
@@ -13,7 +14,7 @@ export class AuthService {
   private userSource = new ReplaySubject<IUser>(1);
   public User$ = this.userSource.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private router: Router) {}
 
   login(loginDto: ILoginDto): Observable<IUser> {
     return this.http.post<IUser>(this.baseUrl + 'login', loginDto).pipe(
@@ -34,6 +35,7 @@ export class AuthService {
   logOut() {
     localStorage.removeItem('token');
     this.userSource.next(undefined);
+    this.router.navigateByUrl('/');
   }
 
   loadUser() {
@@ -49,7 +51,12 @@ export class AuthService {
 
   private setUser(user: IUser) {
     localStorage.setItem('token', user.token);
+    user.isAdmin = this.getDecodedToken(user.token);
     this.userSource.next(user);
+  }
+
+  getDecodedToken(token: string) {
+    return !!JSON.parse(atob(token.split('.')[1])).role;
   }
 }
 

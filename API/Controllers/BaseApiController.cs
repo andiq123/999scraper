@@ -1,3 +1,6 @@
+using API.Services;
+using Core.DTOs;
+using Infrastructure.IdentityEntities;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
@@ -6,6 +9,9 @@ namespace API.Controllers
     [Route("api/[controller]")]
     public class BaseApiController : ControllerBase
     {
+    
+        public BaseApiController() { }
 
+     
     }
 }

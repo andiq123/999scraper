@@ -6,4 +6,5 @@ export class Filters {
   keysToExclude: string[] = [];
   redisId: string = '';
   productSearchCriteria: string = '';
+  signalRConnectionId: string = '';
 }

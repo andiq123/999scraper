@@ -1,0 +1,9 @@
+.admin-section {
+  margin-top: 10px;
+  display: flex;
+  flex-flow: row wrap;
+  .users-container {
+    box-shadow: 1px 4px 10px rgb(199, 184, 184);
+    border-radius: 10px;
+  }
+}

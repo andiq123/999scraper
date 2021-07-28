@@ -1,7 +1,7 @@
 import { Currency } from './currency';
 
 export interface IProduct {
-  id: number;
+  id: string;
   title: string;
   thumbnailURL: string;
   description: string;

@@ -1,0 +1,15 @@
+.noProducts {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: rgb(216, 120, 120);
+  width: 100%;
+  height: 60vh;
+}
+
+.items {
+  display: flex;
+  flex-flow: row wrap;
+  width: 100%;
+  justify-content: center;
+}

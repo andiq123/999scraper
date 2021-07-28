@@ -2,15 +2,13 @@
 .product {
   position: relative;
   width: 200px;
-  height: 350px;
+  min-height: 400px;
   background: white;
   border-radius: 20px;
   overflow: visible;
   box-shadow: 1px 1px 7px 1px rgb(190, 183, 183);
   margin: 40px 15px;
-  &.isGood {
-    border: 2px solid red;
-  }
+
   a {
     .image-container {
       border-radius: 20px 20px 0 0;
@@ -35,6 +33,27 @@
     p {
       text-align: center;
       margin: 20px;
+    }
+  }
+  .actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    .AddToFav {
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 1px 5px 1px rgb(216, 208, 208);
+      background-color: $status-color;
+      color: white;
+      padding: 10px;
+      cursor: pointer;
+      margin-bottom: 20px;
+      &:hover {
+        background-color: darken($status-color, 5%);
+      }
+      &:disabled {
+        background-color: rgb(185, 167, 167);
+      }
     }
   }
 }

@@ -52,4 +52,10 @@ export class SearchService {
     filters.productSearchCriteria = searchCriteria;
     this.filtersSource.next(filters);
   }
+
+  addSignalrToFilters(connectionId: string) {
+    const filters = this.filtersSource.getValue();
+    filters.signalRConnectionId = connectionId;
+    this.updateFilters(filters);
+  }
 }

@@ -1,0 +1,14 @@
+<h1>Favorite Products</h1>
+
+<ng-container *ngIf="!loading && products && products.length > 0">
+  <div class="items">
+    <app-fav-item *ngFor="let product of products" [product]="product" (onProductRemoved)="onRemoveProduct($event)">
+    </app-fav-item>
+  </div>
+</ng-container>
+
+<ng-container *ngIf="!loading && products && products.length === 0">
+  <div class="noProducts">
+    <h1>You don't have any product in your library...</h1>
+  </div>
+</ng-container>

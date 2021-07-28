@@ -1,4 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { ToastrService } from 'ngx-toastr';
+import { FavoriteService } from 'src/app/fav/favorite.service';
 import { Currency } from 'src/app/shared/models/currency';
 import { IProduct } from 'src/app/shared/models/product';
 
@@ -11,7 +13,10 @@ export class ProductItemComponent implements OnInit {
   @Input() product!: IProduct;
   currency = Currency;
 
-  constructor() {}
+  constructor(
+    private favService: FavoriteService,
+    private toastrService: ToastrService
+  ) {}
 
   ngOnInit(): void {}
 
@@ -34,5 +39,19 @@ export class ProductItemComponent implements OnInit {
       this.showToolTip = false;
       clearTimeout(this.timeOut);
     }, this.timeOutTime * 1000);
+  }
+
+  addedToFav: boolean = false;
+  onAddToFav() {
+    this.favService.addProductToFav(this.product).subscribe(
+      () => {
+        this.toastrService.success('Product added to favorite');
+        this.addedToFav = true;
+      },
+      (e) => {
+        this.addedToFav = true;
+        this.toastrService.error('This product is already in your favorites');
+      }
+    );
   }
 }

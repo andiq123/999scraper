@@ -1,0 +1,1 @@
+dotnet ef migrations remove -p Infrastructure/ -s API/ 

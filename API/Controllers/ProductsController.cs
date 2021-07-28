@@ -1,3 +1,5 @@
+using System;
+using System.Threading;
 using System.Threading.Tasks;
 using API.Hubs;
 using Core.Entities;
@@ -24,12 +26,15 @@ namespace API.Controllers
 
 
         [HttpPost]
-        public async Task<ActionResult<ProductsContainer>> GetAsync([FromBody] Filters filters)
+        public async Task<ActionResult<ProductsContainer>> GetAsync([FromBody] Filters filters, CancellationToken token)
         {
-            _repo.ProgressChanged += async (object sender, ProgressReport args) =>
+            if (!string.IsNullOrEmpty(filters.SignalRConnectionId))
             {
-                await _hubContext.Clients.All.SendAsync("ProgressChanged", args);
-            };
+                _repo.ProgressChanged += async (object sender, ProgressReport args) =>
+                {
+                    await _hubContext.Clients.Client(filters.SignalRConnectionId).SendAsync("ProgressChanged", args);
+                };
+            }
 
             if (!string.IsNullOrEmpty(filters.RedisId))
             {
@@ -43,7 +48,7 @@ namespace API.Controllers
             }
 
             var filtersForUrl = new FiltersForUrl();
-            var products = await _repo.GetProductsAsync(filters.ProductSearchCriteria, filtersForUrl);
+            var products = await _repo.GetProductsAsync(filters.ProductSearchCriteria, filtersForUrl, token);
             if (products == null || products.Count == 0) return NotFound("No Products Found");
             var productsContainer = new ProductsContainer(products);
             var fromRedis = await _redisRepository.UpdateContainerAsync(productsContainer);

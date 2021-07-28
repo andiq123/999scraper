@@ -17,6 +17,8 @@ namespace Core.Entities
         public string RedisId { get; set; }
 
         public string ProductSearchCriteria { get; set; }
+
+        public string SignalRConnectionId { get; set; }
     }
 }
 

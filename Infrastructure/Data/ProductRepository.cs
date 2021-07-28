@@ -28,11 +28,11 @@ namespace Infrastructure.Data
 
 
 
-        public async Task<IReadOnlyList<Product>> GetProductsAsync(string productName, FiltersForUrl filters)
+        public async Task<IReadOnlyList<Product>> GetProductsAsync(string productName, FiltersForUrl filters, CancellationToken token)
         {
             var url = _searchQuery + productName;
             url = url.AttribFiltersForUrl(filters);
-            var document = await GetDocument.GetDocumentAsync(_client, url);
+            var document = await GetDocument.GetDocumentAsync(_client, url, token);
             int indexer = 0;
             List<Product> productList = new List<Product>();
             try
@@ -50,12 +50,13 @@ namespace Infrastructure.Data
                 }
                 for (int i = 1; i <= totalPages; i++)
                 {
+                    token.ThrowIfCancellationRequested();
                     url = _searchQuery + productName + "&page=" + i;
                     url = url.AttribFiltersForUrl(filters);
-                    document = await GetDocument.GetDocumentAsync(_client, url);
+                    document = await GetDocument.GetDocumentAsync(_client, url, token);
                     var rawProducts = document.QuerySelectorAll(".ads-list-detail-item   ");
                     populateTheList(ref productList, ref rawProducts, ref indexer);
-
+                    // await Task.Delay(500);
                     var percentage = (int)Math.Round((decimal)i / totalPages * 100);
                     ProgressChanged.Invoke(this, new ProgressReport(i, totalPages, percentage));
                 }

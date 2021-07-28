@@ -16,11 +16,11 @@ namespace Infrastructure.Migrations
             modelBuilder
                 .HasAnnotation("ProductVersion", "5.0.8");
 
-            modelBuilder.Entity("Core.Entities.Product", b =>
+            modelBuilder.Entity("Core.Entities.FavProduct", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("AppUserId")
                         .HasColumnType("TEXT");
@@ -55,6 +55,44 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AppUserId");
+
+                    b.ToTable("FavProduct");
+                });
+
+            modelBuilder.Entity("Core.Entities.Product", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Currency")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsBoosted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsGood")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("Price")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PriceString")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ThumbnailURL")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UrlToProduct")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
 
                     b.ToTable("Products");
                 });
@@ -251,7 +289,7 @@ namespace Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens");
                 });
 
-            modelBuilder.Entity("Core.Entities.Product", b =>
+            modelBuilder.Entity("Core.Entities.FavProduct", b =>
                 {
                     b.HasOne("Infrastructure.IdentityEntities.AppUser", null)
                         .WithMany("Products")
