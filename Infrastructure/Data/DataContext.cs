@@ -1,4 +1,3 @@
-using System;
 using Core.Entities;
 using Infrastructure.IdentityEntities;
 using Microsoft.AspNetCore.Identity;
@@ -11,8 +10,7 @@ namespace Infrastructure.Data
     {
         public DataContext(DbContextOptions<DataContext> options) : base(options) { }
 
-        public DbSet<Product> Products { get; set; }
-
-
+        public DbSet<FavProduct> Products { get; set; }
+        public DbSet<Activity> Activities { get; set; }
     }
 }

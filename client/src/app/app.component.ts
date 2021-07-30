@@ -1,15 +1,7 @@
-import {
-  AfterContentInit,
-  AfterViewChecked,
-  ChangeDetectorRef,
-  Component,
-  OnDestroy,
-  OnInit,
-} from '@angular/core';
-import { Observable, Subscription } from 'rxjs';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { AuthService } from './auth/auth.service';
 import { FullScreenLoadingService } from './core/_services/fullScreenLoading.service';
-import { SignalrService } from './core/_services/signalr.service';
 
 @Component({
   selector: 'app-root',
@@ -28,6 +20,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.authService.loadUser();
+
     this.subscriptions.push(
       this.fullScreenLoading.isLoading$.subscribe((isLoading) => {
         this.showLoading = isLoading;

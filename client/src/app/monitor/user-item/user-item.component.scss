@@ -3,7 +3,7 @@
   flex-flow: row wrap;
   justify-content: space-between;
   align-items: center;
-  width: 250px;
+  width: 90%;
   margin: 10px;
   padding: 10px;
   cursor: pointer;
@@ -22,10 +22,25 @@
       padding: 7px;
       border: none;
       border-radius: 10px;
+    }
+    .block {
       background-color: rgb(196, 110, 110);
       &:hover {
         background-color: darken(rgb(196, 110, 110), 5%);
       }
     }
+
+    .unblock {
+      background-color: rgb(97, 172, 97);
+      &:hover {
+        background-color: darken(rgb(97, 172, 97), 5%);
+      }
+    }
+  }
+}
+
+@media only screen and (max-width: 800px) {
+  .user {
+    width: 97%;
   }
 }

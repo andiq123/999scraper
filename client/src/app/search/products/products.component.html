@@ -5,12 +5,20 @@
             <button class="btn active" type="submit" [disabled]="form.invalid">Search</button>
         </div>
     </form>
+
+
+    <div class="products-count-info" *ngIf="!loading && products.length > 0;">
+        <p>There are <strong>{{products.length}}</strong> products</p>
+    </div>
+
     <div class="products-container" *ngIf="!loading && products.length > 0;">
         <app-product-item *ngFor="let product of products" [product]="product"></app-product-item>
     </div>
-    <div class="noProducts">
+
+    <div *ngIf="!initial" class="noProducts">
         <h3 *ngIf="!loading && products.length ===0">No Products Found, try changing the filters</h3>
     </div>
+    
     <div class="loading" *ngIf="loading" style="display:flex;flex-flow: column; justify-content: center;">
         <ng-container *ngIf="progress$ | async as progress;else apploading">
             <div class="loading-bar"
@@ -27,4 +35,5 @@
         </ng-template>
         <button class="btn" style="width: 30%; margin:10px auto;" (click)="onCancel()">Cancel</button>
     </div>
+
 </div>

@@ -9,7 +9,6 @@ import { FormsModule } from '@angular/forms';
 import { ToastrModule } from 'ngx-toastr';
 import { AuthInterceptor } from './core/_interceptors/auth.interceptor';
 import { ngxLoadingAnimationTypes, NgxLoadingModule } from 'ngx-loading';
-import { SharedModule } from './shared/shared.module';
 import { LoadingInterceptor } from './core/_interceptors/loading.interceptor';
 
 @NgModule({

@@ -1,15 +1,20 @@
 <div class="navigation">
-    <div class="logo">
-        <h2>999Scraper</h2>
+    <button class="trigger" (click)="toggleShow()">Menu</button>
+    <div class="content" *ngIf="show">
+        <div class="logo">
+            <h2>999Scraper</h2>
+        </div>
+        <div class="actions">
+            <button class="btn" routerLink="/" routerLinkActive="active"
+                [routerLinkActiveOptions]="{exact:true}">Home</button>
+            <ng-container *ngIf="(user$ | async) as user ">
+                <button *ngIf="user.isAdmin" class="btn" routerLink="/monitor"
+                    routerLinkActive="active">Monitor</button>
+                <button class="btn" routerLink="/search" routerLinkActive="active">Search</button>
+                <button class="btn" routerLink="/fav" routerLinkActive="active">Favorites</button>
+                <button class="btn" (click)="onLogout()">Logout</button>
+            </ng-container>
+        </div>
     </div>
-    <div class="actions">
-        <button class="btn" routerLink="/" routerLinkActive="active"
-            [routerLinkActiveOptions]="{exact:true}">Home</button>
-        <ng-container *ngIf="(user$ | async) as user ">
-            <button *ngIf="user.isAdmin" class="btn" routerLink="/monitor" routerLinkActive="active">Monitor</button>
-            <button class="btn" routerLink="/search" routerLinkActive="active">Search</button>
-            <button class="btn" routerLink="/fav" routerLinkActive="active">Favorites</button>
-            <button class="btn" (click)="onLogout()">Logout</button>
-        </ng-container>
-    </div>
+
 </div>

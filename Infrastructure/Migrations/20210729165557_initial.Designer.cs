@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20210728181952_initial")]
+    [Migration("20210729165557_initial")]
     partial class initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -17,6 +17,28 @@ namespace Infrastructure.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "5.0.8");
+
+            modelBuilder.Entity("Core.Entities.Activity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AppUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("DateTime")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppUserId");
+
+                    b.ToTable("Activities");
+                });
 
             modelBuilder.Entity("Core.Entities.FavProduct", b =>
                 {
@@ -58,44 +80,6 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("AppUserId");
 
-                    b.ToTable("FavProduct");
-                });
-
-            modelBuilder.Entity("Core.Entities.Product", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Currency")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsBoosted")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsGood")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("Price")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("PriceString")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ThumbnailURL")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Title")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UrlToProduct")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
                     b.ToTable("Products");
                 });
 
@@ -117,6 +101,9 @@ namespace Infrastructure.Migrations
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("LastActive")
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("INTEGER");
@@ -291,6 +278,13 @@ namespace Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens");
                 });
 
+            modelBuilder.Entity("Core.Entities.Activity", b =>
+                {
+                    b.HasOne("Infrastructure.IdentityEntities.AppUser", null)
+                        .WithMany("Activities")
+                        .HasForeignKey("AppUserId");
+                });
+
             modelBuilder.Entity("Core.Entities.FavProduct", b =>
                 {
                     b.HasOne("Infrastructure.IdentityEntities.AppUser", null)
@@ -351,6 +345,8 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Infrastructure.IdentityEntities.AppUser", b =>
                 {
+                    b.Navigation("Activities");
+
                     b.Navigation("Products");
                 });
 #pragma warning restore 612, 618

@@ -1,13 +1,17 @@
-<div class="user">
-  <div class="info" (click)="selectUser()">
+<div class="user" (click)="selectUser()">
+  <div class="info">
     <div class="name">
       {{user.username}}
     </div>
     <div class="email">
       {{ user.email }}
     </div>
+    <div class="online-status">
+      <p>{{user.lastActive | timeago}}</p>
+    </div>
   </div>
   <div class="actions">
-    <button>Block</button>
+    <button class="block" (click)="onBanUser()" *ngIf="!isAlreadyBanned">Block</button>
+    <button class="unblock" (click)="onUnBanUser()" *ngIf="isAlreadyBanned">Unblock</button>
   </div>
 </div>

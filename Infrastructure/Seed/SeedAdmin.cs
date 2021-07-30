@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Infrastructure.IdentityEntities;
@@ -12,9 +13,9 @@ namespace Infrastructure.Seed
         {
             if (!await userManager.Users.AnyAsync())
             {
-                await roleManager.CreateAsync(new IdentityRole() { Id = "Asbdsac", Name = "Admin" });
+                await roleManager.CreateAsync(new IdentityRole() { Id = Guid.NewGuid().ToString(), Name = "Admin" });
 
-                var user = new AppUser { Id = "asbdxz", Email = "Andi@gmail.com", UserName = "AndiQ" };
+                var user = new AppUser { Id = Guid.NewGuid().ToString(), Email = "Andi@gmail.com", UserName = "AndiQ" };
                 await userManager.CreateAsync(user, "AdminPassword1");
 
                 await userManager.AddToRoleAsync(user, "Admin");

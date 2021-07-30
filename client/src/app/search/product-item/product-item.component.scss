@@ -2,7 +2,7 @@
 .product {
   position: relative;
   width: 200px;
-  min-height: 400px;
+  min-height: 430px;
   background: white;
   border-radius: 20px;
   overflow: visible;
@@ -53,6 +53,30 @@
       }
       &:disabled {
         background-color: rgb(185, 167, 167);
+      }
+    }
+  }
+}
+
+@media only screen and (max-width: 1000px) {
+  .product {
+    width: 80%;
+    margin: 20px 20px;
+    .actions {
+      .AddToFav {
+        width: 80%;
+      }
+    }
+  }
+}
+
+@media only screen and (max-width: 800px) {
+  .product {
+    width: 100%;
+    margin: 20px 0;
+    .actions {
+      .AddToFav {
+        width: 80%;
       }
     }
   }

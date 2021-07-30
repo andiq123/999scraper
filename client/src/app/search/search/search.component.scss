@@ -1,23 +1,22 @@
 @import "../../../vars";
 
 .main {
-  background: $gradient-background;
+  background-image: $gradient-background;
   background: fixed;
-  width: 100vw;
-  height: 100vh;
-  padding: 15px 25px;
+  width: 100%;
+  padding: 10px;
   position: relative;
-  .sidebar {
-    width: 15%;
+  display: grid;
+  grid-template-columns: 230px auto;
+  grid-column-gap: 20px;
+}
 
-    top: 0;
-    left: 0;
+@media only screen and (max-width: 850px) {
+  .main {
+    display: block;
   }
 
-  .content {
-    width: 77%;
-    position: absolute;
-    top: 15px;
-    left: 20%;
+  .sidebar {
+    display: none;
   }
 }

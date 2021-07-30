@@ -6,7 +6,7 @@ import {
   RouterStateSnapshot,
   UrlTree,
 } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { AuthService } from 'src/app/auth/auth.service';
 
@@ -20,6 +20,10 @@ export class AdminGuard implements CanActivate {
     route: ActivatedRouteSnapshot,
     state: RouterStateSnapshot
   ): Observable<boolean> {
+    if (!localStorage.getItem('token')) {
+      this.router.navigateByUrl('/');
+      return of(false);
+    }
     return this.authService.User$.pipe(
       map((user) => {
         if (user.isAdmin) return true;

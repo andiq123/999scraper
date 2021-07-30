@@ -1,10 +1,29 @@
 <div class="admin-section">
+
   <div class="users-container">
-    <h1>Users - {{users.length}}</h1>
-    <div *ngIf="users.length > 0"></div>
-    <app-user-item *ngFor="let user of users" [user]="user" (onSelectUser)="onSelectUser($event)"></app-user-item>
+    <div class="header">
+      <h1>Users - {{users.length}}</h1>
+    </div>
+    <input type="text" [(ngModel)]="searchUserCriteria" (input)="onSearchUser()" placeholder="Search for user...">
+    <div *ngIf="usersLoaded && users.length ===0">
+      <h3>No users registered</h3>
+    </div>
+    <div *ngIf="users.length > 0" class="usersOverFlow">
+      <app-user-item *ngFor="let user of filteredUsers" [user]="user" (onSelectUser)="onSelectUser($event)">
+      </app-user-item>
+    </div>
   </div>
+
   <div class="activity-container">
-    Here goes acitivites
+    <div class="header">
+      <h1>Activity<span *ngIf="activityLoaded"> - {{activities.length}}</span></h1>
+    </div>
+    <div *ngIf="activityLoaded && activities.length ===0">
+      <h3 style="text-align: center;">No Activity for this user</h3>
+    </div>
+    <div *ngIf="activities.length > 0" class="activitiesOverFlow">
+      <app-activity-item *ngFor="let activity of activities" [activity]="activity"></app-activity-item>
+    </div>
   </div>
+
 </div>

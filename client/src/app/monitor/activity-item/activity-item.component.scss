@@ -1,0 +1,23 @@
+.activity {
+  box-shadow: 1px 1px 5px rgb(224, 213, 213);
+  margin: 10px;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  border-radius: 10px;
+  &:hover {
+    background-color: darken(white, 5%);
+  }
+
+  .date-holder {
+    font-size: 0.8rem;
+    font-style: italic;
+  }
+}
+
+@media only screen and (max-width: 800px) {
+  .activity {
+    flex-flow: column;
+    text-align: center;
+  }
+}

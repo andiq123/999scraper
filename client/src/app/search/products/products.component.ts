@@ -13,6 +13,7 @@ import { SearchService } from '../search.service';
 })
 export class ProductsComponent implements OnInit, OnDestroy {
   subscriptions: Subscription[] = [];
+  initial = true;
   products: IProduct[] = [];
   loading: boolean = false;
   progress$!: Observable<IProgress | null>;
@@ -24,12 +25,12 @@ export class ProductsComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnDestroy(): void {
-    this.signalr.disconnect();
+    this.signalr.stop();
     this.subscriptions.forEach((x) => x.unsubscribe());
   }
 
   ngOnInit(): void {
-    this.signalr.connect();
+    this.signalr.start();
     this.progress$ = this.signalr.progressChanged$;
     this.subscriptions.push(
       this.searchService.filters$.subscribe((data) => {
@@ -41,6 +42,7 @@ export class ProductsComponent implements OnInit, OnDestroy {
         if (connectionId) this.searchService.addSignalrToFilters(connectionId);
       })
     );
+    this.loadProducts('iphone 7');
   }
 
   onSubmit() {
@@ -62,6 +64,7 @@ export class ProductsComponent implements OnInit, OnDestroy {
       (products: IProduct[]) => {
         this.products = products;
         this.loading = false;
+        this.initial = false;
       },
       (e) => {
         console.log(e);

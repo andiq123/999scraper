@@ -1,6 +1,9 @@
 @import "../../../vars";
 
 .filters {
+  position: sticky;
+  top: 0;
+
   box-shadow: 1px 1px 5px 1px rgb(235, 230, 230);
   border-radius: 10px;
   padding: 30px;
@@ -19,7 +22,8 @@
       padding: 3px;
       color: white;
       cursor: pointer;
-      box-shadow: 0 1px 5px 1px rgb(228, 223, 223);
+      padding: 5px 10px;
+      box-shadow: 0 1px 5px 1px rgb(224, 211, 211);
       &:hover {
         background-color: darken(rgb(187, 115, 115), 5%);
       }

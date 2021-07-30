@@ -57,6 +57,7 @@ namespace API
 
                 endpoints.MapControllers();
                 endpoints.MapHub<ProgressHub>("/progress");
+                endpoints.MapHub<UserAccountHub>("/userAccount");
             });
         }
     }

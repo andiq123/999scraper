@@ -1,0 +1,34 @@
+<div class="fullscreen-filters">
+  <button class="trigger-button" (click)="toggleShow()">Filters</button>
+  <div class="content" *ngIf="show">
+    <div class="filter-item">
+      <h3>Order by:</h3>
+      <select [(ngModel)]="filters.order">
+        <option *ngFor="let item of order" [value]="item">{{item}}</option>
+      </select>
+    </div>
+    <div class="filter-item">
+      <h3>Conditions:</h3>
+      <div class="checkbox-item">
+        <p>Exclude Boosted</p>
+        <input type="checkbox" [(ngModel)]="filters.excludeBoosted">
+      </div>
+      <div class="checkbox-item">
+        <p>Exclude Price Negotiable</p>
+        <input type="checkbox" [(ngModel)]="filters.excludePriceNegotiable">
+      </div>
+      <div class="checkbox-item">
+        <p>Exclude Other Ads</p>
+        <input type="checkbox" [(ngModel)]="filters.excludeOtherAds">
+      </div>
+    </div>
+    <div class="filter-item">
+      <h3>Exclude Words:</h3>
+      <input #input type="text" placeholder="Word..." (keydown.enter)="onAddKey($event)">
+      <div class="keys" *ngIf="filters.keysToExclude as itemsToExclude">
+        <button *ngFor="let word of itemsToExclude" (click)="removeWordFromList(word)">{{word}}</button>
+      </div>
+      <button *ngIf="filters.keysToExclude.length>0" class="clearButton" (click)="onClearKeys()">Clear</button>
+    </div>
+  </div>
+</div>

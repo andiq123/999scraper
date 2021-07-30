@@ -15,13 +15,14 @@ namespace API.Extensions
             services.AddScoped<IProductRepository, ProductRepository>();
             services.AddScoped<IRedisRepository, RedisRepository>();
             services.AddAutoMapper(typeof(Mapper));
+            services.AddScoped<ActivityRepository>();
 
             services.AddCors(policy => policy.AddDefaultPolicy(x =>
              x.AllowAnyHeader()
              .AllowAnyMethod()
              .AllowAnyOrigin()
              .AllowCredentials()
-             .WithOrigins("https://localhost:4200")));
+             .WithOrigins("https://192.168.1.67:4200")));
             services.AddSignalR();
 
             services.AddDbContext<DataContext>(x => x.UseSqlite(config.GetConnectionString("DefaultConnection")));

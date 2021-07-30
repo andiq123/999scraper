@@ -1,9 +1,11 @@
 using System;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using API.Hubs;
 using Core.Entities;
 using Core.Interfaces;
+using Infrastructure.Data;
 using Infrastructure.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,10 +18,18 @@ namespace API.Controllers
     {
         private readonly IProductRepository _repo;
         private readonly IRedisRepository _redisRepository;
-        private readonly IHubContext<ProgressHub> _hubContext;
-        public ProductsController(IProductRepository repo, IRedisRepository redisRepository, IHubContext<ProgressHub> hubContext)
+        private readonly IHubContext<ProgressHub> _progressContext;
+        private readonly IHubContext<UserAccountHub> _userAccountContext;
+        private readonly ActivityRepository _activityRepository;
+        public ProductsController(IProductRepository repo,
+                                    IRedisRepository redisRepository,
+                                    IHubContext<ProgressHub> progressContext,
+                                    IHubContext<UserAccountHub> userAccountContext,
+                                    ActivityRepository activityRepository)
         {
-            _hubContext = hubContext;
+            _activityRepository = activityRepository;
+            _progressContext = progressContext;
+            _userAccountContext = userAccountContext;
             _redisRepository = redisRepository;
             _repo = repo;
         }
@@ -32,7 +42,7 @@ namespace API.Controllers
             {
                 _repo.ProgressChanged += async (object sender, ProgressReport args) =>
                 {
-                    await _hubContext.Clients.Client(filters.SignalRConnectionId).SendAsync("ProgressChanged", args);
+                    await _progressContext.Clients.Client(filters.SignalRConnectionId).SendAsync("ProgressChanged", args);
                 };
             }
 
@@ -47,6 +57,13 @@ namespace API.Controllers
                 }
             }
 
+            //logActivity
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var activity = await _activityRepository.AddActivityForUser(userId, filters.ProductSearchCriteria);
+            await InvokeLastUpdatedAsync(userId, DateTime.Now);
+            await InvokeActivityAddedAsync(userId, activity);
+
+
             var filtersForUrl = new FiltersForUrl();
             var products = await _repo.GetProductsAsync(filters.ProductSearchCriteria, filtersForUrl, token);
             if (products == null || products.Count == 0) return NotFound("No Products Found");
@@ -56,6 +73,16 @@ namespace API.Controllers
             if (fromRedis.Products.Count == 0) return NotFound("No Products Found");
 
             return Ok(fromRedis);
+        }
+
+        private async Task InvokeLastUpdatedAsync(string userId, DateTime time)
+        {
+            await _userAccountContext.Clients.All.SendAsync("LastActiveUpdated", new { userId = userId, lastActive = time });
+        }
+
+        private async Task InvokeActivityAddedAsync(string userId, Activity activity)
+        {
+            await _userAccountContext.Clients.All.SendAsync("ActivityAdded", new { userId = userId, activity = activity });
         }
 
     }

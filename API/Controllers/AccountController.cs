@@ -1,6 +1,7 @@
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using API.Hubs;
 using API.Services;
 using Core.DTOs;
 using Infrastructure.Data;
@@ -8,6 +9,7 @@ using Infrastructure.IdentityEntities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers
@@ -18,27 +20,38 @@ namespace API.Controllers
         private readonly UserManager<AppUser> _userManager;
         private readonly DataContext _context;
         private readonly TokenService _tokenService;
+        private readonly IHubContext<UserAccountHub> _hubContext;
 
-        public AccountController(SignInManager<AppUser> singInManager, UserManager<AppUser> userManager, DataContext context, TokenService tokenService)
+        public AccountController(SignInManager<AppUser> singInManager,
+        UserManager<AppUser> userManager,
+         DataContext context,
+         TokenService tokenService,
+         IHubContext<UserAccountHub> hubContext)
         {
             _tokenService = tokenService;
             _context = context;
             _userManager = userManager;
             _singInManager = singInManager;
+            _hubContext = hubContext;
         }
-
-
 
         [Authorize]
         [HttpGet("current")]
         public async Task<ActionResult<UserDto>> GetCurrentUser()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            Console.WriteLine(userId);
             var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
             if (user == null) return NotFound(new { error = "User not found" });
+
+            user.LastActive = DateTime.Now;
+            await _context.SaveChangesAsync();
+            await InvokeLastUpdatedAsync(user.Id, user.LastActive);
+
+            if (user.LockoutEnabled) return Unauthorized("Account banned");
+
             return await ReturnUserDtoFromUser(user);
         }
+
 
         [HttpPost("login")]
         public async Task<ActionResult<UserDto>> LoginAsync([FromBody] LoginDto loginDto)
@@ -52,6 +65,12 @@ namespace API.Controllers
             var passwordCheck = await _singInManager.CheckPasswordSignInAsync(user, loginDto.Password, false);
             if (!passwordCheck.Succeeded)
                 return Unauthorized(new { error = "Username or Email or password incorrect" });
+
+            user.LastActive = DateTime.Now;
+            await _context.SaveChangesAsync();
+            await InvokeLastUpdatedAsync(user.Id, user.LastActive);
+
+            if (user.LockoutEnabled) return Unauthorized("Account banned");
             return await ReturnUserDtoFromUser(user);
         }
 
@@ -69,6 +88,18 @@ namespace API.Controllers
 
             var user = await _userManager.FindByEmailAsync(userToCreate.Email);
             if (user == null) return NotFound(new { error = "User created but not found in database..." });
+            user.LockoutEnabled = false;
+
+            user.LastActive = DateTime.Now;
+            await _context.SaveChangesAsync();
+
+            await _hubContext.Clients.All.SendAsync("UserRegistered", new UserDto()
+            {
+                Id = user.Id,
+                Email = user.Email,
+                Username = user.UserName,
+                LastActive = user.LastActive,
+            });
 
             return await ReturnUserDtoFromUser(user);
         }
@@ -79,8 +110,14 @@ namespace API.Controllers
             {
                 Email = user.Email,
                 Username = user.UserName,
-                Token = await _tokenService.CreateToken(user)
+                Token = await _tokenService.CreateToken(user),
+                LastActive = user.LastActive,
             };
+        }
+
+        private async Task InvokeLastUpdatedAsync(string userId, DateTime time)
+        {
+            await _hubContext.Clients.All.SendAsync("LastActiveUpdated", new { userId = userId, lastActive = time });
         }
     }
 }

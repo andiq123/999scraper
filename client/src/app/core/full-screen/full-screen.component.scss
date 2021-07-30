@@ -1,0 +1,108 @@
+.fullscreen-filters {
+  background-color: white;
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translate(-50%);
+  width: 50%;
+  box-shadow: 1px 5px 15px 1px rgb(167, 156, 156);
+  border-radius: 10px;
+  z-index: 9999;
+
+  .trigger-button {
+    cursor: pointer;
+    border-radius: 10px;
+    width: 100%;
+    border: none;
+    padding: 10px;
+    background-color: darken(white, 10%);
+    color: rgb(36, 34, 34);
+    font-weight: bold;
+    font-size: 1.2rem;
+    &:hover {
+      background-color: darken(white, 12%);
+    }
+  }
+
+  .content {
+    padding: 30px;
+    text-align: center;
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: space-around;
+    .filter-item {
+      margin: 15px 0;
+      .clearButton {
+        font-size: 0.7em;
+        margin-top: 20px;
+        border: none;
+        background-color: rgb(187, 115, 115);
+        border-radius: 5px;
+        padding: 3px;
+        color: white;
+        cursor: pointer;
+        padding: 5px 10px;
+        box-shadow: 0 1px 5px 1px rgb(224, 211, 211);
+        &:hover {
+          background-color: darken(rgb(187, 115, 115), 5%);
+        }
+      }
+    }
+    select {
+      padding: 7px 15px;
+      border: none;
+      border-radius: 10px;
+      box-shadow: 1px 1px 5px 1px rgb(230, 221, 221);
+      background: white;
+    }
+    .checkbox-item {
+      text-align: start;
+      display: flex;
+      align-items: center;
+      p {
+        font-size: 0.8em;
+      }
+      border-bottom: 1px solid gray;
+      margin-bottom: 10px;
+    }
+    input {
+      width: 100%;
+      border: none;
+      padding: 3px;
+      border-radius: 5px;
+      font-size: 0.9em;
+      box-shadow: 1px 1px 7px 1px rgb(226, 219, 219);
+    }
+    h5 {
+      margin-top: 20px;
+    }
+    .keys {
+      margin-top: 5px;
+      display: flex;
+      flex-flow: row wrap;
+      overflow-y: auto;
+      max-height: 50px;
+
+      button {
+        padding: 5px;
+        border-radius: 5px;
+        background: rgb(236, 229, 229);
+        margin: 3px;
+        border: none;
+      }
+    }
+
+    .btn {
+      font-size: 1em;
+      padding: 5px 10px;
+    }
+  }
+}
+
+@media only screen and (max-width: 850px) {
+  .fullscreen-filters {
+    display: block;
+    width: 90%;
+  }
+}
