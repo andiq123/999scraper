@@ -12,7 +12,7 @@ namespace Infrastructure.Helpers
     {
         public static async Task<IHtmlDocument> GetDocumentAsync(HttpClient client, string url, CancellationToken token)
         {
-            var debug = 1;
+            var debug = 0;
             if (debug == 0)
             {
                 using (HttpResponseMessage request = await client.GetAsync(new Uri(url), HttpCompletionOption.ResponseHeadersRead, token))

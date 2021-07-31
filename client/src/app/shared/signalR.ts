@@ -9,6 +9,7 @@ export class SignalR {
   constructor(hubName: string) {
     this.hubName = hubName;
     this.connection = new signalR.HubConnectionBuilder()
+      .configureLogging(signalR.LogLevel.None)
       .withUrl(this.url + this.hubName)
       .build();
   }

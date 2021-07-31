@@ -42,7 +42,6 @@ export class ProductsComponent implements OnInit, OnDestroy {
         if (connectionId) this.searchService.addSignalrToFilters(connectionId);
       })
     );
-    this.loadProducts('iphone 7');
   }
 
   onSubmit() {

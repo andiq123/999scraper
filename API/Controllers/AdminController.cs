@@ -42,25 +42,15 @@ namespace API.Controllers
             return Ok(user.Activities.ToList());
         }
 
-        [HttpPost("{userId}/block")]
-        public async Task<ActionResult<IReadOnlyList<Activity>>> BlockUserAsync(string userId)
+        [HttpPost("{userId}/blockUnBlock")]
+        public async Task<IActionResult> BlockUserAsync(string userId)
         {
             var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
             if (user == null) return NotFound("No user found");
-            if (user.LockoutEnd > DateTime.Now) return BadRequest("This user is already banned");
-            user.LockoutEnabled = true;
+            user.LockoutEnabled = !user.LockoutEnabled;
             await _context.SaveChangesAsync();
-            return Ok();
+            return Ok(new { status = user.LockoutEnabled });
         }
 
-        [HttpPost("{userId}/unblock")]
-        public async Task<ActionResult<IReadOnlyList<Activity>>> UnblockUserAsync(string userId)
-        {
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
-            if (user == null) return NotFound("No user found");
-            user.LockoutEnabled = false;
-            await _context.SaveChangesAsync();
-            return Ok();
-        }
     }
 }

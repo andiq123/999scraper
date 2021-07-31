@@ -33,7 +33,6 @@ export class SignalrUserRegisterService extends SignalR {
         });
 
         this.connection.on('ActivityAdded', (data: ActiviyUpdate) => {
-          console.log('gdfg');
           this.activityUpdatedSource.next(data);
         });
       })

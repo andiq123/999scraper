@@ -11,7 +11,7 @@
     </div>
   </div>
   <div class="actions">
-    <button class="block" (click)="onBanUser()" *ngIf="!isAlreadyBanned">Block</button>
-    <button class="unblock" (click)="onUnBanUser()" *ngIf="isAlreadyBanned">Unblock</button>
+    <button [ngClass]="isAlreadyBanned ? 'unblock' : 'block'" (click)="onBanUnbanUser()">{{isAlreadyBanned?"
+      Unblock":"Block"}}</button>
   </div>
 </div>

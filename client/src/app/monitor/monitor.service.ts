@@ -30,11 +30,10 @@ export class MonitorService {
       );
   }
 
-  blockUser(userId: string): Observable<void> {
-    return this.http.post<void>(this.baseUrl + userId + '/block', {});
-  }
-
-  unBlockUser(userId: string): Observable<void> {
-    return this.http.post<void>(this.baseUrl + userId + '/unBlock', {});
+  blockUnBlockUser(userId: string): Observable<{ status: boolean }> {
+    return this.http.post<{ status: boolean }>(
+      this.baseUrl + userId + '/blockUnBlock',
+      {}
+    );
   }
 }

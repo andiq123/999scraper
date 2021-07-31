@@ -45,6 +45,8 @@ namespace API
             app.UseHttpsRedirection();
 
             app.UseRouting();
+            app.UseStaticFiles();
+
             app.UseCors();
 
             app.UseAuthentication();
@@ -54,10 +56,10 @@ namespace API
 
             app.UseEndpoints(endpoints =>
             {
-
-                endpoints.MapControllers();
                 endpoints.MapHub<ProgressHub>("/progress");
                 endpoints.MapHub<UserAccountHub>("/userAccount");
+                endpoints.MapControllers();
+                endpoints.MapFallbackToController("Index", "Fallback");
             });
         }
     }

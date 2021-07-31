@@ -21,25 +21,14 @@ export class UserItemComponent implements OnInit {
   }
 
   isAlreadyBanned = false;
-  onBanUser() {
-    this.monitorService.blockUser(this.user.id).subscribe(
+  onBanUnbanUser() {
+    this.monitorService.blockUnBlockUser(this.user.id).subscribe(
       (data) => {
-        this.isAlreadyBanned = true;
+        this.isAlreadyBanned = data.status;
       },
       (e: HttpErrorResponse) => {
-        if (e.status === 401) {
-          this.isAlreadyBanned = true;
-        }
+        console.log(e);
       }
-    );
-  }
-
-  onUnBanUser() {
-    this.monitorService.unBlockUser(this.user.id).subscribe(
-      (data) => {
-        this.isAlreadyBanned = false;
-      },
-      (e) => console.log(e)
     );
   }
 }
