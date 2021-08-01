@@ -22,10 +22,10 @@ namespace API.Extensions
              .AllowAnyMethod()
              .AllowAnyOrigin()
              .AllowCredentials()
-             .WithOrigins("https://192.168.1.67:4200")));
+             .WithOrigins("https://localhost:4200")));
             services.AddSignalR();
 
-            services.AddDbContext<DataContext>(x => x.UseSqlite(config.GetConnectionString("DefaultConnection")));
+            services.AddDbContext<DataContext>(x => x.UseNpgsql(config.GetConnectionString("DefaultConnection")));
             services.AddSingleton<ConnectionMultiplexer>(c =>
             {
                 var configuration = ConfigurationOptions.Parse(config.GetConnectionString("Redis"), true);

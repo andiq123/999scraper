@@ -18,6 +18,10 @@ namespace Infrastructure.Seed
                 var user = new AppUser { Id = Guid.NewGuid().ToString(), Email = "Andi@gmail.com", UserName = "AndiQ" };
                 await userManager.CreateAsync(user, "AdminPassword1");
 
+                var userFromDb = await userManager.FindByIdAsync(user.Id);
+                userFromDb.LockoutEnabled = false;
+                await userManager.UpdateAsync(userFromDb);
+
                 await userManager.AddToRoleAsync(user, "Admin");
             }
         }

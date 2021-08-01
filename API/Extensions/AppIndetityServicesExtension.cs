@@ -40,7 +40,7 @@ namespace API.Extensions
                 {
                     ValidateIssuer = true,
                     ValidIssuer = config["Token:Issuer"],
-                    ValidateAudience = true,
+                    ValidateAudience = false,
                     ValidAudience = config["Token:Audience"],
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Token:Key"])),
                     ValidateIssuerSigningKey = true,

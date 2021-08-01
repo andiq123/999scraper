@@ -15,7 +15,12 @@ export class SignalR {
   }
 
   protected async connect() {
-    await this.connection.start().catch((e) => console.log(e));
+    await this.connection
+      .start()
+      .then(() => {
+        console.log('connected');
+      })
+      .catch((e) => console.log(e));
   }
 
   protected async disconnect() {

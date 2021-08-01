@@ -50,7 +50,9 @@ export class AuthService {
   }
 
   private setUser(user: IUser) {
-    localStorage.setItem('token', user.token);
+    if (user.token) {
+      localStorage.setItem('token', user.token);
+    }
     user.isAdmin = this.getDecodedToken(user.token);
     this.userSource.next(user);
   }

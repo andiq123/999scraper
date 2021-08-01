@@ -27,7 +27,7 @@ export class AuthInterceptor implements HttpInterceptor {
     }
     return next.handle(request).pipe(
       catchError((e: HttpErrorResponse) => {
-        if (e.status === 401 && e.error.includes('banned')) {
+        if (e.status === 401 && e.error && e.error.includes('banned')) {
           this.toastr.error(e.error);
           this.router.navigateByUrl('/');
         }

@@ -43,9 +43,7 @@ export class LoginComponent implements OnInit {
         this.router.navigateByUrl('/search');
       },
       (e: HttpErrorResponse) => {
-        if (e.status === 401) {
-          this.toastrService.error('Username or password incorrect');
-        }
+        this.toastrService.error('Username or password incorrect');
       }
     );
   }
