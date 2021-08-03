@@ -1,7 +1,7 @@
-using System;
-using System.Threading.Tasks;
 using Core.Entities;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Threading.Tasks;
 
 namespace Infrastructure.Data
 {

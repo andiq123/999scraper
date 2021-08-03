@@ -1,9 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Infrastructure.IdentityEntities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Threading.Tasks;
 
 namespace Infrastructure.Seed
 {

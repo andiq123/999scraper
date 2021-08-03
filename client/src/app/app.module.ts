@@ -10,7 +10,6 @@ import { ToastrModule } from 'ngx-toastr';
 import { AuthInterceptor } from './core/_interceptors/auth.interceptor';
 import { ngxLoadingAnimationTypes, NgxLoadingModule } from 'ngx-loading';
 import { LoadingInterceptor } from './core/_interceptors/loading.interceptor';
-import { ServiceWorkerModule } from '@angular/service-worker';
 import { environment } from '../environments/environment';
 
 @NgModule({
@@ -34,12 +33,6 @@ import { environment } from '../environments/environment';
       primaryColour: '#ffffff',
       secondaryColour: '#ffffff',
       tertiaryColour: '#ffffff',
-    }),
-    ServiceWorkerModule.register('ngsw-worker.js', {
-      enabled: environment.production,
-      // Register the ServiceWorker as soon as the app is stable
-      // or after 30 seconds (whichever comes first).
-      registrationStrategy: 'registerWhenStable:30000'
     }),
   ],
   providers: [

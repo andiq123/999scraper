@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Infrastructure.Data;
 using Infrastructure.IdentityEntities;
 using Infrastructure.Seed;
@@ -12,6 +8,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace API
 {
@@ -24,6 +23,7 @@ namespace API
             var context = scope.ServiceProvider.GetRequiredService<DataContext>();
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
             try
             {
                 await context.Database.MigrateAsync();

@@ -4,6 +4,6 @@ namespace API.Hubs
 {
     public class ProgressHub : Hub
     {
-        
+
     }
 }

@@ -41,10 +41,9 @@ namespace API
                 app.UseDeveloperExceptionPage();
                 app.UseSwagger();
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1"));
+
             }
             app.UseMiddleware<ExceptionMiddleware>();
-
-            app.UseHttpsRedirection();
 
             app.UseRouting();
             app.UseStaticFiles();

@@ -1,6 +1,3 @@
-using System;
-using System.Security.Claims;
-using System.Threading.Tasks;
 using API.Hubs;
 using API.Services;
 using Core.DTOs;
@@ -11,6 +8,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace API.Controllers
 {
