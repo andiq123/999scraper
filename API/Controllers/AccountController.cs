@@ -43,7 +43,7 @@ namespace API.Controllers
             var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
             if (user == null) return NotFound(new { error = "User not found" });
 
-            user.LastActive = DateTime.Now;
+            user.LastActive = DateTime.Now.ToUniversalTime();
             await _context.SaveChangesAsync();
             await InvokeLastUpdatedAsync(user.Id, user.LastActive);
 
@@ -66,7 +66,7 @@ namespace API.Controllers
             if (!passwordCheck.Succeeded)
                 return Unauthorized(new { error = "Username or Email or password incorrect" });
 
-            user.LastActive = DateTime.Now;
+            user.LastActive = DateTime.Now.ToUniversalTime();
             await _context.SaveChangesAsync();
             await InvokeLastUpdatedAsync(user.Id, user.LastActive);
 
@@ -90,7 +90,7 @@ namespace API.Controllers
             if (user == null) return NotFound(new { error = "User created but not found in database..." });
             user.LockoutEnabled = false;
 
-            user.LastActive = DateTime.Now;
+            user.LastActive = DateTime.Now.ToUniversalTime();
             await _context.SaveChangesAsync();
 
             await _hubContext.Clients.All.SendAsync("UserRegistered", new UserDto()

@@ -60,7 +60,7 @@ namespace API.Controllers
             //logActivity
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var activity = await _activityRepository.AddActivityForUser(userId, filters.ProductSearchCriteria);
-            await InvokeLastUpdatedAsync(userId, DateTime.Now);
+            await InvokeLastUpdatedAsync(userId, DateTime.Now.ToUniversalTime());
             await InvokeActivityAddedAsync(userId, activity);
 
 

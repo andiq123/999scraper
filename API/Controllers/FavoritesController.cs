@@ -32,7 +32,7 @@ namespace API.Controllers
             var user = await _context.Users.Include(x => x.Products).FirstOrDefaultAsync(x => x.Id == userId);
             if (user == null) return NotFound(new { error = "User not found" });
 
-            user.LastActive = DateTime.Now;
+            user.LastActive = DateTime.Now.ToUniversalTime();
             await _context.SaveChangesAsync();
             await InvokeLastUpdatedAsync(user.Id, user.LastActive);
             return user.Products.ToList();
@@ -50,7 +50,7 @@ namespace API.Controllers
 
             user.Products.Add(favProduct);
 
-            user.LastActive = DateTime.Now;
+            user.LastActive = DateTime.Now.ToUniversalTime();
             await InvokeLastUpdatedAsync(user.Id, user.LastActive);
             await _context.SaveChangesAsync();
             return Ok();
@@ -66,7 +66,7 @@ namespace API.Controllers
             if (product == null) return BadRequest(new { error = "You dont have this product." });
             user.Products.Remove(product);
 
-            user.LastActive = DateTime.Now;
+            user.LastActive = DateTime.Now.ToUniversalTime();
             await _context.SaveChangesAsync();
             await InvokeLastUpdatedAsync(user.Id, user.LastActive);
             return Ok();

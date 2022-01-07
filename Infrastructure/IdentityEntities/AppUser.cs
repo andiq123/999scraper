@@ -10,6 +10,6 @@ namespace Infrastructure.IdentityEntities
     {
         public ICollection<FavProduct> Products { get; set; } = new List<FavProduct>();
         public ICollection<Activity> Activities { get; set; } = new List<Activity>();
-        public DateTime LastActive { get; set; } = DateTime.Now;
+        public DateTime LastActive { get; set; } = DateTime.Now.ToUniversalTime();
     }
 }

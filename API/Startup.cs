@@ -47,6 +47,7 @@ namespace API
 
             app.UseRouting();
             app.UseStaticFiles();
+            app.UseDefaultFiles();
 
             app.UseCors();
 

@@ -16,9 +16,9 @@ namespace Infrastructure.Data
         public async Task<Activity> AddActivityForUser(string userId, string searchCriteria)
         {
             var user = await _context.Users.Include(x => x.Activities).FirstOrDefaultAsync(x => x.Id == userId);
-            var activity = new Activity() { DateTime = DateTime.Now, Description = searchCriteria };
+            var activity = new Activity() { DateTime = DateTime.Now.ToUniversalTime().ToUniversalTime(), Description = searchCriteria };
             user.Activities.Add(activity);
-            user.LastActive = DateTime.Now;
+            user.LastActive = DateTime.Now.ToUniversalTime().ToUniversalTime();
             await _context.SaveChangesAsync();
             return activity;
         }
