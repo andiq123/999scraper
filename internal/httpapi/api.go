@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/mail"
 	"strings"
 	"sync"
 	"time"
@@ -37,145 +36,75 @@ func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, l
 	})
 	mux.HandleFunc("POST /api/account/login", api.login)
 	mux.HandleFunc("POST /api/account/register", api.register)
-	mux.Handle("GET /api/account/current", a.Middleware(http.HandlerFunc(api.currentUser)))
-	mux.Handle("POST /api/products", a.Middleware(http.HandlerFunc(api.products)))
+	mux.Handle("GET /api/account/current", a.Middleware(http.HandlerFunc(api.currentAccount)))
 	mux.Handle("POST /api/products/stream", a.Middleware(http.HandlerFunc(api.productsStream)))
-	mux.Handle("GET /api/favorites/", a.Middleware(http.HandlerFunc(api.favorites)))
-	mux.Handle("POST /api/favorites/", a.Middleware(http.HandlerFunc(api.addFavorite)))
-	mux.Handle("DELETE /api/favorites/{productId}", a.Middleware(http.HandlerFunc(api.removeFavorite)))
-	mux.Handle("GET /api/admin/users", a.Middleware(api.adminOnly(http.HandlerFunc(api.users))))
-	mux.Handle("GET /api/admin/{userId}/activity", a.Middleware(api.adminOnly(http.HandlerFunc(api.activities))))
-	mux.Handle("POST /api/admin/{userId}/blockUnBlock", a.Middleware(api.adminOnly(http.HandlerFunc(api.toggleBan))))
+	mux.Handle("GET /api/history", a.Middleware(http.HandlerFunc(api.history)))
 	return api.recover(api.cors(api.log(mux)))
 }
 
 func (a *API) login(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
+		Code string `json:"code"`
 	}
 	if !decode(w, r, &input) {
 		return
 	}
-	u, err := a.store.UserByLogin(r.Context(), strings.TrimSpace(input.Username))
-	if err != nil || !auth.Check(u.PasswordHash, input.Password) {
-		writeError(w, http.StatusUnauthorized, "username, email, or password is incorrect")
+	if strings.TrimSpace(input.Code) == "" {
+		writeError(w, http.StatusBadRequest, "login code is required")
 		return
 	}
-	if u.IsBanned {
-		writeError(w, http.StatusUnauthorized, "account banned")
+	account, err := a.store.AccountByCodeHash(r.Context(), auth.CodeHash(input.Code))
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "invalid login code")
 		return
 	}
-	token, err := a.auth.Token(u.ID, u.IsAdmin)
+	token, err := a.auth.Token(account.ID)
 	if err != nil {
 		a.internal(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, u.Response(token))
+	writeJSON(w, http.StatusOK, model.Session{ID: account.ID, Token: token})
 }
 
 func (a *API) register(w http.ResponseWriter, r *http.Request) {
-	var input struct {
-		Username string `json:"username"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-	if !decode(w, r, &input) {
-		return
-	}
-	input.Username = strings.TrimSpace(input.Username)
-	input.Email = strings.TrimSpace(input.Email)
-	if len(input.Username) < 3 || len(input.Password) < 8 {
-		writeError(w, http.StatusBadRequest, "username must be 3+ characters and password 8+ characters")
-		return
-	}
-	if _, err := mail.ParseAddress(input.Email); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid email address")
-		return
-	}
-	hash, err := auth.Hash(input.Password)
+	code, err := auth.NewLoginCode()
 	if err != nil {
 		a.internal(w, err)
 		return
 	}
-	u, err := a.store.CreateUser(r.Context(), input.Username, input.Email, hash, false)
-	if err != nil {
-		if strings.Contains(err.Error(), "users_") {
-			writeError(w, http.StatusConflict, "username or email is already registered")
-			return
-		}
-		a.internal(w, err)
-		return
-	}
-	token, err := a.auth.Token(u.ID, false)
+	_, err = a.store.CreateAccount(r.Context(), auth.CodeHash(code))
 	if err != nil {
 		a.internal(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, u.Response(token))
+	writeJSON(w, http.StatusOK, model.Registration{Code: code})
 }
 
-func (a *API) currentUser(w http.ResponseWriter, r *http.Request) {
-	u, err := a.store.UserByID(r.Context(), userID(r))
+func (a *API) currentAccount(w http.ResponseWriter, r *http.Request) {
+	account, err := a.store.AccountByID(r.Context(), accountID(r))
 	if errors.Is(err, store.ErrNotFound) {
-		writeError(w, http.StatusNotFound, "user not found")
+		writeError(w, http.StatusUnauthorized, "account not found")
 		return
 	}
 	if err != nil {
 		a.internal(w, err)
 		return
 	}
-	if u.IsBanned {
-		writeError(w, http.StatusUnauthorized, "account banned")
+	token, err := a.auth.Token(account.ID)
+	if err != nil {
+		a.internal(w, err)
 		return
 	}
-	token, _ := a.auth.Token(u.ID, u.IsAdmin)
-	writeJSON(w, http.StatusOK, u.Response(token))
+	writeJSON(w, http.StatusOK, model.Session{ID: account.ID, Token: token})
 }
 
-func (a *API) products(w http.ResponseWriter, r *http.Request) {
-	var filters model.Filters
-	if !decode(w, r, &filters) {
-		return
-	}
-	filters.ProductSearchCriteria = strings.TrimSpace(filters.ProductSearchCriteria)
-	if filters.ProductSearchCriteria == "" {
-		writeError(w, http.StatusBadRequest, "search criteria is required")
-		return
-	}
-	if cached, ok := a.cachedSearch(r.Context(), filters); ok {
-		cached.Products = scraper.Filter(cached.Products, filters)
-		writeJSON(w, http.StatusOK, cached)
-		return
-	}
-	release, err := a.queries.acquire(r.Context(), filters.ProductSearchCriteria)
+func (a *API) history(w http.ResponseWriter, r *http.Request) {
+	items, err := a.store.SearchHistory(r.Context(), accountID(r))
 	if err != nil {
-		return
-	}
-	defer release()
-	if cached, ok := a.cachedSearch(r.Context(), filters); ok {
-		cached.Products = scraper.Filter(cached.Products, filters)
-		writeJSON(w, http.StatusOK, cached)
-		return
-	}
-	if _, err := a.store.AddActivity(r.Context(), userID(r), filters.ProductSearchCriteria); err != nil {
 		a.internal(w, err)
 		return
 	}
-	products, err := a.scraper.Search(r.Context(), filters.ProductSearchCriteria)
-	if err != nil {
-		a.logger.Warn("scrape failed", "error", err)
-		writeError(w, http.StatusBadGateway, "listing service is unavailable")
-		return
-	}
-	container := model.ProductsContainer{ID: uuid.NewString(), Products: products}
-	a.cache.SetSearch(r.Context(), filters.ProductSearchCriteria, container)
-	container.Products = scraper.Filter(products, filters)
-	if len(container.Products) == 0 {
-		writeError(w, http.StatusNotFound, "no products found")
-		return
-	}
-	writeJSON(w, http.StatusOK, container)
+	writeJSON(w, http.StatusOK, items)
 }
 
 type searchEvent struct {
@@ -201,6 +130,10 @@ func (a *API) productsStream(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "search criteria is required")
 		return
 	}
+	if err := a.store.AddSearch(r.Context(), accountID(r), filters.ProductSearchCriteria); err != nil {
+		a.internal(w, err)
+		return
+	}
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		writeError(w, http.StatusInternalServerError, "streaming is unavailable")
@@ -220,11 +153,6 @@ func (a *API) productsStream(w http.ResponseWriter, r *http.Request) {
 		a.streamCached(w, flusher, cached, filters)
 		return
 	}
-	if _, err := a.store.AddActivity(r.Context(), userID(r), filters.ProductSearchCriteria); err != nil {
-		a.internal(w, err)
-		return
-	}
-
 	id := uuid.NewString()
 	var writer *streamWriter
 	loadedPages := 0
@@ -268,9 +196,6 @@ func (a *API) productsStream(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) cachedSearch(ctx context.Context, filters model.Filters) (model.ProductsContainer, bool) {
-	if cached, ok := a.cache.Get(ctx, filters.RedisID); ok {
-		return cached, true
-	}
 	return a.cache.GetQuery(ctx, filters.ProductSearchCriteria)
 }
 
@@ -362,82 +287,7 @@ func (g *queryGate) acquire(ctx context.Context, query string) (func(), error) {
 	}
 }
 
-func (a *API) favorites(w http.ResponseWriter, r *http.Request) {
-	items, err := a.store.Favorites(r.Context(), userID(r))
-	if err != nil {
-		a.internal(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, items)
-}
-func (a *API) addFavorite(w http.ResponseWriter, r *http.Request) {
-	var p model.Product
-	if !decode(w, r, &p) {
-		return
-	}
-	if strings.TrimSpace(p.Title) == "" {
-		writeError(w, http.StatusBadRequest, "product title is required")
-		return
-	}
-	if err := a.store.AddFavorite(r.Context(), userID(r), p); err != nil {
-		if strings.Contains(err.Error(), "already exists") {
-			writeError(w, http.StatusConflict, "product is already in favorites")
-			return
-		}
-		a.internal(w, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
-}
-func (a *API) removeFavorite(w http.ResponseWriter, r *http.Request) {
-	if err := a.store.RemoveFavorite(r.Context(), userID(r), r.PathValue("productId")); errors.Is(err, store.ErrNotFound) {
-		writeError(w, http.StatusNotFound, "favorite not found")
-		return
-	} else if err != nil {
-		a.internal(w, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
-}
-func (a *API) users(w http.ResponseWriter, r *http.Request) {
-	items, err := a.store.Users(r.Context(), userID(r))
-	if err != nil {
-		a.internal(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, items)
-}
-func (a *API) activities(w http.ResponseWriter, r *http.Request) {
-	items, err := a.store.Activities(r.Context(), r.PathValue("userId"))
-	if err != nil {
-		a.internal(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, items)
-}
-func (a *API) toggleBan(w http.ResponseWriter, r *http.Request) {
-	banned, err := a.store.ToggleBan(r.Context(), r.PathValue("userId"))
-	if errors.Is(err, store.ErrNotFound) {
-		writeError(w, http.StatusNotFound, "user not found")
-		return
-	}
-	if err != nil {
-		a.internal(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]bool{"status": banned})
-}
-
-func (a *API) adminOnly(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if claims := auth.ClaimsFrom(r.Context()); claims == nil || !claims.Admin {
-			writeError(w, http.StatusForbidden, "admin access required")
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-func userID(r *http.Request) string { return auth.ClaimsFrom(r.Context()).Subject }
+func accountID(r *http.Request) string { return auth.ClaimsFrom(r.Context()).Subject }
 
 func (a *API) internal(w http.ResponseWriter, err error) {
 	a.logger.Error("request failed", "error", err)

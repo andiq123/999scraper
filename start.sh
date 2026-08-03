@@ -97,7 +97,7 @@ main() {
   log "docker" "starting data services, Air backend, and Angular frontend"
   printf "${BOLD}Frontend:${RESET} http://localhost:4200 (live reload)\n"
   printf "${BOLD}Backend:${RESET}  http://localhost:8081/api/health (Air live reload)\n"
-  printf "${BOLD}Admin:${RESET}    admin / change-me-now (local default)\n"
+  printf "${BOLD}Account:${RESET}  press Register once, then save the generated login code\n"
   printf "${BOLD}Stop:${RESET}     Ctrl+C removes the complete project stack and local data\n\n"
 
   compose up --build --remove-orphans

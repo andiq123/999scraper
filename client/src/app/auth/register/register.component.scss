@@ -11,45 +11,36 @@
   .login-container {
     width: 40%;
     min-width: 300px;
-    form {
-      width: 100%;
-      display: flex;
-      flex-flow: column;
-      input,
-      button {
-        padding: 10px;
-        margin: 8px;
-        border-radius: 20px;
-        border: none;
-        box-shadow: 0 1px 5px 1px rgb(219, 212, 212);
-      }
-      button {
-        cursor: pointer;
-        transition: background-color 200ms ease-in-out;
-        background-color: vars.$status-color;
-        &:hover {
-          background-color: color.adjust(vars.$status-color, $lightness: -5%, $space: hsl);
-        }
-        &:disabled {
-          cursor: no-drop;
-          filter: contrast(70%);
-        }
-      }
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    p { color: #667085; }
+    code {
+      padding: 1rem;
+      border: 1px solid #d0d5dd;
+      border-radius: 0.75rem;
+      background: #f8fafc;
+      font-size: 1.1rem;
+      overflow-wrap: anywhere;
+      user-select: all;
+    }
+    .primary {
+      padding: 0.8rem 1rem;
+      border-radius: 0.75rem;
+      border: 0;
+      color: white;
+      cursor: pointer;
+      background-color: vars.$status-color;
+      &:hover { background-color: color.adjust(vars.$status-color, $lightness: -5%, $space: hsl); }
+      &:disabled { cursor: wait; opacity: 0.65; }
     }
   }
 }
 
 @media only screen and (max-width: 800px) {
   .login {
-    margin-top: 100px;
     .login-container {
       width: 80%;
-      form {
-        input,
-        button {
-          padding: 20px;
-        }
-      }
     }
   }
 }

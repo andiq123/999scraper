@@ -1,10 +1,7 @@
-@use "sass:color";
-
-@use "../../../vars";
 .product {
   position: relative;
   width: 200px;
-  min-height: 430px;
+  min-height: 340px;
   background: white;
   border-radius: 20px;
   overflow: visible;
@@ -37,38 +34,12 @@
       margin: 20px;
     }
   }
-  .actions {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    .AddToFav {
-      border: none;
-      border-radius: 15px;
-      box-shadow: 0 1px 5px 1px rgb(216, 208, 208);
-      background-color: vars.$status-color;
-      color: white;
-      padding: 10px;
-      cursor: pointer;
-      margin-bottom: 20px;
-      &:hover {
-        background-color: color.adjust(vars.$status-color, $lightness: -5%, $space: hsl);
-      }
-      &:disabled {
-        background-color: rgb(185, 167, 167);
-      }
-    }
-  }
 }
 
 @media only screen and (max-width: 1000px) {
   .product {
     width: 80%;
     margin: 20px 20px;
-    .actions {
-      .AddToFav {
-        width: 80%;
-      }
-    }
   }
 }
 
@@ -76,10 +47,5 @@
   .product {
     width: 100%;
     margin: 20px 0;
-    .actions {
-      .AddToFav {
-        width: 80%;
-      }
-    }
   }
 }

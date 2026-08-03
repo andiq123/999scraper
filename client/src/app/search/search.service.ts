@@ -23,14 +23,8 @@ export class SearchService {
   private readonly filtersSource = new BehaviorSubject<Filters>(new Filters());
   readonly filters$ = this.filtersSource.asObservable();
 
-  constructor() {
-    const filters = localStorage.getItem('filters');
-    if (filters) this.filtersSource.next(JSON.parse(filters));
-  }
-
   streamProducts(): Observable<SearchStreamEvent> {
-    const filters = this.filtersSource.getValue();
-    localStorage.setItem('filters', JSON.stringify(filters));
+	const filters = this.filtersSource.getValue();
 
     return new Observable<SearchStreamEvent>((subscriber) => {
       const controller = new AbortController();
@@ -48,9 +42,8 @@ export class SearchService {
   }
 
   addSearchCriteriaToFilters(searchCriteria: string): void {
-    const filters = this.filtersSource.getValue();
-    if (filters.productSearchCriteria !== searchCriteria) filters.redisId = '';
-    filters.productSearchCriteria = searchCriteria;
+	const filters = this.filtersSource.getValue();
+	filters.productSearchCriteria = searchCriteria;
     this.filtersSource.next(filters);
   }
 
@@ -81,10 +74,10 @@ export class SearchService {
         pending += decoder.decode(value, { stream: !done });
         const messages = pending.split('\n\n');
         pending = messages.pop() ?? '';
-        for (const message of messages) this.emit(message, filters, subscriber);
+        for (const message of messages) this.emit(message, subscriber);
         if (done) break;
       }
-      this.emit(pending, filters, subscriber);
+      this.emit(pending, subscriber);
       subscriber.complete();
     } catch (error) {
       if (!signal.aborted) {
@@ -94,9 +87,8 @@ export class SearchService {
   }
 
   private emit(
-    message: string,
-    filters: Filters,
-    subscriber: Subscriber<SearchStreamEvent>
+	message: string,
+	subscriber: Subscriber<SearchStreamEvent>
   ): void {
     if (!message.trim() || subscriber.closed) return;
     const data = message
@@ -106,11 +98,7 @@ export class SearchService {
       .join('\n');
     if (!data) return;
     const event = JSON.parse(data) as SearchStreamEvent;
-    if (event.type === 'start' && event.id) {
-      filters.redisId = event.id;
-      localStorage.setItem('filters', JSON.stringify(filters));
-    }
-    subscriber.next(event);
+	subscriber.next(event);
   }
 
   private async responseError(response: Response): Promise<string> {

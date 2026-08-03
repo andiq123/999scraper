@@ -2,34 +2,24 @@ package model
 
 import "time"
 
-type User struct {
-	ID           string    `json:"id"`
-	Username     string    `json:"username"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"`
-	IsAdmin      bool      `json:"isAdmin"`
-	IsBanned     bool      `json:"isBanned"`
-	LastActive   time.Time `json:"lastActive"`
+type Account struct {
+	ID        string    `json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
-type UserResponse struct {
+type Session struct {
+	ID    string `json:"id"`
+	Token string `json:"token"`
+}
+
+type Registration struct {
+	Code string `json:"code"`
+}
+
+type SearchHistory struct {
 	ID         string    `json:"id"`
-	Username   string    `json:"username"`
-	Email      string    `json:"email"`
-	Token      string    `json:"token,omitempty"`
-	IsAdmin    bool      `json:"isAdmin"`
-	IsBanned   bool      `json:"isBanned"`
-	LastActive time.Time `json:"lastActive"`
-}
-
-func (u User) Response(token string) UserResponse {
-	return UserResponse{u.ID, u.Username, u.Email, token, u.IsAdmin, u.IsBanned, u.LastActive}
-}
-
-type Activity struct {
-	ID          string    `json:"id"`
-	DateTime    time.Time `json:"dateTime"`
-	Description string    `json:"description"`
+	Query      string    `json:"query"`
+	SearchedAt time.Time `json:"searchedAt"`
 }
 
 type Product struct {
@@ -51,7 +41,6 @@ type Filters struct {
 	ExcludeOtherAds        bool     `json:"excludeOtherAds"`
 	Order                  string   `json:"order"`
 	KeysToExclude          []string `json:"keysToExclude"`
-	RedisID                string   `json:"redisId"`
 	ProductSearchCriteria  string   `json:"productSearchCriteria"`
 }
 

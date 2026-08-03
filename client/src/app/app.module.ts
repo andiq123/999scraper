@@ -6,7 +6,6 @@ import { AppComponent } from './app.component';
 import { CoreModule } from './core/core.module';
 import { FormsModule } from '@angular/forms';
 import { AuthInterceptor } from './core/_interceptors/auth.interceptor';
-import { LoadingInterceptor } from './core/_interceptors/loading.interceptor';
 import { SharedModule } from './shared/shared.module';
 
 @NgModule({
@@ -21,7 +20,6 @@ import { SharedModule } from './shared/shared.module';
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
-    { provide: HTTP_INTERCEPTORS, useClass: LoadingInterceptor, multi: true },
   ],
   bootstrap: [AppComponent],
 })

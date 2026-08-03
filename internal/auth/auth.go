@@ -2,17 +2,19 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base32"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type Claims struct {
-	Admin bool `json:"admin"`
 	jwt.RegisteredClaims
 }
 type contextKey struct{}
@@ -26,17 +28,32 @@ type Service struct {
 func New(secret, issuer string, lifetime time.Duration) *Service {
 	return &Service{[]byte(secret), issuer, lifetime}
 }
-func Hash(password string) (string, error) {
-	value, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	return string(value), err
-}
-func Check(hash, password string) bool {
-	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
+func NewLoginCode() (string, error) {
+	random := make([]byte, 16)
+	if _, err := rand.Read(random); err != nil {
+		return "", err
+	}
+	raw := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(random)
+	parts := make([]string, 0, 7)
+	for len(raw) > 4 {
+		parts = append(parts, raw[:4])
+		raw = raw[4:]
+	}
+	if raw != "" {
+		parts = append(parts, raw)
+	}
+	return strings.Join(parts, "-"), nil
 }
 
-func (s *Service) Token(userID string, admin bool) (string, error) {
+func CodeHash(code string) string {
+	normalized := strings.ToUpper(strings.NewReplacer("-", "", " ", "").Replace(strings.TrimSpace(code)))
+	sum := sha256.Sum256([]byte(normalized))
+	return hex.EncodeToString(sum[:])
+}
+
+func (s *Service) Token(accountID string) (string, error) {
 	now := time.Now()
-	claims := Claims{admin, jwt.RegisteredClaims{Subject: userID, Issuer: s.issuer, IssuedAt: jwt.NewNumericDate(now), ExpiresAt: jwt.NewNumericDate(now.Add(s.lifetime))}}
+	claims := Claims{jwt.RegisteredClaims{Subject: accountID, Issuer: s.issuer, IssuedAt: jwt.NewNumericDate(now), ExpiresAt: jwt.NewNumericDate(now.Add(s.lifetime))}}
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(s.secret)
 }
 

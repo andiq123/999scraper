@@ -1,40 +1,34 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, ReplaySubject } from 'rxjs';
+import { Observable, ReplaySubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
-import { IUser } from '../shared/models/user';
+import { IRegistration, ISession } from '../shared/models/session';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
   private baseUrl = environment.apiUrl + 'account/';
-  private userSource = new ReplaySubject<IUser | null>(1);
-  public User$ = this.userSource.asObservable();
+  private sessionSource = new ReplaySubject<ISession | null>(1);
+  readonly session$ = this.sessionSource.asObservable();
 
   constructor(private http: HttpClient, private router: Router) {}
 
-  login(loginDto: ILoginDto): Observable<IUser> {
-    return this.http.post<IUser>(this.baseUrl + 'login', loginDto).pipe(
-      tap((user: IUser) => {
-        this.setUser(user);
-      })
+  login(code: string): Observable<ISession> {
+    return this.http.post<ISession>(this.baseUrl + 'login', { code }).pipe(
+      tap((session) => this.setSession(session))
     );
   }
 
-  register(registerDto: IRegisterDto) {
-    return this.http.post<IUser>(this.baseUrl + 'register', registerDto).pipe(
-      tap((user: IUser) => {
-        this.setUser(user);
-      })
-    );
+  register(): Observable<IRegistration> {
+    return this.http.post<IRegistration>(this.baseUrl + 'register', {});
   }
 
   logOut() {
     localStorage.removeItem('token');
-    this.userSource.next(null);
+    this.sessionSource.next(null);
     this.router.navigateByUrl('/');
   }
 
@@ -42,31 +36,20 @@ export class AuthService {
     const userToken = localStorage.getItem('token');
     if (userToken) {
       this.http
-        .get<IUser>(this.baseUrl + 'current')
+        .get<ISession>(this.baseUrl + 'current')
         .subscribe({
-          next: (user: IUser) => this.setUser(user),
+          next: (session) => this.setSession(session),
           error: () => this.logOut(),
         });
     } else {
-      this.userSource.next(null);
+      this.sessionSource.next(null);
     }
   }
 
-  private setUser(user: IUser) {
-    if (user.token) {
-      localStorage.setItem('token', user.token);
+  private setSession(session: ISession) {
+    if (session.token) {
+      localStorage.setItem('token', session.token);
     }
-    this.userSource.next(user);
+    this.sessionSource.next(session);
   }
-}
-
-interface ILoginDto {
-  username: string;
-  password: string;
-}
-
-interface IRegisterDto {
-  username: string;
-  email: string;
-  password: string;
 }

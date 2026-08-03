@@ -1,0 +1,20 @@
+<main class="history">
+  <header>
+    <p class="eyebrow">Your account</p>
+    <h1>Search history</h1>
+    <p>Your latest 200 searches, newest first.</p>
+  </header>
+
+  <div class="empty" *ngIf="items().length === 0">
+    <h2>No searches yet</h2>
+    <p>Your searches will appear here.</p>
+    <a class="btn active" routerLink="/search">Start searching</a>
+  </div>
+
+  <ol *ngIf="items().length > 0">
+    <li *ngFor="let item of items()">
+      <span>{{ item.query }}</span>
+      <time [attr.datetime]="item.searchedAt">{{ item.searchedAt | date:'medium' }}</time>
+    </li>
+  </ol>
+</main>

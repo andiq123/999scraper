@@ -4,7 +4,7 @@ A clean, separated search application for 999.md:
 
 - Go 1.26 API with Air live reload
 - Angular 22 frontend with its own development server
-- PostgreSQL 18 for users, favorites, and activity
+- PostgreSQL 18 for anonymous accounts and per-account search history
 - Redis 8 for normalized search caching
 - SSE for progressive search-result delivery
 
@@ -18,9 +18,8 @@ Docker Desktop is the only local requirement on macOS. The launcher starts Docke
 
 - Frontend: <http://localhost:4200>
 - Backend health: <http://localhost:8081/api/health>
-- Username: `admin`
-- Password: `change-me-now`
-- Email: `admin@example.com`
+
+There are no usernames, passwords, roles, or admins. Press **Register** once, save the generated private login code, then use that code to log in. The code is shown once and only its cryptographic fingerprint is stored by the API.
 
 Changes under `cmd/` or `internal/` rebuild and restart the backend through Air. Angular source changes refresh through its independent development server.
 
@@ -55,4 +54,9 @@ npm ci
 npm start
 ```
 
-The API reads the configuration listed in [.env.example](.env.example) and creates its tables automatically.
+The API reads the configuration listed in [.env.example](.env.example) and creates its two tables automatically:
+
+- `accounts`: anonymous account ID, login-code fingerprint, creation time
+- `search_history`: the latest searches belonging to that account
+
+The authenticated API surface is intentionally small: current session, progressive search, and personal history. Registration and code login are the only public account endpoints.

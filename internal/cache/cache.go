@@ -41,13 +41,6 @@ func (c *Cache) Close() {
 	}
 }
 
-func (c *Cache) Get(ctx context.Context, id string) (model.ProductsContainer, bool) {
-	if id == "" {
-		return model.ProductsContainer{}, false
-	}
-	return c.get(ctx, "search:"+id)
-}
-
 func (c *Cache) GetQuery(ctx context.Context, query string) (model.ProductsContainer, bool) {
 	return c.get(ctx, queryKey(query))
 }
@@ -67,34 +60,13 @@ func (c *Cache) get(ctx context.Context, key string) (model.ProductsContainer, b
 	return result, true
 }
 
-func (c *Cache) Set(ctx context.Context, value model.ProductsContainer) {
-	c.set(ctx, map[string][]byte{"search:" + value.ID: marshal(value)})
-}
-
 func (c *Cache) SetSearch(ctx context.Context, query string, value model.ProductsContainer) {
-	data := marshal(value)
-	c.set(ctx, map[string][]byte{
-		"search:" + value.ID: data,
-		queryKey(query):      data,
-	})
-}
-
-func marshal(value model.ProductsContainer) []byte {
 	data, _ := json.Marshal(value)
-	return data
-}
-
-func (c *Cache) set(ctx context.Context, values map[string][]byte) {
-	if c.client == nil {
+	key := queryKey(query)
+	if c.client == nil || key == "" || len(data) == 0 {
 		return
 	}
-	pipe := c.client.Pipeline()
-	for key, data := range values {
-		if key != "" && len(data) > 0 {
-			pipe.Set(ctx, key, data, searchTTL)
-		}
-	}
-	if _, err := pipe.Exec(ctx); err != nil {
+	if err := c.client.Set(ctx, key, data, searchTTL).Err(); err != nil {
 		c.logger.Warn("cache write failed", "error", err)
 	}
 }

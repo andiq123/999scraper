@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Observable } from 'rxjs';
 import { AuthService } from 'src/app/auth/auth.service';
-import { IUser } from 'src/app/shared/models/user';
+import { ISession } from 'src/app/shared/models/session';
 
 @Component({
   standalone: false,
@@ -10,10 +10,10 @@ import { IUser } from 'src/app/shared/models/user';
   styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent implements OnInit {
-  user$!: Observable<IUser | null>;
+  session$!: Observable<ISession | null>;
   constructor(private authService: AuthService) {}
 
   ngOnInit(): void {
-    this.user$ = this.authService.User$;
+    this.session$ = this.authService.session$;
   }
 }

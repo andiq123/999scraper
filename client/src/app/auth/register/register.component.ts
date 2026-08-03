@@ -1,9 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Component, signal } from '@angular/core';
 import { ToastService } from '../../core/_services/toast.service';
-import { IUser } from 'src/app/shared/models/user';
 import { AuthService } from '../auth.service';
 
 @Component({
@@ -12,46 +9,33 @@ import { AuthService } from '../auth.service';
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.scss'],
 })
-export class RegisterComponent implements OnInit {
-  registerForm!: FormGroup;
+export class RegisterComponent {
+  readonly loginCode = signal('');
+  readonly creating = signal(false);
+  readonly copied = signal(false);
+
   constructor(
     private authService: AuthService,
-    private toastrService: ToastService,
-    private router: Router
+    private toast: ToastService
   ) {}
 
-  ngOnInit() {
-    this.createRegisterForm();
-  }
-
-  createRegisterForm() {
-    this.registerForm = new FormGroup({
-      username: new FormControl('', [
-        Validators.required,
-        Validators.minLength(3),
-      ]),
-      email: new FormControl('', [Validators.required, Validators.email]),
-      password: new FormControl('', [
-        Validators.required,
-        Validators.minLength(8),
-      ]),
-      confirmPassword: new FormControl('', [
-        Validators.required,
-        Validators.minLength(8),
-      ]),
-    });
-  }
-
-  onSubmit() {
-    const { password, confirmPassword } = this.registerForm.value;
-    if (password != confirmPassword)
-      return this.toastrService.error("Passwords don't match!");
-
-    return this.authService.register(this.registerForm.value).subscribe(
-      (user: IUser) => {
-        this.router.navigateByUrl('/search');
+  createCode(): void {
+    this.creating.set(true);
+    this.authService.register().subscribe(
+      ({ code }) => {
+        this.loginCode.set(code);
+        this.creating.set(false);
       },
-      (e: HttpErrorResponse) => this.toastrService.error(e.error?.error ?? 'Registration failed')
+      (error: HttpErrorResponse) => {
+        this.creating.set(false);
+        this.toast.error(error.error?.error ?? 'Registration failed');
+      }
     );
+  }
+
+  async copy(): Promise<void> {
+    await navigator.clipboard.writeText(this.loginCode());
+    this.copied.set(true);
+    this.toast.success('Login code copied');
   }
 }

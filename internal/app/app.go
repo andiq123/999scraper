@@ -23,15 +23,6 @@ func New(ctx context.Context, logger *slog.Logger) (*http.Server, func(), error)
 	if err != nil {
 		return nil, nil, err
 	}
-	hash, err := auth.Hash(cfg.AdminPassword)
-	if err != nil {
-		db.Close()
-		return nil, nil, err
-	}
-	if err := db.EnsureAdmin(ctx, cfg.AdminUsername, cfg.AdminEmail, hash); err != nil {
-		db.Close()
-		return nil, nil, err
-	}
 	redisCache := cache.Open(ctx, cfg.RedisURL, logger)
 	scrape := scraper.New(cfg.ScraperBaseURL, scraper.Options{
 		MaxPages:       cfg.ScraperMaxPage,

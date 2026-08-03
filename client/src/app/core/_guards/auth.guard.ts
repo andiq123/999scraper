@@ -3,7 +3,6 @@ import { CanActivate, Router } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { AuthService } from 'src/app/auth/auth.service';
-import { IUser } from 'src/app/shared/models/user';
 
 @Injectable({
   providedIn: 'root',
@@ -13,14 +12,14 @@ export class AuthGuard implements CanActivate {
 
   canActivate(): Observable<boolean> {
     if (!localStorage.getItem('token')) {
-      this.router.navigateByUrl('/');
+      this.router.navigateByUrl('/auth/login');
       return of(false);
     }
-    return this.authService.User$.pipe(
+    return this.authService.session$.pipe(
       map((user) => {
         if (user) return true;
 
-        this.router.navigateByUrl('/');
+        this.router.navigateByUrl('/auth/login');
         return false;
       })
     );

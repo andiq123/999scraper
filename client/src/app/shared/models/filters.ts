@@ -4,6 +4,5 @@ export class Filters {
   excludeOtherAds: boolean = true;
   order: 'priceAsc' | 'priceDesc' = 'priceAsc';
   keysToExclude: string[] = [];
-  redisId: string = '';
-  productSearchCriteria: string = '';
+	productSearchCriteria: string = '';
 }

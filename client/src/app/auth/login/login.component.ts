@@ -3,7 +3,6 @@ import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ToastService } from '../../core/_services/toast.service';
-import { IUser } from 'src/app/shared/models/user';
 import { AuthService } from '../auth.service';
 
 @Component({
@@ -27,24 +26,17 @@ export class LoginComponent implements OnInit {
 
   createLoginForm() {
     this.loginForm = new FormGroup({
-      username: new FormControl('', [
-        Validators.required,
-        Validators.minLength(3),
-      ]),
-      password: new FormControl('', [
-        Validators.required,
-        Validators.minLength(8),
-      ]),
+      code: new FormControl('', [Validators.required, Validators.minLength(20)]),
     });
   }
 
   onSubmit() {
-    this.authService.login(this.loginForm.value).subscribe(
-      (user: IUser) => {
+    this.authService.login(this.loginForm.value.code.trim()).subscribe(
+      () => {
         this.router.navigateByUrl('/search');
       },
       (e: HttpErrorResponse) => {
-        this.toastrService.error('Username or password incorrect');
+        this.toastrService.error(e.error?.error ?? 'Invalid login code');
       }
     );
   }
