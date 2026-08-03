@@ -1,4 +1,4 @@
-@import "../../../vars";
+@use "../../../vars";
 .navigation {
   .trigger {
     display: none;
@@ -20,7 +20,7 @@
   }
 }
 
-@media only screen and(max-width:800px) {
+@media only screen and (max-width: 800px) {
   .navigation {
     .trigger {
       display: block;

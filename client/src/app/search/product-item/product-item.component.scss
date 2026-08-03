@@ -1,4 +1,6 @@
-@import "../../../vars";
+@use "sass:color";
+
+@use "../../../vars";
 .product {
   position: relative;
   width: 200px;
@@ -43,13 +45,13 @@
       border: none;
       border-radius: 15px;
       box-shadow: 0 1px 5px 1px rgb(216, 208, 208);
-      background-color: $status-color;
+      background-color: vars.$status-color;
       color: white;
       padding: 10px;
       cursor: pointer;
       margin-bottom: 20px;
       &:hover {
-        background-color: darken($status-color, 5%);
+        background-color: color.adjust(vars.$status-color, $lightness: -5%, $space: hsl);
       }
       &:disabled {
         background-color: rgb(185, 167, 167);

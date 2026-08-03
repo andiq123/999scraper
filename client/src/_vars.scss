@@ -1,5 +1,7 @@
+@use "sass:color";
+
 $primary-color: rgb(255, 255, 255);
-$secondary-color: darken($primary-color, 5%);
+$secondary-color: color.adjust($primary-color, $lightness: -5%, $space: hsl);
 $status-color: rgba(136, 136, 226, 0.692);
 
 $gradient-background: linear-gradient(to left, rgb(212, 185, 158), #ce1717);

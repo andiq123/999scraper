@@ -2,11 +2,12 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
+import { ToastService } from '../../core/_services/toast.service';
 import { IUser } from 'src/app/shared/models/user';
 import { AuthService } from '../auth.service';
 
 @Component({
+  standalone: false,
   selector: 'app-register',
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.scss'],
@@ -15,7 +16,7 @@ export class RegisterComponent implements OnInit {
   registerForm!: FormGroup;
   constructor(
     private authService: AuthService,
-    private toastrService: ToastrService,
+    private toastrService: ToastService,
     private router: Router
   ) {}
 
@@ -27,16 +28,16 @@ export class RegisterComponent implements OnInit {
     this.registerForm = new FormGroup({
       username: new FormControl('', [
         Validators.required,
-        Validators.minLength(5),
+        Validators.minLength(3),
       ]),
       email: new FormControl('', [Validators.required, Validators.email]),
       password: new FormControl('', [
         Validators.required,
-        Validators.minLength(5),
+        Validators.minLength(8),
       ]),
       confirmPassword: new FormControl('', [
         Validators.required,
-        Validators.minLength(5),
+        Validators.minLength(8),
       ]),
     });
   }
@@ -50,16 +51,7 @@ export class RegisterComponent implements OnInit {
       (user: IUser) => {
         this.router.navigateByUrl('/search');
       },
-      (e: HttpErrorResponse) => {
-        const errors: object[] = e.error;
-        if (errors.length > 0) {
-          errors.forEach((x: any) => {
-            if (x.description) {
-              this.toastrService.error(x.description);
-            }
-          });
-        }
-      }
+      (e: HttpErrorResponse) => this.toastrService.error(e.error?.error ?? 'Registration failed')
     );
   }
 }

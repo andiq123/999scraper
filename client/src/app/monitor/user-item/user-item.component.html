@@ -7,7 +7,7 @@
       {{ user.email }}
     </div>
     <div class="online-status">
-      <p>{{user.lastActive | timeago}}</p>
+      <p>{{user.lastActive | date:'short'}}</p>
     </div>
   </div>
   <div class="actions">

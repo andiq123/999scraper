@@ -2,11 +2,12 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
+import { ToastService } from '../../core/_services/toast.service';
 import { IUser } from 'src/app/shared/models/user';
 import { AuthService } from '../auth.service';
 
 @Component({
+  standalone: false,
   selector: 'app-login',
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
@@ -16,7 +17,7 @@ export class LoginComponent implements OnInit {
 
   constructor(
     private authService: AuthService,
-    private toastrService: ToastrService,
+    private toastrService: ToastService,
     private router: Router
   ) {}
 
@@ -28,11 +29,11 @@ export class LoginComponent implements OnInit {
     this.loginForm = new FormGroup({
       username: new FormControl('', [
         Validators.required,
-        Validators.minLength(5),
+        Validators.minLength(3),
       ]),
       password: new FormControl('', [
         Validators.required,
-        Validators.minLength(5),
+        Validators.minLength(8),
       ]),
     });
   }

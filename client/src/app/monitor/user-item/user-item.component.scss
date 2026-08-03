@@ -1,3 +1,5 @@
+@use "sass:color";
+
 .user {
   display: flex;
   flex-flow: row wrap;
@@ -10,7 +12,7 @@
   box-shadow: 0 1px 3px 1px rgb(241, 235, 235);
   transition: all 200ms ease-in-out;
   &:hover {
-    background-color: darken(white, 5%);
+    background-color: color.adjust(white, $lightness: -5%, $space: hsl);
   }
   &:active {
     transform: scale(0.9);
@@ -26,14 +28,14 @@
     .block {
       background-color: rgb(196, 110, 110);
       &:hover {
-        background-color: darken(rgb(196, 110, 110), 5%);
+        background-color: color.adjust(rgb(196, 110, 110), $lightness: -5%, $space: hsl);
       }
     }
 
     .unblock {
       background-color: rgb(97, 172, 97);
       &:hover {
-        background-color: darken(rgb(97, 172, 97), 5%);
+        background-color: color.adjust(rgb(97, 172, 97), $lightness: -5%, $space: hsl);
       }
     }
   }

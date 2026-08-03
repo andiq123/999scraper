@@ -1,10 +1,11 @@
 import { Component, Input, OnInit } from '@angular/core';
-import { ToastrService } from 'ngx-toastr';
+import { ToastService } from '../../core/_services/toast.service';
 import { FavoriteService } from 'src/app/fav/favorite.service';
 import { Currency } from 'src/app/shared/models/currency';
 import { IProduct } from 'src/app/shared/models/product';
 
 @Component({
+  standalone: false,
   selector: 'app-product-item',
   templateUrl: './product-item.component.html',
   styleUrls: ['./product-item.component.scss'],
@@ -15,7 +16,7 @@ export class ProductItemComponent implements OnInit {
 
   constructor(
     private favService: FavoriteService,
-    private toastrService: ToastrService
+    private toastrService: ToastService
   ) {}
 
   ngOnInit(): void {}

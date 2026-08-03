@@ -1,3 +1,5 @@
+@use "sass:color";
+
 .activity {
   box-shadow: 1px 1px 5px rgb(224, 213, 213);
   margin: 10px;
@@ -6,7 +8,7 @@
   justify-content: space-between;
   border-radius: 10px;
   &:hover {
-    background-color: darken(white, 5%);
+    background-color: color.adjust(white, $lightness: -5%, $space: hsl);
   }
 
   .date-holder {

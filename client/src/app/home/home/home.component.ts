@@ -4,12 +4,13 @@ import { AuthService } from 'src/app/auth/auth.service';
 import { IUser } from 'src/app/shared/models/user';
 
 @Component({
+  standalone: false,
   selector: 'app-home',
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent implements OnInit {
-  user$!: Observable<IUser>;
+  user$!: Observable<IUser | null>;
   constructor(private authService: AuthService) {}
 
   ngOnInit(): void {

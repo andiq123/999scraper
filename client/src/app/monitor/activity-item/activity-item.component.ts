@@ -2,6 +2,7 @@ import { Component, Input, OnInit } from '@angular/core';
 import { IActivity } from 'src/app/shared/models/activity';
 
 @Component({
+  standalone: false,
   selector: 'app-activity-item',
   templateUrl: './activity-item.component.html',
   styleUrls: ['./activity-item.component.scss'],

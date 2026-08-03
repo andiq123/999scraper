@@ -1,7 +1,8 @@
+@use "sass:color";
+
 /* You can add global styles to this file, and also import other style files */
-@import "./_vars.scss";
+@use "_vars.scss";
 @import url("https://fonts.googleapis.com/css2?family=Otomanopee+One&family=Poppins&display=swap");
-@import "~ngx-toastr/toastr";
 
 *,
 *::after,
@@ -18,22 +19,22 @@
   padding: 5px 8px;
   outline: none;
   border: transparent;
-  font-size: $font-size;
+  font-size: vars.$font-size;
   background: transparent;
   font-weight: bold;
   border-radius: 10px;
   transition: all 200ms ease-in-out;
   &:hover {
-    background: $secondary-color;
+    background: vars.$secondary-color;
     cursor: pointer;
   }
 
   &.active {
-    background: $status-color;
+    background: vars.$status-color;
     color: white;
     box-shadow: 1px 1px 5px 1px rgb(209, 203, 203);
     &:hover {
-      background: darken($status-color, 5%);
+      background: color.adjust(vars.$status-color, $lightness: -5%, $space: hsl);
     }
   }
 }

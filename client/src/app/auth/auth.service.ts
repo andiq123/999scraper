@@ -11,7 +11,7 @@ import { IUser } from '../shared/models/user';
 })
 export class AuthService {
   private baseUrl = environment.apiUrl + 'account/';
-  private userSource = new ReplaySubject<IUser>(1);
+  private userSource = new ReplaySubject<IUser | null>(1);
   public User$ = this.userSource.asObservable();
 
   constructor(private http: HttpClient, private router: Router) {}
@@ -34,18 +34,21 @@ export class AuthService {
 
   logOut() {
     localStorage.removeItem('token');
-    this.userSource.next(undefined);
+    this.userSource.next(null);
     this.router.navigateByUrl('/');
   }
 
   loadUser() {
-    var userToken = localStorage.getItem('token');
+    const userToken = localStorage.getItem('token');
     if (userToken) {
       this.http
         .get<IUser>(this.baseUrl + 'current')
-        .subscribe((user: IUser) => {
-          this.setUser(user);
+        .subscribe({
+          next: (user: IUser) => this.setUser(user),
+          error: () => this.logOut(),
         });
+    } else {
+      this.userSource.next(null);
     }
   }
 
@@ -53,12 +56,7 @@ export class AuthService {
     if (user.token) {
       localStorage.setItem('token', user.token);
     }
-    user.isAdmin = this.getDecodedToken(user.token);
     this.userSource.next(user);
-  }
-
-  getDecodedToken(token: string) {
-    return !!JSON.parse(atob(token.split('.')[1])).role;
   }
 }
 

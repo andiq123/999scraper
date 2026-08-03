@@ -7,14 +7,12 @@ import { ActivityItemComponent } from './activity-item/activity-item.component';
 import { SharedModule } from '../shared/shared.module';
 import { CoreModule } from '../core/core.module';
 import { FormsModule } from '@angular/forms';
-import { TimeagoModule } from 'ngx-timeago';
 
 @NgModule({
   imports: [
     CommonModule,
     MonitorRoutingModule,
     FormsModule,
-    TimeagoModule.forRoot(),
   ],
   declarations: [UserItemComponent, AdminComponent, ActivityItemComponent],
 })

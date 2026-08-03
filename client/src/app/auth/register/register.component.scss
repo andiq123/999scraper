@@ -1,4 +1,6 @@
-@import "../../../vars";
+@use "sass:color";
+
+@use "../../../vars";
 
 .login {
   display: flex;
@@ -24,9 +26,9 @@
       button {
         cursor: pointer;
         transition: background-color 200ms ease-in-out;
-        background-color: $status-color;
+        background-color: vars.$status-color;
         &:hover {
-          background-color: darken($status-color, 5%);
+          background-color: color.adjust(vars.$status-color, $lightness: -5%, $space: hsl);
         }
         &:disabled {
           cursor: no-drop;

@@ -1,3 +1,6 @@
-<ngx-loading [show]="showLoading"></ngx-loading>
+<div class="global-loading" *ngIf="showLoading"><app-loading></app-loading></div>
+<ng-container *ngIf="toast$ | async as toast">
+  <div class="toast" *ngIf="toast.message" [class.error]="toast.kind === 'error'">{{ toast.message }}</div>
+</ng-container>
 <app-nav></app-nav>
 <router-outlet></router-outlet>

@@ -1,0 +1,20 @@
+<div class="filter-item">
+  <h3>Order by:</h3>
+  <select [(ngModel)]="filters.order">
+    <option *ngFor="let item of order" [value]="item">{{ item }}</option>
+  </select>
+</div>
+<div class="filter-item">
+  <h3>Conditions:</h3>
+  <label class="checkbox-item"><span>Exclude Boosted</span><input type="checkbox" [(ngModel)]="filters.excludeBoosted"></label>
+  <label class="checkbox-item"><span>Exclude Price Negotiable</span><input type="checkbox" [(ngModel)]="filters.excludePriceNegotiable"></label>
+  <label class="checkbox-item"><span>Exclude Other Ads</span><input type="checkbox" [(ngModel)]="filters.excludeOtherAds"></label>
+</div>
+<div class="filter-item">
+  <h3>Exclude Words:</h3>
+  <input #input type="text" placeholder="Word..." (keydown.enter)="addExcludedWord($event)">
+  <div class="keys">
+    <button *ngFor="let word of filters.keysToExclude" (click)="removeExcludedWord(word)">{{ word }}</button>
+  </div>
+  <button *ngIf="filters.keysToExclude.length" class="clear-button" (click)="clearExcludedWords()">Clear</button>
+</div>

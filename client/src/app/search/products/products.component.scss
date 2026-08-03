@@ -1,4 +1,6 @@
-@import "../../../vars";
+@use "sass:color";
+
+@use "../../../vars";
 .products {
   .noProducts {
     width: 100%;
@@ -11,7 +13,7 @@
       border: none;
       padding: 10px;
       border-radius: 10px;
-      font-size: $font-size;
+      font-size: vars.$font-size;
       box-shadow: 1px 1px 7px 1px rgb(226, 219, 219);
     }
     button {
@@ -31,40 +33,44 @@
     align-items: center;
   }
 
-  .loading {
-    margin: 50px auto;
-    width: 70%;
+  .stream-status {
+    margin: 24px 0;
+    padding: 16px;
+    border-radius: 14px;
+    background: white;
+    box-shadow: 1px 1px 7px 1px rgb(226, 219, 219);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .stream-copy {
+      display: flex;
+      flex-direction: column;
+      min-width: 210px;
+      color: rgb(70, 70, 78);
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgb(235, 235, 242);
+
+      span {
+        display: block;
+        height: 100%;
+        min-width: 2px;
+        background: vars.$status-color;
+        transition: width 180ms ease-out;
+      }
+    }
+  }
+
+  .initial-loading {
     display: flex;
     justify-content: center;
-    .loading-bar {
-      width: 100%;
-      padding: 10px;
-      display: flex;
-      flex-flow: row wrap;
-      align-items: center;
-
-      .inner-progress {
-        box-shadow: 1px 1px 5px 1px rgb(219, 212, 212);
-        border: none;
-        height: 20px;
-        flex: 1;
-        margin-right: 10px;
-        border-radius: 25px;
-        overflow: hidden;
-        .charger {
-          background-color: rgb(100, 100, 172);
-          transition: 200ms ease-in-out all;
-          height: 100%;
-        }
-      }
-      .percentage {
-        flex: 0.2;
-      }
-    }
-    app-loading {
-      display: flex;
-      justify-content: center;
-    }
+    margin: 50px auto;
   }
 }
 
@@ -74,27 +80,27 @@
   padding: 5px 10px;
   outline: none;
   border: transparent;
-  font-size: $font-size;
+  font-size: vars.$font-size;
   background: transparent;
   font-weight: bold;
   border-radius: 10px;
   transition: all 200ms ease-in-out;
   &:hover {
-    background: $secondary-color;
+    background: vars.$secondary-color;
     cursor: pointer;
   }
 
   &.active {
-    background: $status-color;
+    background: vars.$status-color;
     color: white;
     box-shadow: 1px 1px 5px 1px rgb(209, 203, 203);
     &:hover {
-      background: darken($status-color, 5%);
+      background: color.adjust(vars.$status-color, $lightness: -5%, $space: hsl);
     }
   }
 }
 
-@media only screen and(max-width:800px) {
+@media only screen and (max-width: 800px) {
   .products {
     .search-section {
       display: flex;
@@ -113,6 +119,10 @@
       display: flex;
       flex-flow: column wrap;
       justify-content: center;
+    }
+    .stream-status {
+      align-items: stretch;
+      flex-direction: column;
     }
   }
 }

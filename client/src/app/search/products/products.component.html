@@ -1,39 +1,38 @@
 <div class="products">
-    <form #form="ngForm" (submit)="onSubmit()">
-        <div class="search-section">
-            <input name="search" [(ngModel)]="searchCriteria" type="text" required placeholder="Search...">
-            <button class="btn active" type="submit" [disabled]="form.invalid">Search</button>
-        </div>
-    </form>
-
-
-    <div class="products-count-info" *ngIf="!loading && products.length > 0;">
-        <p>There are <strong>{{products.length}}</strong> products</p>
+  <form #form="ngForm" (submit)="onSubmit()">
+    <div class="search-section">
+      <input name="search" [(ngModel)]="searchCriteria" type="text" required placeholder="Search 999.md...">
+      <button class="btn active" type="submit" [disabled]="form.invalid || loading">Search</button>
     </div>
+  </form>
 
-    <div class="products-container" *ngIf="!loading && products.length > 0;">
-        <app-product-item *ngFor="let product of products" [product]="product"></app-product-item>
+  <div class="stream-status" *ngIf="loading">
+    <div class="stream-copy">
+      <strong>Loading page {{ loadedPages || 1 }} of {{ totalPages || '?' }}</strong>
+      <span>{{ products.length }} matching products received</span>
     </div>
+    <div class="progress-track" role="progressbar" [attr.aria-valuenow]="progress" aria-valuemin="0" aria-valuemax="100">
+      <span [style.width.%]="progress"></span>
+    </div>
+    <button class="btn" type="button" (click)="onCancel()">Cancel</button>
+  </div>
 
-    <div *ngIf="!initial" class="noProducts">
-        <h3 *ngIf="!loading && products.length ===0">No Products Found, try changing the filters</h3>
-    </div>
-    
-    <div class="loading" *ngIf="loading" style="display:flex;flex-flow: column; justify-content: center;">
-        <ng-container *ngIf="progress$ | async as progress;else apploading">
-            <div class="loading-bar"
-                *ngIf="progress.progressPercentage > 0 && progress.progressPercentage <= 99; else apploading">
-                <div class="inner-progress">
-                    <div class="charger" [ngStyle]="{'width': progress.progressPercentage + '%'}"></div>
-                </div>
-                <div class="percentage">{{progress.progressPercentage}}%</div>
-            </div>
-            <p style="text-align: center;">Current Page: {{progress.currentPage}} / {{progress.totalPages}}</p>
-        </ng-container>
-        <ng-template #apploading>
-            <app-loading style="width: 30%; margin:0 auto;"></app-loading>
-        </ng-template>
-        <button class="btn" style="width: 30%; margin:10px auto;" (click)="onCancel()">Cancel</button>
-    </div>
+  <div class="products-count-info" *ngIf="products.length > 0">
+    <p><strong>{{ products.length }}</strong> products{{ loading ? ' so far' : '' }}</p>
+  </div>
 
+  <div class="products-container" *ngIf="products.length > 0">
+    <app-product-item
+      *ngFor="let product of products; trackBy: trackProduct"
+      [product]="product">
+    </app-product-item>
+  </div>
+
+  <div *ngIf="!initial && !loading && products.length === 0" class="noProducts">
+    <h3>No products found. Try changing the filters.</h3>
+  </div>
+
+  <div class="initial-loading" *ngIf="loading && products.length === 0">
+    <app-loading></app-loading>
+  </div>
 </div>

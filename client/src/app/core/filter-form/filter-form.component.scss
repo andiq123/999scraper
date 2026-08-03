@@ -1,0 +1,58 @@
+@use "sass:color";
+
+:host {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-around;
+  text-align: center;
+}
+
+.filter-item { margin: 15px 0; }
+
+select,
+input[type="text"] {
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  padding: 7px;
+  background: white;
+  box-shadow: 1px 1px 7px 1px rgb(226, 219, 219);
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid gray;
+  margin-bottom: 10px;
+  font-size: 0.8em;
+}
+
+.keys {
+  display: flex;
+  flex-flow: row wrap;
+  max-height: 50px;
+  margin-top: 5px;
+  overflow-y: auto;
+
+  button {
+    margin: 3px;
+    padding: 5px;
+    border: none;
+    border-radius: 5px;
+    background: rgb(236, 229, 229);
+  }
+}
+
+.clear-button {
+  margin-top: 20px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  background: rgb(187, 115, 115);
+  cursor: pointer;
+
+  &:hover { background: color.adjust(rgb(187, 115, 115), $lightness: -5%); }
+}

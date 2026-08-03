@@ -1,26 +1,24 @@
-import { Component, Input, OnInit, Output } from '@angular/core';
-import { ToastrService } from 'ngx-toastr';
-import { Subject } from 'rxjs';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { ToastService } from '../../core/_services/toast.service';
 import { Currency } from 'src/app/shared/models/currency';
 import { IProduct } from 'src/app/shared/models/product';
 import { FavoriteService } from '../favorite.service';
 
 @Component({
+  standalone: false,
   selector: 'app-fav-item',
   templateUrl: './fav-item.component.html',
   styleUrls: ['./fav-item.component.scss'],
 })
-export class FavItemComponent implements OnInit {
-  @Output('onProductRemoved') onProductRemoved = new Subject<string>();
+export class FavItemComponent {
+  @Output() onProductRemoved = new EventEmitter<string>();
   @Input() product!: IProduct;
   currency = Currency;
 
   constructor(
     private favService: FavoriteService,
-    private toastrService: ToastrService
+    private toastrService: ToastService
   ) {}
-
-  ngOnInit(): void {}
 
   onShowToolTip() {
     if (this.timeOut) {

@@ -9,11 +9,11 @@ import {
 import { Observable } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { Router } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
+import { ToastService } from '../_services/toast.service';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
-  constructor(private router: Router, private toastr: ToastrService) {}
+  constructor(private router: Router, private toastr: ToastService) {}
 
   intercept(
     request: HttpRequest<unknown>,
@@ -27,8 +27,9 @@ export class AuthInterceptor implements HttpInterceptor {
     }
     return next.handle(request).pipe(
       catchError((e: HttpErrorResponse) => {
-        if (e.status === 401 && e.error && e.error.includes('banned')) {
-          this.toastr.error(e.error);
+        const message = e.error?.error ?? '';
+        if (e.status === 401 && message.includes('banned')) {
+          this.toastr.error(message);
           this.router.navigateByUrl('/');
         }
         throw e;

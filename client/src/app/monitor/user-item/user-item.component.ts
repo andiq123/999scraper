@@ -1,20 +1,20 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, Input, OnInit, Output } from '@angular/core';
-import { Subject } from 'rxjs';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { IUser } from 'src/app/shared/models/user';
 import { MonitorService } from '../monitor.service';
 
 @Component({
+  standalone: false,
   selector: 'app-user-item',
   templateUrl: './user-item.component.html',
   styleUrls: ['./user-item.component.scss'],
 })
 export class UserItemComponent implements OnInit {
   @Input() user!: IUser;
-  @Output('onSelectUser') onSelectUser = new Subject<string>();
+  @Output() onSelectUser = new EventEmitter<string>();
   constructor(private monitorService: MonitorService) {}
 
-  ngOnInit() {}
+  ngOnInit() { this.isAlreadyBanned = this.user.isBanned; }
 
   selectUser() {
     this.onSelectUser.next(this.user.id);

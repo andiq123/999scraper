@@ -1,17 +1,25 @@
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build-env
+FROM node:26-alpine AS frontend
+WORKDIR /src/client
+COPY client/package*.json ./
+RUN npm ci
+COPY client/ ./
+RUN npm run build
+
+FROM golang:1.26-alpine AS backend
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY cmd/ cmd/
+COPY internal/ internal/
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /server ./cmd/server
+
+FROM alpine:3.24
+RUN apk add --no-cache ca-certificates \
+    && addgroup -S app \
+    && adduser -S -G app app
 WORKDIR /app
-
-COPY ["*.sln", "./"]
-COPY ["API/*.csproj", "./API/"]
-COPY ["Infrastructure/*.csproj", "./Infrastructure/"]
-COPY ["Core/*.csproj", "./Core/"]
-
-RUN dotnet restore "999Scrapper.sln"
-COPY . .
-
-RUN dotnet publish "999Scrapper.sln" -c Release -o out
-
-FROM mcr.microsoft.com/dotnet/aspnet:6.0
-WORKDIR /app
-COPY --from=build-env /app/out .
-ENTRYPOINT ["dotnet", "API.dll"]
+COPY --from=backend /server ./server
+COPY --from=frontend /src/web/ ./web/
+USER app
+EXPOSE 5000
+ENTRYPOINT ["./server"]

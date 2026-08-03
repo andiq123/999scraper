@@ -3,6 +3,7 @@ import { FavoriteService } from 'src/app/fav/favorite.service';
 import { IProduct } from 'src/app/shared/models/product';
 
 @Component({
+  standalone: false,
   selector: 'app-favorites',
   templateUrl: './favorites.component.html',
   styleUrls: ['./favorites.component.scss'],

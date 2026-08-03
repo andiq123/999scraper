@@ -1,53 +1,53 @@
 services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: 999scraper
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d 999scraper"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - postgres-data:/var/lib/postgresql
+
   redis:
-    image: redis:latest
-    ports:
-      - 6379:6379
-    command: ['redis-server', '--appendonly', 'yes']
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
     volumes:
       - redis-data:/data
 
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    environment:
-      - REDIS_HOSTS=local:redis:6379
-      - HTTP_USER=root
-      - HTTP_PASSWORD=secret
+  app:
+    build: .
+    restart: unless-stopped
     ports:
-      - 8081:8081
+      - ${APP_PORT:-8080}:5000
+    environment:
+      DATABASE_URL: postgres://appuser:secret@db:5432/999scraper?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:-local-development-key-change-me-please}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me-now}
+      SCRAPER_MAX_PAGES: ${SCRAPER_MAX_PAGES:-25}
+      SCRAPER_WORKERS: ${SCRAPER_WORKERS:-3}
+      SCRAPER_REQUEST_DELAY: ${SCRAPER_REQUEST_DELAY:-350ms}
+      SCRAPER_RETRIES: ${SCRAPER_RETRIES:-3}
     depends_on:
-      - redis
-
-  db:
-    image: postgres
-    restart: always
-    environment:
-      POSTGRES_PASSWORD: secret
-      POSTGRES_USER: appuser
-    ports:
-      - 5432:5432
-
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - 8080:8080
-
-  frontend:
-    build: ./
-    ports:
-      - 5000:5000
-    environment:
-      ASPNETCORE_URLS: http://+:5000
-      ConnectionStrings__DefaultConnection: Server=db; Port=5432; User id=appuser; Password=secret; Database=999scraper
-      ConnectionStrings__Redis: redis
-      Token__Key: Super ultra secure key for Testing123
-      Token__audience: ClientApp
-      Token__Issuer: AndiQ
-    depends_on:
-      - redis-commander
-      - db
-      - adminer
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
+  postgres-data:
   redis-data:

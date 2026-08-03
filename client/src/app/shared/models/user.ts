@@ -4,5 +4,6 @@ export interface IUser {
   email: string;
   token: string;
   isAdmin: boolean;
+  isBanned: boolean;
   lastActive: string;
 }

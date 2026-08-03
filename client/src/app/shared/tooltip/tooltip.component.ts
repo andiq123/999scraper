@@ -2,6 +2,7 @@ import { Component, Input, OnInit } from '@angular/core';
 import { IProduct } from '../models/product';
 
 @Component({
+  standalone: false,
   selector: 'app-tooltip',
   templateUrl: './tooltip.component.html',
   styleUrls: ['./tooltip.component.scss'],

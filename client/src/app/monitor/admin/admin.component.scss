@@ -1,3 +1,5 @@
+@use "sass:color";
+
 .admin-section {
   margin-top: 20px;
   display: flex;
@@ -41,7 +43,7 @@
 }
 
 .header {
-  background-color: darken(white, 10%);
+  background-color: color.adjust(white, $lightness: -10%, $space: hsl);
   padding: 10px;
   text-align: center;
   border-radius: 10px;

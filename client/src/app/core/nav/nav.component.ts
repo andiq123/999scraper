@@ -10,12 +10,13 @@ import { AuthService } from 'src/app/auth/auth.service';
 import { IUser } from 'src/app/shared/models/user';
 
 @Component({
+  standalone: false,
   selector: 'app-nav',
   templateUrl: './nav.component.html',
   styleUrls: ['./nav.component.scss'],
 })
 export class NavComponent implements OnInit {
-  user$!: Observable<IUser>;
+  user$!: Observable<IUser | null>;
   show: boolean = window.innerWidth >= 800;
   constructor(private authService: AuthService) {}
 

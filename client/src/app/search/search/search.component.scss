@@ -1,7 +1,7 @@
-@import "../../../vars";
+@use "../../../vars";
 
 .main {
-  background-image: $gradient-background;
+  background-image: vars.$gradient-background;
   background: fixed;
   width: 100%;
   padding: 10px;

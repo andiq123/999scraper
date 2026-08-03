@@ -7,7 +7,7 @@ import {
 } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { FullScreenLoadingService } from '../_services/fullScreenLoading.service';
-import { delay, finalize } from 'rxjs/operators';
+import { finalize } from 'rxjs/operators';
 import { Router } from '@angular/router';
 
 @Injectable()
@@ -21,10 +21,11 @@ export class LoadingInterceptor implements HttpInterceptor {
     request: HttpRequest<unknown>,
     next: HttpHandler
   ): Observable<HttpEvent<unknown>> {
-    if (!this.router.url.includes('search')) this.fullScreenLoading.enable();
+    const showLoading = !this.router.url.includes('search');
+    if (showLoading) this.fullScreenLoading.enable();
     return next.handle(request).pipe(
       finalize(() => {
-        this.fullScreenLoading.disable();
+        if (showLoading) this.fullScreenLoading.disable();
       })
     );
   }
