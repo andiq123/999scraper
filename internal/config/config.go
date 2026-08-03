@@ -24,6 +24,7 @@ type Config struct {
 	ScraperRetries int
 }
 
+// Load reads and validates the API's environment-based runtime configuration.
 func Load() (Config, error) {
 	maxPages, err := strconv.Atoi(env("SCRAPER_MAX_PAGES", "25"))
 	if err != nil || maxPages < 1 {
@@ -42,7 +43,7 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("SCRAPER_RETRIES must be between 0 and 8")
 	}
 	cfg := Config{
-		Address:        env("APP_ADDRESS", ":5000"),
+		Address:        env("APP_ADDRESS", ":8080"),
 		DatabaseURL:    env("DATABASE_URL", "postgres://appuser:secret@localhost:5432/999scraper?sslmode=disable"),
 		RedisURL:       env("REDIS_URL", "redis://localhost:6379/0"),
 		JWTSecret:      env("JWT_SECRET", "local-development-key-change-me-please"),

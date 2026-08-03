@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Local 999scraper stack: Docker Desktop -> PostgreSQL/Redis -> Go + Angular app.
+# Local 999scraper stack: Docker Desktop -> data -> Air/Go API + Angular UI.
 # Ctrl+C removes the project containers, network, volumes, and locally built image.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 COMPOSE_FILE="$ROOT/docker-compose.yml"
 export COMPOSE_PROJECT_NAME="999scraper"
+export COMPOSE_MENU=false
 
 BOLD='\033[1m'
 RESET='\033[0m'
@@ -93,10 +94,11 @@ main() {
   trap 'exit 130' INT
   trap 'exit 143' TERM
 
-  log "docker" "building and starting PostgreSQL, Redis, backend, and frontend"
-  printf "${BOLD}App:${RESET}   http://localhost:8080\n"
-  printf "${BOLD}Admin:${RESET} admin / change-me-now (local default)\n"
-  printf "${BOLD}Stop:${RESET}  Ctrl+C removes the complete project stack and local data\n\n"
+  log "docker" "starting data services, Air backend, and Angular frontend"
+  printf "${BOLD}Frontend:${RESET} http://localhost:4200 (live reload)\n"
+  printf "${BOLD}Backend:${RESET}  http://localhost:8081/api/health (Air live reload)\n"
+  printf "${BOLD}Admin:${RESET}    admin / change-me-now (local default)\n"
+  printf "${BOLD}Stop:${RESET}     Ctrl+C removes the complete project stack and local data\n\n"
 
   compose up --build --remove-orphans
 }

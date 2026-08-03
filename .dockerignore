@@ -1,10 +1,7 @@
 .git
-.angular
 .env
 .DS_Store
-.vscode
-client/node_modules
+.air-tmp
+client
 web
-**/bin
-**/obj
 *.log

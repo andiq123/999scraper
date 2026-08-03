@@ -26,12 +26,16 @@ services:
     volumes:
       - redis-data:/data
 
-  app:
-    build: .
+  backend:
+    build:
+      context: .
+      target: development
+    init: true
     restart: unless-stopped
     ports:
-      - ${APP_PORT:-8080}:5000
+      - ${BACKEND_PORT:-8081}:8080
     environment:
+      APP_ADDRESS: :8080
       DATABASE_URL: postgres://appuser:secret@db:5432/999scraper?sslmode=disable
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET: ${JWT_SECRET:-local-development-key-change-me-please}
@@ -42,12 +46,44 @@ services:
       SCRAPER_WORKERS: ${SCRAPER_WORKERS:-3}
       SCRAPER_REQUEST_DELAY: ${SCRAPER_REQUEST_DELAY:-350ms}
       SCRAPER_RETRIES: ${SCRAPER_RETRIES:-3}
+    volumes:
+      - .:/app
+      - backend-build:/app/.air-tmp
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  frontend:
+    build:
+      context: client
+      target: development
+    init: true
+    restart: unless-stopped
+    ports:
+      - ${FRONTEND_PORT:-4200}:4200
+    volumes:
+      - ./client:/app
+      - frontend-modules:/app/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4200"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
 
 volumes:
+  backend-build:
+  frontend-modules:
   postgres-data:
   redis-data:

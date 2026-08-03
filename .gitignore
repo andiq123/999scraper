@@ -4,7 +4,9 @@
 # Dependencies and generated output
 client/node_modules/
 client/.angular/
+client/dist/
 web/
+.air-tmp/
 bin/
 coverage/
 

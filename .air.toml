@@ -1,0 +1,21 @@
+root = "."
+tmp_dir = ".air-tmp"
+
+[build]
+cmd = "go build -o ./.air-tmp/server ./cmd/server"
+entrypoint = ["./.air-tmp/server"]
+include_ext = ["go"]
+exclude_dir = [".air-tmp", ".git", "client", "web"]
+exclude_regex = ["_test\\.go"]
+exclude_unchanged = true
+delay = 300
+stop_on_error = true
+send_interrupt = true
+kill_delay = "2s"
+
+[log]
+time = true
+
+[misc]
+clean_on_exit = true
+startup_banner = "999scraper API · Air live reload"

@@ -2,11 +2,8 @@ package app
 
 import (
 	"context"
-	"io/fs"
 	"log/slog"
 	"net/http"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/andi/999scraper/internal/auth"
@@ -36,12 +33,6 @@ func New(ctx context.Context, logger *slog.Logger) (*http.Server, func(), error)
 		return nil, nil, err
 	}
 	redisCache := cache.Open(ctx, cfg.RedisURL, logger)
-	web, err := webFiles()
-	if err != nil {
-		redisCache.Close()
-		db.Close()
-		return nil, nil, err
-	}
 	scrape := scraper.New(cfg.ScraperBaseURL, scraper.Options{
 		MaxPages:       cfg.ScraperMaxPage,
 		Concurrency:    cfg.ScraperWorkers,
@@ -49,19 +40,7 @@ func New(ctx context.Context, logger *slog.Logger) (*http.Server, func(), error)
 		MaxRetries:     cfg.ScraperRetries,
 		RequestTimeout: 20 * time.Second,
 	})
-	handler := httpapi.New(db, auth.New(cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTLifetime), scrape, redisCache, logger, web)
+	handler := httpapi.New(db, auth.New(cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTLifetime), scrape, redisCache, logger)
 	server := &http.Server{Addr: cfg.Address, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 30 * time.Second, WriteTimeout: 5 * time.Minute, IdleTimeout: 2 * time.Minute}
 	return server, func() { redisCache.Close(); db.Close() }, nil
-}
-
-func webFiles() (fs.FS, error) {
-	root := os.Getenv("WEB_ROOT")
-	if root == "" {
-		root = "web"
-	}
-	absolute, err := filepath.Abs(root)
-	if err != nil {
-		return nil, err
-	}
-	return os.DirFS(absolute), nil
 }

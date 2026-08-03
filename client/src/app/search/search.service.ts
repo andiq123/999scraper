@@ -79,9 +79,9 @@ export class SearchService {
       while (true) {
         const { value, done } = await reader.read();
         pending += decoder.decode(value, { stream: !done });
-        const lines = pending.split('\n');
-        pending = lines.pop() ?? '';
-        for (const line of lines) this.emit(line, filters, subscriber);
+        const messages = pending.split('\n\n');
+        pending = messages.pop() ?? '';
+        for (const message of messages) this.emit(message, filters, subscriber);
         if (done) break;
       }
       this.emit(pending, filters, subscriber);
@@ -94,12 +94,18 @@ export class SearchService {
   }
 
   private emit(
-    line: string,
+    message: string,
     filters: Filters,
     subscriber: Subscriber<SearchStreamEvent>
   ): void {
-    if (!line.trim() || subscriber.closed) return;
-    const event = JSON.parse(line) as SearchStreamEvent;
+    if (!message.trim() || subscriber.closed) return;
+    const data = message
+      .split('\n')
+      .filter((line) => line.startsWith('data:'))
+      .map((line) => line.slice(5).trimStart())
+      .join('\n');
+    if (!data) return;
+    const event = JSON.parse(data) as SearchStreamEvent;
     if (event.type === 'start' && event.id) {
       filters.redisId = event.id;
       localStorage.setItem('filters', JSON.stringify(filters));

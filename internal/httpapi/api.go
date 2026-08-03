@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io/fs"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/mail"
@@ -26,12 +26,11 @@ type API struct {
 	scraper *scraper.Scraper
 	cache   *cache.Cache
 	logger  *slog.Logger
-	web     fs.FS
 	queries *queryGate
 }
 
-func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, logger *slog.Logger, web fs.FS) http.Handler {
-	api := &API{store: s, auth: a, scraper: sc, cache: c, logger: logger, web: web, queries: newQueryGate()}
+func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, logger *slog.Logger) http.Handler {
+	api := &API{store: s, auth: a, scraper: sc, cache: c, logger: logger, queries: newQueryGate()}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
@@ -47,7 +46,6 @@ func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, l
 	mux.Handle("GET /api/admin/users", a.Middleware(api.adminOnly(http.HandlerFunc(api.users))))
 	mux.Handle("GET /api/admin/{userId}/activity", a.Middleware(api.adminOnly(http.HandlerFunc(api.activities))))
 	mux.Handle("POST /api/admin/{userId}/blockUnBlock", a.Middleware(api.adminOnly(http.HandlerFunc(api.toggleBan))))
-	mux.Handle("/", api.spa())
 	return api.recover(api.cors(api.log(mux)))
 }
 
@@ -302,21 +300,25 @@ func (a *API) streamCached(w http.ResponseWriter, flusher http.Flusher, cached m
 }
 
 type streamWriter struct {
-	encoder *json.Encoder
+	writer  http.ResponseWriter
 	flusher http.Flusher
 }
 
 func beginStream(w http.ResponseWriter, flusher http.Flusher) *streamWriter {
-	w.Header().Set("Content-Type", "application/x-ndjson; charset=utf-8")
+	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store, no-transform")
 	w.Header().Set("X-Accel-Buffering", "no")
 	w.WriteHeader(http.StatusOK)
 	flusher.Flush()
-	return &streamWriter{encoder: json.NewEncoder(w), flusher: flusher}
+	return &streamWriter{writer: w, flusher: flusher}
 }
 
 func (w *streamWriter) write(event searchEvent) error {
-	if err := w.encoder.Encode(event); err != nil {
+	payload, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w.writer, "event: %s\ndata: %s\n\n", event.Type, payload); err != nil {
 		return err
 	}
 	w.flusher.Flush()
@@ -437,21 +439,6 @@ func (a *API) adminOnly(next http.Handler) http.Handler {
 }
 func userID(r *http.Request) string { return auth.ClaimsFrom(r.Context()).Subject }
 
-func (a *API) spa() http.Handler {
-	files := http.FileServer(http.FS(a.web))
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		path := strings.TrimPrefix(r.URL.Path, "/")
-		if path != "" {
-			if f, err := a.web.Open(path); err == nil {
-				_ = f.Close()
-				files.ServeHTTP(w, r)
-				return
-			}
-		}
-		r.URL.Path = "/"
-		files.ServeHTTP(w, r)
-	})
-}
 func (a *API) internal(w http.ResponseWriter, err error) {
 	a.logger.Error("request failed", "error", err)
 	writeError(w, http.StatusInternalServerError, "internal server error")
