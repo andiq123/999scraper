@@ -74,7 +74,8 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:4200"]
+      # Angular binds IPv4 in the development container; Alpine resolves localhost to IPv6 first.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4200"]
       interval: 3s
       timeout: 3s
       retries: 30

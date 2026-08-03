@@ -9,7 +9,10 @@ import { Product } from '../models';
 })
 export class ProductCardComponent {
   readonly product = input.required<Product>();
+  readonly saved = input(false);
+  readonly convertedPrice = input('');
   readonly exclude = output<string>();
+  readonly save = output<Product>();
   readonly selectedWord = signal('');
   readonly popoverId = computed(() => `exclude-${this.product().id.replace(/[^a-zA-Z0-9_-]/g, '')}`);
   readonly titleWords = computed(() => this.product().title.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) ?? []);

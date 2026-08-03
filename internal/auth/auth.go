@@ -89,23 +89,34 @@ func (s *Service) ClearSession(w http.ResponseWriter) {
 
 func (s *Service) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie(sessionCookie)
-		if err != nil || cookie.Value == "" {
+		claims, ok := s.claims(r)
+		if !ok {
 			w.Header().Set("Content-Type", "application/json")
 			http.Error(w, `{"error":"authentication required"}`, http.StatusUnauthorized)
 			return
 		}
-		claims := new(Claims)
-		token, err := jwt.ParseWithClaims(cookie.Value, claims, func(_ *jwt.Token) (any, error) {
-			return s.secret, nil
-		}, jwt.WithIssuer(s.issuer), jwt.WithExpirationRequired(), jwt.WithValidMethods([]string{"HS256"}))
-		if err != nil || !token.Valid {
-			w.Header().Set("Content-Type", "application/json")
-			http.Error(w, `{"error":"invalid token"}`, http.StatusUnauthorized)
-			return
-		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), contextKey{}, claims)))
 	})
+}
+
+func (s *Service) OptionalMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if claims, ok := s.claims(r); ok {
+			r = r.WithContext(context.WithValue(r.Context(), contextKey{}, claims))
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (s *Service) claims(r *http.Request) (*Claims, bool) {
+	cookie, err := r.Cookie(sessionCookie)
+	if err != nil || cookie.Value == "" {
+		return nil, false
+	}
+	claims := new(Claims)
+	token, err := jwt.ParseWithClaims(cookie.Value, claims, func(_ *jwt.Token) (any, error) { return s.secret, nil },
+		jwt.WithIssuer(s.issuer), jwt.WithExpirationRequired(), jwt.WithValidMethods([]string{"HS256"}))
+	return claims, err == nil && token.Valid
 }
 
 func ClaimsFrom(ctx context.Context) *Claims {

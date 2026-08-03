@@ -467,7 +467,10 @@ func Filter(products []model.Product, f model.Filters) []model.Product {
 var carNoise = map[string]struct{}{
 	"accesorii": {}, "acumulator": {}, "anvelope": {}, "capace": {}, "covorașe": {}, "covorase": {},
 	"dezmembrare": {}, "dezmembrări": {}, "faruri": {}, "huse": {}, "piese": {}, "roți": {}, "jante": {},
-	"разборка": {}, "запчасти": {}, "детали": {}, "коврики": {}, "чехлы": {}, "диски": {}, "шины": {},
+	"scut": {}, "sticlă": {}, "sticla": {}, "radiator": {}, "radiatoare": {}, "adaptor": {},
+	"amortizator": {}, "amortizatoare": {}, "închiriere": {}, "inchiriere": {}, "chirie": {},
+	"reparație": {}, "reparatie": {}, "разборка": {}, "запчасти": {}, "детали": {}, "коврики": {},
+	"чехлы": {}, "диски": {}, "шины": {}, "аренда": {}, "ремонт": {},
 }
 
 func isPlausibleCar(product model.Product, titleTokens []string) bool {

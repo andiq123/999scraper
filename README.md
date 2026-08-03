@@ -4,9 +4,10 @@ A clean, separated search application for 999.md:
 
 - Go 1.26 API with Air live reload
 - Angular 22 standalone, zoneless frontend with signal-based state
-- PostgreSQL 18 for anonymous accounts and per-account search history
+- PostgreSQL 18 for code-only accounts, saved listings, preferences, and search history
 - Redis 8 for normalized search caching
 - SSE for progressive search-result delivery
+- background EUR/USD/MDL normalization from National Bank of Moldova rates
 
 ## Start
 
@@ -19,7 +20,7 @@ Docker Desktop is the only local requirement on macOS. The launcher starts Docke
 - Frontend: <http://localhost:4200>
 - Backend health: <http://localhost:8081/api/health>
 
-There are no usernames, passwords, roles, or admins. Press **Register** once, save the generated six-digit code, then use it to log in. The code is shown once and only its keyed cryptographic fingerprint is stored. Login attempts are rate-limited, and a successful login creates an HttpOnly, SameSite session cookie; browser JavaScript never handles the JWT.
+Search is public and needs no account. Log in only to save listings, sync excluded-word preferences, and retain search history. There are no usernames, passwords, roles, or admins: press **Register** once, save the generated six-digit code, then use it to log in. The code is shown once and only its keyed cryptographic fingerprint is stored. Login attempts are rate-limited, and a successful login creates an HttpOnly, SameSite session cookie; browser JavaScript never handles the JWT.
 
 Changes under `cmd/` or `internal/` rebuild and restart the backend through Air. Angular source changes refresh through its independent development server.
 
@@ -29,7 +30,7 @@ For non-local use, copy `.env.example` to `.env`, replace every secret, and set 
 
 ## Why SSE
 
-Search progress is one-way—from the Go API to the browser—so SSE is simpler and more resilient than a WebSocket connection. The authenticated POST response uses `text/event-stream`; each page is flushed as a named event and rendered immediately. Canceling in the UI aborts the HTTP request and its outstanding scraper work.
+Search progress is one-way—from the Go API to the browser—so SSE is simpler than a WebSocket connection. The public POST response uses `text/event-stream`; each page is flushed as a named event and rendered immediately. Canceling in the UI aborts the HTTP request and its outstanding scraper work.
 
 The scraper protects 999.md with:
 
@@ -54,9 +55,11 @@ npm ci
 npm start
 ```
 
-The API reads the configuration listed in [.env.example](.env.example) and creates its two tables automatically:
+The API reads the configuration listed in [.env.example](.env.example) and creates its small schema automatically:
 
 - `accounts`: anonymous account ID, login-code fingerprint, creation time
 - `search_history`: the latest searches belonging to that account
+- `account_preferences`: reusable excluded-word stash
+- `saved_listings`: a personal listing snapshot collection
 
-The authenticated API surface is intentionally small: current session, progressive search, and personal history. Registration and code login are the only public account endpoints.
+The public API is limited to health, exchange rates, registration, login, and progressive search. History, preferences, saved listings, and the current session require the private code session.

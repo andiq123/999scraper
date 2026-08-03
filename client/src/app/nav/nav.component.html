@@ -1,10 +1,13 @@
 <nav aria-label="Primary navigation">
-  <a class="brand" routerLink="/" aria-label="999Scraper home"><span>999</span>Scraper</a>
+  <a class="brand" routerLink="/" aria-label="999Scraper home"><span>999</span><strong>Scraper</strong></a>
+  <div class="actions">
+    <a routerLink="/" [routerLinkActiveOptions]="{exact: true}" routerLinkActive="active">Search</a>
   @if (auth.session()) {
-    <div class="actions">
-      <a routerLink="/search" routerLinkActive="active">Search</a>
+      <a routerLink="/saved" routerLinkActive="active">Saved</a>
       <a routerLink="/history" routerLinkActive="active">History</a>
       <button class="logout" type="button" (click)="auth.logout()">Log out</button>
-    </div>
+  } @else {
+      <a routerLink="/login" routerLinkActive="active">Log in</a>
   }
+  </div>
 </nav>

@@ -7,6 +7,7 @@
     }
     @if (product().year) { <span class="year">{{ product().year }}</span> }
   </a>
+  <button class="save" type="button" [class.saved]="saved()" (click)="save.emit(product())" [attr.aria-label]="saved() ? 'Remove from saved listings' : 'Save listing'" [attr.aria-pressed]="saved()">{{ saved() ? '♥' : '♡' }}</button>
   <div class="copy">
     <h2 [title]="product().title">
       @for (word of titleWords(); track $index) {
@@ -14,7 +15,7 @@
       }
     </h2>
     <div class="footer">
-      <p>{{ price() }}</p>
+      <div class="prices"><p>{{ price() }}</p>@if (convertedPrice()) { <small>{{ convertedPrice() }}</small> }</div>
       <a [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer">View <span aria-hidden="true">↗</span></a>
     </div>
   </div>

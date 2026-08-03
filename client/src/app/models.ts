@@ -1,6 +1,8 @@
 export interface Session { id: string }
 export interface Registration { code: string }
 export interface SearchHistory { id: string; query: string; searchedAt: string }
+export interface Preferences { excludedWords: string[] }
+export interface SavedListing { product: Product; savedAt: string }
 
 export type SortOrder = 'relevance' | 'priceAsc' | 'priceDesc';
 

@@ -45,14 +45,17 @@
         </select>
       </label>
       <fieldset class="price-filter">
-        <legend><span>Price</span><output>{{ priceMax() === null ? 'Any' : 'Up to ' + priceMax() }}</output></legend>
+        <legend><span>Price</span><output>{{ priceRangeLabel() }}</output></legend>
         <select aria-label="Price currency" [value]="priceCurrency() ?? ''" (change)="setCurrency($event)">
-          <option value="">Any currency</option>
+          <option value="">Original prices</option>
           <option value="0">MDL</option>
           <option value="1">EUR</option>
           <option value="2">USD</option>
         </select>
-        <input class="price-slider" type="range" min="0" [max]="priceCeiling()" [step]="priceStep()" [value]="priceMax() ?? priceCeiling()" (input)="setBudget($event)" aria-label="Maximum price slider" [disabled]="rawProducts().length === 0">
+        <div class="dual-range" [style.--from.%]="priceMinPercent()" [style.--to.%]="priceMaxPercent()" [class.disabled]="rawProducts().length === 0">
+          <input type="range" min="0" [max]="priceCeiling()" [step]="priceStep()" [value]="priceMin() ?? 0" (input)="setPriceSlider('min', $event)" aria-label="Minimum price slider" [disabled]="rawProducts().length === 0">
+          <input type="range" min="0" [max]="priceCeiling()" [step]="priceStep()" [value]="priceMax() ?? priceCeiling()" (input)="setPriceSlider('max', $event)" aria-label="Maximum price slider" [disabled]="rawProducts().length === 0">
+        </div>
         <div class="price-inputs">
           <input type="number" inputmode="numeric" min="0" placeholder="Min" aria-label="Minimum price" [value]="priceMin() ?? ''" (input)="setPrice('min', $event)">
           <span>–</span>
@@ -105,12 +108,18 @@
           @if (hasCustomFilters()) { <button type="button" (click)="resetFilters()">Reset</button> }
         </div>
         <div class="grid">
-          @for (product of products(); track product.id) { <app-product-card [product]="product" (exclude)="addExclusion($event)" /> }
+          @for (product of products(); track product.id) { <app-product-card [product]="product" [saved]="library.savedIds().has(product.id)" [convertedPrice]="currency.label(product, priceCurrency())" (save)="toggleSaved($event)" (exclude)="addExclusion($event)" /> }
         </div>
       } @else if (searched() && !loading()) {
         <div class="empty"><h2>No products found</h2><p>Try a broader search or fewer filters.</p></div>
       } @else if (loading()) {
         <div class="spinner" aria-label="Loading"></div>
+      } @else {
+        <div class="welcome">
+          <span aria-hidden="true">⌕</span>
+          <h2>Search the marketplace</h2>
+          <p>Browse without an account. Log in only when you want to save a listing or keep your cleanup preferences.</p>
+        </div>
       }
     </section>
   </div>

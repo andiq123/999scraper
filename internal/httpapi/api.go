@@ -14,6 +14,7 @@ import (
 
 	"github.com/andi/999scraper/internal/auth"
 	"github.com/andi/999scraper/internal/cache"
+	"github.com/andi/999scraper/internal/currency"
 	"github.com/andi/999scraper/internal/model"
 	"github.com/andi/999scraper/internal/scraper"
 	"github.com/andi/999scraper/internal/store"
@@ -27,10 +28,11 @@ type API struct {
 	logger  *slog.Logger
 	queries *queryGate
 	logins  *loginLimiter
+	rates   *currency.Service
 }
 
-func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, logger *slog.Logger) http.Handler {
-	api := &API{store: s, auth: a, scraper: sc, cache: c, logger: logger, queries: newQueryGate(), logins: newLoginLimiter()}
+func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, rates *currency.Service, logger *slog.Logger) http.Handler {
+	api := &API{store: s, auth: a, scraper: sc, cache: c, rates: rates, logger: logger, queries: newQueryGate(), logins: newLoginLimiter()}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
@@ -38,10 +40,25 @@ func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, l
 	mux.HandleFunc("POST /api/account/login", api.login)
 	mux.HandleFunc("POST /api/account/register", api.register)
 	mux.HandleFunc("POST /api/account/logout", api.logout)
+	mux.HandleFunc("GET /api/rates", api.exchangeRates)
 	mux.Handle("GET /api/account/current", a.Middleware(http.HandlerFunc(api.currentAccount)))
-	mux.Handle("POST /api/products/stream", a.Middleware(http.HandlerFunc(api.productsStream)))
+	mux.Handle("POST /api/products/stream", a.OptionalMiddleware(http.HandlerFunc(api.productsStream)))
 	mux.Handle("GET /api/history", a.Middleware(http.HandlerFunc(api.history)))
+	mux.Handle("GET /api/preferences", a.Middleware(http.HandlerFunc(api.preferences)))
+	mux.Handle("PUT /api/preferences", a.Middleware(http.HandlerFunc(api.savePreferences)))
+	mux.Handle("GET /api/saved", a.Middleware(http.HandlerFunc(api.savedListings)))
+	mux.Handle("PUT /api/saved/{id}", a.Middleware(http.HandlerFunc(api.saveListing)))
+	mux.Handle("DELETE /api/saved/{id}", a.Middleware(http.HandlerFunc(api.deleteListing)))
 	return api.recover(api.cors(api.log(mux)))
+}
+
+func (a *API) exchangeRates(w http.ResponseWriter, r *http.Request) {
+	rates, err := a.rates.Latest(r.Context())
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "exchange rates are temporarily unavailable")
+		return
+	}
+	writeJSON(w, http.StatusOK, rates)
 }
 
 func (a *API) login(w http.ResponseWriter, r *http.Request) {
@@ -135,6 +152,82 @@ func (a *API) history(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, items)
 }
 
+func (a *API) preferences(w http.ResponseWriter, r *http.Request) {
+	preferences, err := a.store.Preferences(r.Context(), accountID(r))
+	if err != nil {
+		a.internal(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, preferences)
+}
+
+func (a *API) savePreferences(w http.ResponseWriter, r *http.Request) {
+	var preferences model.Preferences
+	if !decode(w, r, &preferences) {
+		return
+	}
+	preferences.ExcludedWords = cleanWords(preferences.ExcludedWords)
+	if len(preferences.ExcludedWords) > 50 {
+		writeError(w, http.StatusBadRequest, "too many excluded words")
+		return
+	}
+	if err := a.store.SavePreferences(r.Context(), accountID(r), preferences); err != nil {
+		a.internal(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, preferences)
+}
+
+func (a *API) savedListings(w http.ResponseWriter, r *http.Request) {
+	items, err := a.store.SavedListings(r.Context(), accountID(r))
+	if err != nil {
+		a.internal(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, items)
+}
+
+func (a *API) saveListing(w http.ResponseWriter, r *http.Request) {
+	var product model.Product
+	if !decode(w, r, &product) {
+		return
+	}
+	if product.ID == "" || product.ID != r.PathValue("id") || len(product.Title) > 500 || !strings.HasPrefix(product.URLToProduct, "https://999.md/") {
+		writeError(w, http.StatusBadRequest, "invalid listing")
+		return
+	}
+	if err := a.store.SaveListing(r.Context(), accountID(r), product); err != nil {
+		a.internal(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *API) deleteListing(w http.ResponseWriter, r *http.Request) {
+	if err := a.store.DeleteListing(r.Context(), accountID(r), r.PathValue("id")); err != nil {
+		a.internal(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func cleanWords(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	cleaned := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.ToLower(strings.Join(strings.Fields(value), " "))
+		if value == "" || len(value) > 60 {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		cleaned = append(cleaned, value)
+	}
+	return cleaned
+}
+
 type searchEvent struct {
 	Type        string          `json:"type"`
 	Products    []model.Product `json:"products,omitempty"`
@@ -173,9 +266,11 @@ func (a *API) productsStream(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid price filters")
 		return
 	}
-	if err := a.store.AddSearch(r.Context(), accountID(r), filters.ProductSearchCriteria); err != nil {
-		a.internal(w, err)
-		return
+	if claims := auth.ClaimsFrom(r.Context()); claims != nil {
+		if err := a.store.AddSearch(r.Context(), claims.Subject, filters.ProductSearchCriteria); err != nil {
+			a.internal(w, err)
+			return
+		}
 	}
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -391,7 +486,7 @@ func (a *API) cors(next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.Header().Set("Vary", "Origin")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		}
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)

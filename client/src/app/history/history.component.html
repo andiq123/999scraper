@@ -8,14 +8,14 @@
   @if (items().length) {
     <ol>
       @for (item of items(); track item.id) {
-        <li><span>{{ item.query }}</span><time [attr.datetime]="item.searchedAt">{{ item.searchedAt | date:'medium' }}</time></li>
+        <li><a routerLink="/" [queryParams]="{q: item.query}">{{ item.query }}</a><time [attr.datetime]="item.searchedAt">{{ item.searchedAt | date:'medium' }}</time></li>
       }
     </ol>
   } @else {
     <div class="empty">
       <h2>No searches yet</h2>
       <p>Your searches will appear here.</p>
-      <a class="button" routerLink="/search">Start searching</a>
+      <a class="button" routerLink="/">Start searching</a>
     </div>
   }
 </main>

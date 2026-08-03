@@ -28,7 +28,7 @@ export class LoginComponent {
     this.submitting.set(true);
 		try {
 			await this.auth.login(code);
-			await this.router.navigateByUrl('/search');
+			await this.router.navigateByUrl('/');
 		} catch (error) {
 			this.toast.error(error instanceof Error ? error.message : 'Invalid login code');
 		} finally {

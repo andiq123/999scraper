@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -56,7 +57,20 @@ CREATE TABLE IF NOT EXISTS search_history (
   searched_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS search_history_account_date_idx
-  ON search_history (account_id, searched_at DESC);`
+  ON search_history (account_id, searched_at DESC);
+CREATE TABLE IF NOT EXISTS account_preferences (
+  account_id uuid PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
+  excluded_words text[] NOT NULL DEFAULT '{}'
+);
+CREATE TABLE IF NOT EXISTS saved_listings (
+  account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  product_id text NOT NULL,
+  product jsonb NOT NULL,
+  saved_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (account_id, product_id)
+);
+CREATE INDEX IF NOT EXISTS saved_listings_account_date_idx
+  ON saved_listings (account_id, saved_at DESC);`
 	if _, err := s.db.Exec(ctx, schema); err != nil {
 		return fmt.Errorf("migrate database: %w", err)
 	}
@@ -121,4 +135,57 @@ LIMIT 200`, accountID)
 		items = append(items, item)
 	}
 	return items, rows.Err()
+}
+
+func (s *Store) Preferences(ctx context.Context, accountID string) (model.Preferences, error) {
+	var preferences model.Preferences
+	err := s.db.QueryRow(ctx, `SELECT excluded_words FROM account_preferences WHERE account_id=$1`, accountID).Scan(&preferences.ExcludedWords)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return model.Preferences{ExcludedWords: []string{}}, nil
+	}
+	return preferences, err
+}
+
+func (s *Store) SavePreferences(ctx context.Context, accountID string, preferences model.Preferences) error {
+	_, err := s.db.Exec(ctx, `
+INSERT INTO account_preferences (account_id, excluded_words) VALUES ($1, $2)
+ON CONFLICT (account_id) DO UPDATE SET excluded_words=EXCLUDED.excluded_words`, accountID, preferences.ExcludedWords)
+	return err
+}
+
+func (s *Store) SavedListings(ctx context.Context, accountID string) ([]model.SavedListing, error) {
+	rows, err := s.db.Query(ctx, `SELECT product, saved_at FROM saved_listings WHERE account_id=$1 ORDER BY saved_at DESC LIMIT 500`, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]model.SavedListing, 0)
+	for rows.Next() {
+		var raw []byte
+		var item model.SavedListing
+		if err := rows.Scan(&raw, &item.SavedAt); err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(raw, &item.Product); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+func (s *Store) SaveListing(ctx context.Context, accountID string, product model.Product) error {
+	raw, err := json.Marshal(product)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(ctx, `
+INSERT INTO saved_listings (account_id, product_id, product, saved_at) VALUES ($1, $2, $3, now())
+ON CONFLICT (account_id, product_id) DO UPDATE SET product=EXCLUDED.product, saved_at=EXCLUDED.saved_at`, accountID, product.ID, raw)
+	return err
+}
+
+func (s *Store) DeleteListing(ctx context.Context, accountID, productID string) error {
+	_, err := s.db.Exec(ctx, `DELETE FROM saved_listings WHERE account_id=$1 AND product_id=$2`, accountID, productID)
+	return err
 }

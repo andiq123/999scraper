@@ -21,6 +21,15 @@ type SearchHistory struct {
 	SearchedAt time.Time `json:"searchedAt"`
 }
 
+type Preferences struct {
+	ExcludedWords []string `json:"excludedWords"`
+}
+
+type SavedListing struct {
+	Product Product   `json:"product"`
+	SavedAt time.Time `json:"savedAt"`
+}
+
 type Product struct {
 	ID           string `json:"id"`
 	Title        string `json:"title"`
