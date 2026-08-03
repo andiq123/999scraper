@@ -40,6 +40,10 @@ func Load() (Config, error) {
 	if err != nil || retries < 0 || retries > 8 {
 		return Config{}, fmt.Errorf("SCRAPER_RETRIES must be between 0 and 8")
 	}
+	cookieSecure, err := strconv.ParseBool(env("COOKIE_SECURE", "false"))
+	if err != nil {
+		return Config{}, fmt.Errorf("COOKIE_SECURE must be true or false")
+	}
 	cfg := Config{
 		Address:        env("APP_ADDRESS", ":8080"),
 		DatabaseURL:    env("DATABASE_URL", "postgres://appuser:secret@localhost:5432/999scraper?sslmode=disable"),
@@ -47,7 +51,7 @@ func Load() (Config, error) {
 		JWTSecret:      env("JWT_SECRET", "local-development-key-change-me-please"),
 		JWTIssuer:      env("JWT_ISSUER", "999scraper"),
 		JWTLifetime:    30 * 24 * time.Hour,
-		CookieSecure:   env("COOKIE_SECURE", "false") == "true",
+		CookieSecure:   cookieSecure,
 		ScraperBaseURL: env("SCRAPER_BASE_URL", "https://999.md"),
 		ScraperMaxPage: maxPages,
 		ScraperWorkers: workers,

@@ -12,7 +12,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var ErrNotFound = errors.New("not found")
+var (
+	ErrNotFound   = errors.New("not found")
+	ErrCodeExists = errors.New("login code already exists")
+)
 
 type Store struct{ db *pgxpool.Pool }
 
@@ -70,9 +73,14 @@ func scanAccount(row pgx.Row) (model.Account, error) {
 }
 
 func (s *Store) CreateAccount(ctx context.Context, codeHash string) (model.Account, error) {
-	return scanAccount(s.db.QueryRow(ctx, `
+	account, err := scanAccount(s.db.QueryRow(ctx, `
 INSERT INTO accounts (id, code_hash) VALUES ($1, $2)
+ON CONFLICT (code_hash) DO NOTHING
 RETURNING id::text, created_at`, uuid.NewString(), codeHash))
+	if errors.Is(err, ErrNotFound) {
+		return account, ErrCodeExists
+	}
+	return account, err
 }
 
 func (s *Store) AccountByCodeHash(ctx context.Context, codeHash string) (model.Account, error) {

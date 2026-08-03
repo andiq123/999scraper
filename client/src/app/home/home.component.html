@@ -1,0 +1,17 @@
+<main>
+  <div class="hero-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+  <p class="eyebrow">Fast. Private. Focused.</p>
+  <h1>Find it without<br>the noise.</h1>
+  <p class="lead">A calmer way to search 999.md. Results arrive live, while your private history stays tied to one anonymous code.</p>
+  <div class="actions">
+    @if (auth.session()) {
+      <a class="primary" routerLink="/search">Start searching <span aria-hidden="true">→</span></a>
+    } @else {
+      <a class="primary" routerLink="/login">Login</a>
+      <a class="secondary" routerLink="/register">Register</a>
+    }
+  </div>
+  <div class="proof" aria-label="Product benefits">
+    <span>Live results</span><i></i><span>Private code</span><i></i><span>No profiles</span>
+  </div>
+</main>

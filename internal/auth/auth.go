@@ -2,17 +2,20 @@ package auth
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/base32"
 	"encoding/hex"
-	"errors"
+	"fmt"
+	"math/big"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
+
+const sessionCookie = "999scraper_session"
 
 type Claims struct {
 	jwt.RegisteredClaims
@@ -30,26 +33,29 @@ func New(secret, issuer string, lifetime time.Duration, secure bool) *Service {
 	return &Service{[]byte(secret), issuer, lifetime, secure}
 }
 func NewLoginCode() (string, error) {
-	random := make([]byte, 16)
-	if _, err := rand.Read(random); err != nil {
+	number, err := rand.Int(rand.Reader, big.NewInt(1_000_000))
+	if err != nil {
 		return "", err
 	}
-	raw := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(random)
-	parts := make([]string, 0, 7)
-	for len(raw) > 4 {
-		parts = append(parts, raw[:4])
-		raw = raw[4:]
-	}
-	if raw != "" {
-		parts = append(parts, raw)
-	}
-	return strings.Join(parts, "-"), nil
+	return fmt.Sprintf("%06d", number.Int64()), nil
 }
 
-func CodeHash(code string) string {
-	normalized := strings.ToUpper(strings.NewReplacer("-", "", " ", "").Replace(strings.TrimSpace(code)))
-	sum := sha256.Sum256([]byte(normalized))
-	return hex.EncodeToString(sum[:])
+func ValidLoginCode(code string) bool {
+	if len(code) != 6 {
+		return false
+	}
+	for _, digit := range code {
+		if digit < '0' || digit > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *Service) CodeHash(code string) string {
+	digest := hmac.New(sha256.New, s.secret)
+	_, _ = digest.Write([]byte(strings.TrimSpace(code)))
+	return hex.EncodeToString(digest.Sum(nil))
 }
 
 func (s *Service) Token(accountID string) (string, error) {
@@ -60,7 +66,7 @@ func (s *Service) Token(accountID string) (string, error) {
 
 func (s *Service) SetSession(w http.ResponseWriter, token string) {
 	http.SetCookie(w, &http.Cookie{
-		Name:     "session",
+		Name:     sessionCookie,
 		Value:    token,
 		Path:     "/api",
 		MaxAge:   int(s.lifetime.Seconds()),
@@ -72,7 +78,7 @@ func (s *Service) SetSession(w http.ResponseWriter, token string) {
 
 func (s *Service) ClearSession(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
-		Name:     "session",
+		Name:     sessionCookie,
 		Path:     "/api",
 		MaxAge:   -1,
 		HttpOnly: true,
@@ -83,19 +89,16 @@ func (s *Service) ClearSession(w http.ResponseWriter) {
 
 func (s *Service) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("session")
+		cookie, err := r.Cookie(sessionCookie)
 		if err != nil || cookie.Value == "" {
 			w.Header().Set("Content-Type", "application/json")
 			http.Error(w, `{"error":"authentication required"}`, http.StatusUnauthorized)
 			return
 		}
 		claims := new(Claims)
-		token, err := jwt.ParseWithClaims(cookie.Value, claims, func(token *jwt.Token) (any, error) {
-			if token.Method != jwt.SigningMethodHS256 {
-				return nil, errors.New("unexpected signing method")
-			}
+		token, err := jwt.ParseWithClaims(cookie.Value, claims, func(_ *jwt.Token) (any, error) {
 			return s.secret, nil
-		}, jwt.WithIssuer(s.issuer), jwt.WithExpirationRequired())
+		}, jwt.WithIssuer(s.issuer), jwt.WithExpirationRequired(), jwt.WithValidMethods([]string{"HS256"}))
 		if err != nil || !token.Valid {
 			w.Header().Set("Content-Type", "application/json")
 			http.Error(w, `{"error":"invalid token"}`, http.StatusUnauthorized)

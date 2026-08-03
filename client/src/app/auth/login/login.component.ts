@@ -1,43 +1,38 @@
-import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { ToastService } from '../../core/_services/toast.service';
 import { AuthService } from '../auth.service';
+import { ToastService } from '../../toast.service';
 
 @Component({
-  standalone: false,
-  selector: 'app-login',
+	selector: 'app-login',
+	changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.scss'],
+  styleUrl: '../auth.scss',
 })
-export class LoginComponent implements OnInit {
-  loginForm!: FormGroup;
+export class LoginComponent {
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
 
-  constructor(
-    private authService: AuthService,
-    private toastrService: ToastService,
-    private router: Router
-  ) {}
+  readonly code = signal('');
+  readonly submitting = signal(false);
 
-  ngOnInit() {
-    this.createLoginForm();
+  updateCode(event: Event): void {
+    this.code.set((event.target as HTMLInputElement).value.replace(/\D/g, '').slice(0, 6));
   }
 
-  createLoginForm() {
-    this.loginForm = new FormGroup({
-      code: new FormControl('', [Validators.required, Validators.minLength(20)]),
-    });
-  }
-
-  onSubmit() {
-    this.authService.login(this.loginForm.value.code.trim()).subscribe(
-      () => {
-        this.router.navigateByUrl('/search');
-      },
-      (e: HttpErrorResponse) => {
-        this.toastrService.error(e.error?.error ?? 'Invalid login code');
-      }
-    );
+  async submit(event: SubmitEvent): Promise<void> {
+    event.preventDefault();
+    const code = this.code();
+    if (code.length !== 6) return;
+    this.submitting.set(true);
+		try {
+			await this.auth.login(code);
+			await this.router.navigateByUrl('/search');
+		} catch (error) {
+			this.toast.error(error instanceof Error ? error.message : 'Invalid login code');
+		} finally {
+			this.submitting.set(false);
+		}
   }
 }

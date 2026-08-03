@@ -1,0 +1,31 @@
+<article>
+  <a class="media" [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'Open ' + product().title + ' on 999.md'">
+    @if (product().thumbnailURL) {
+      <img [src]="product().thumbnailURL" [alt]="product().title" loading="lazy" decoding="async">
+    } @else {
+      <div class="placeholder">No image</div>
+    }
+    @if (product().year) { <span class="year">{{ product().year }}</span> }
+  </a>
+  <div class="copy">
+    <h2 [title]="product().title">
+      @for (word of titleWords(); track $index) {
+        <button type="button" [attr.popovertarget]="popoverId()" (click)="chooseWord(word)" [attr.aria-label]="'Exclude ' + word + ' from results'">{{ word }}</button>
+      }
+    </h2>
+    <div class="footer">
+      <p>{{ price() }}</p>
+      <a [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer">View <span aria-hidden="true">↗</span></a>
+    </div>
+  </div>
+</article>
+
+<div class="exclude-popover" popover="auto" [attr.id]="popoverId()" #popover>
+  <span class="popover-mark" aria-hidden="true">−</span>
+  <h3>Hide “{{ selectedWord() }}”?</h3>
+  <p>Listings containing this exact word will disappear now and stay excluded from this search.</p>
+  <div>
+    <button type="button" popovertargetaction="hide" [attr.popovertarget]="popoverId()">Cancel</button>
+    <button class="exclude" type="button" (click)="applyExclusion()">Exclude word</button>
+  </div>
+</div>

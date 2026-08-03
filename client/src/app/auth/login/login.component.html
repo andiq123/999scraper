@@ -1,10 +1,22 @@
-<div class="login">
-  <div class="login-container">
-    <h1>Welcome back</h1>
-    <p>Enter your private login code.</p>
-    <form autocomplete="off" [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-      <input formControlName="code" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XX">
-      <button type="submit" [disabled]="loginForm.invalid">Login</button>
-    </form>
-  </div>
-</div>
+<main class="auth-card">
+  <h1>Login</h1>
+  <p>Enter your six-digit code.</p>
+  <form (submit)="submit($event)">
+    <label class="sr-only" for="login-code">Private login code</label>
+    <input
+      id="login-code"
+      type="text"
+      inputmode="numeric"
+      pattern="[0-9]{6}"
+      maxlength="6"
+      autocomplete="one-time-code"
+      spellcheck="false"
+      placeholder="000000"
+      [value]="code()"
+      (input)="updateCode($event)"
+    >
+    <button type="submit" [disabled]="code().length !== 6 || submitting()">
+      {{ submitting() ? 'Logging in…' : 'Login' }}
+    </button>
+  </form>
+</main>

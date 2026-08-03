@@ -24,6 +24,60 @@ func TestFilter(t *testing.T) {
 	}
 }
 
+func TestFilterUsesWordBoundariesAndVehicleMetadata(t *testing.T) {
+	price := 100
+	products := []model.Product{
+		{Title: "Honda Civic", Price: &price, Year: 2018},
+		{Title: "Honda Civic covorașe", Price: &price},
+		{Title: "Honda Civic Pro", Price: &price, Year: 2022},
+	}
+	got := Filter(products, model.Filters{
+		ProductSearchCriteria: "Civic Honda",
+		ExcludeOtherAds:       true,
+		Intent:                "car",
+		YearFrom:              2015,
+		YearTo:                2020,
+		KeysToExclude:         []string{"pro"},
+	})
+	if len(got) != 1 || got[0].Year != 2018 {
+		t.Fatalf("expected the matching vehicle only, got %#v", got)
+	}
+
+	got = Filter([]model.Product{{Title: "Professional phone", Price: &price}}, model.Filters{
+		ProductSearchCriteria: "phone", ExcludeOtherAds: true, KeysToExclude: []string{"pro"},
+	})
+	if len(got) != 1 {
+		t.Fatalf("short exclusions must not match inside another word")
+	}
+}
+
+func TestSmartCarCleanupRemovesPartsAndImplausiblePrices(t *testing.T) {
+	one, carPrice := 1, 12_000
+	products := []model.Product{
+		{Title: "Tesla Model 3", Price: &carPrice, Currency: 1, Year: 2021, Make: "Tesla", Model: "Model 3"},
+		{Title: "Piese Tesla Model 3", Price: &one, Currency: 1, Year: 2025, Make: "Tesla", Model: "Model 3"},
+		{Title: "Tesla Model 3", Price: &one, Currency: 1, Year: 2021, Make: "Tesla", Model: "Model 3"},
+	}
+	got := Filter(products, model.Filters{ProductSearchCriteria: "Tesla Model 3", Intent: "car", SmartCleanup: true, ExcludeOtherAds: true})
+	if len(got) != 1 || got[0].Price == nil || *got[0].Price != carPrice {
+		t.Fatalf("expected only the plausible car, got %#v", got)
+	}
+}
+
+func TestPriceAndCurrencyFilters(t *testing.T) {
+	cheap, matching, expensive := 100, 500, 900
+	eur := 1
+	products := []model.Product{
+		{Title: "phone", Price: &cheap, Currency: 1},
+		{Title: "phone", Price: &matching, Currency: 1},
+		{Title: "phone", Price: &expensive, Currency: 2},
+	}
+	got := Filter(products, model.Filters{ProductSearchCriteria: "phone", PriceMin: 200, PriceMax: 700, Currency: &eur})
+	if len(got) != 1 || got[0].Currency != 1 || *got[0].Price != matching {
+		t.Fatalf("unexpected filtered prices: %#v", got)
+	}
+}
+
 func TestSearchStreamsPagesWithBoundedConcurrency(t *testing.T) {
 	var active atomic.Int32
 	var peak atomic.Int32
@@ -122,6 +176,26 @@ func TestLiveSearch(t *testing.T) {
 	}
 	if len(products) == 0 || products[0].ID == "" || products[0].URLToProduct == "" {
 		t.Fatalf("unexpected live response: %#v", products)
+	}
+}
+
+func TestLiveSmartCarSearch(t *testing.T) {
+	if os.Getenv("LIVE_TEST") == "" {
+		t.Skip("set LIVE_TEST=1 to call 999.md")
+	}
+	s := New("https://999.md", Options{MaxPages: 1, Concurrency: 1, MinInterval: 100 * time.Millisecond, MaxRetries: 2})
+	products, err := s.Search(context.Background(), "tesla model 3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	clean := Filter(products, model.Filters{ProductSearchCriteria: "tesla model 3", Intent: "car", SmartCleanup: true, ExcludeBoosted: true, ExcludeOtherAds: true})
+	if len(clean) == 0 {
+		t.Fatal("smart cleanup removed every live car result")
+	}
+	for _, product := range clean {
+		if !isPlausibleCar(product, words(product.Title)) {
+			t.Fatalf("smart cleanup retained an implausible result: %#v", product)
+		}
 	}
 }
 

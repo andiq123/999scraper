@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestQueryGateWaitIsCancelable(t *testing.T) {
@@ -31,10 +32,30 @@ func TestQueryGateWaitIsCancelable(t *testing.T) {
 	releaseAgain()
 }
 
+func TestLoginLimiterResetsAndExpires(t *testing.T) {
+	limiter := newLoginLimiter()
+	now := time.Now()
+	for range 6 {
+		if !limiter.allow("client", now) {
+			t.Fatal("blocked an allowed attempt")
+		}
+	}
+	if limiter.allow("client", now) {
+		t.Fatal("allowed too many attempts")
+	}
+	limiter.reset("client")
+	if !limiter.allow("client", now) {
+		t.Fatal("reset did not clear the window")
+	}
+	if !limiter.allow("other", now.Add(2*time.Minute)) {
+		t.Fatal("new window should allow attempts")
+	}
+}
+
 func TestStreamWriterUsesSSEFrames(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	writer := beginStream(recorder, recorder)
-	if err := writer.write(searchEvent{Type: "chunk", ID: "search-1", Page: 2}); err != nil {
+	if err := writer.write(searchEvent{Type: "chunk", LoadedPages: 2}); err != nil {
 		t.Fatal(err)
 	}
 	response := recorder.Result()
@@ -51,7 +72,7 @@ func TestStreamWriterUsesSSEFrames(t *testing.T) {
 	if err := json.Unmarshal([]byte(data), &event); err != nil {
 		t.Fatal(err)
 	}
-	if event.ID != "search-1" || event.Page != 2 {
+	if event.LoadedPages != 2 {
 		t.Fatalf("unexpected event: %#v", event)
 	}
 	if response.StatusCode != http.StatusOK {

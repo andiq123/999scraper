@@ -9,11 +9,13 @@ import (
 	"io"
 	"math/rand/v2"
 	"net/http"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/andi/999scraper/internal/model"
 )
@@ -30,7 +32,9 @@ const searchQuery = `query SearchAds($input: Ads_SearchInput!) {
       title
       price: feature(id: 2) { value }
       images: feature(id: 14) { value }
-      body: feature(id: 13) { value }
+      year: feature(id: 19) { value }
+      make: feature(id: 20) { value }
+      model: feature(id: 21) { value }
       booster: product(alias: BOOSTER_V2) { enable }
     }
     count
@@ -48,7 +52,6 @@ type Options struct {
 type Batch struct {
 	Page       int
 	TotalPages int
-	Total      int
 	Products   []model.Product
 }
 
@@ -87,12 +90,22 @@ type advert struct {
 	Images struct {
 		Value []string `json:"value"`
 	} `json:"images"`
-	Body struct {
-		Value map[string]string `json:"value"`
-	} `json:"body"`
+	Year struct {
+		Value int `json:"value"`
+	} `json:"year"`
+	Make struct {
+		Value choiceValue `json:"value"`
+	} `json:"make"`
+	Model struct {
+		Value choiceValue `json:"value"`
+	} `json:"model"`
 	Booster struct {
 		Enable bool `json:"enable"`
 	} `json:"booster"`
+}
+
+type choiceValue struct {
+	Translated string `json:"translated"`
 }
 
 type priceValue struct {
@@ -165,7 +178,7 @@ func (s *Scraper) SearchStream(ctx context.Context, query string, yield func(Bat
 	}
 	products := append([]model.Product(nil), first...)
 	if yield != nil {
-		if err := yield(Batch{Page: 1, TotalPages: totalPages, Total: count, Products: first}); err != nil {
+		if err := yield(Batch{Page: 1, TotalPages: totalPages, Products: first}); err != nil {
 			return nil, err
 		}
 	}
@@ -219,7 +232,7 @@ func (s *Scraper) SearchStream(ctx context.Context, query string, yield func(Bat
 		}
 		products = append(products, result.products...)
 		if yield != nil {
-			if err := yield(Batch{Page: result.page, TotalPages: totalPages, Total: count, Products: result.products}); err != nil {
+			if err := yield(Batch{Page: result.page, TotalPages: totalPages, Products: result.products}); err != nil {
 				searchErr = err
 				cancel()
 			}
@@ -369,22 +382,17 @@ func (s *Scraper) product(ad advert) model.Product {
 	if len(ad.Images.Value) > 0 {
 		image = "https://i.simpalsmedia.com/999.md/BoardImages/320x240/" + ad.Images.Value[0]
 	}
-	description := ad.Body.Value["ro"]
-	if description == "" {
-		description = ad.Body.Value["ru"]
-	}
-	if description == "" {
-		description = "Not set"
-	}
 	return model.Product{
 		ID:           ad.ID,
-		Title:        strings.ToLower(strings.TrimSpace(ad.Title)),
+		Title:        strings.TrimSpace(ad.Title),
 		ThumbnailURL: image,
-		Description:  description,
 		Price:        price,
 		PriceString:  label,
 		Currency:     currency,
 		IsBoosted:    ad.Booster.Enable,
+		Year:         ad.Year.Value,
+		Make:         strings.TrimSpace(ad.Make.Value.Translated),
+		Model:        strings.TrimSpace(ad.Model.Value.Translated),
 		URLToProduct: s.baseURL + "/ro/" + ad.ID,
 	}
 }
@@ -408,18 +416,31 @@ func parsePrice(raw json.RawMessage) (*int, int, string) {
 }
 
 func Filter(products []model.Product, f model.Filters) []model.Product {
-	query := strings.ToLower(strings.TrimSpace(f.ProductSearchCriteria))
+	queryTokens := words(f.ProductSearchCriteria)
+	if f.Intent == "car" {
+		queryTokens = slices.DeleteFunc(queryTokens, func(word string) bool {
+			year, err := strconv.Atoi(word)
+			return err == nil && year >= 1950 && year <= 2030
+		})
+	}
 	result := make([]model.Product, 0, len(products))
 	for _, p := range products {
-		title := strings.ToLower(p.Title)
-		if (f.ExcludeOtherAds && !strings.Contains(title, query)) ||
+		titleTokens := words(p.Title)
+		if (f.ExcludeOtherAds && !containsAll(titleTokens, queryTokens)) ||
 			(f.ExcludeBoosted && p.IsBoosted) ||
-			(f.ExcludePriceNegotiable && p.Price == nil) {
+			(f.ExcludePriceNegotiable && p.Price == nil) ||
+			(f.Intent == "car" && p.Year == 0) ||
+			(f.YearFrom > 0 && p.Year < f.YearFrom) ||
+			(f.YearTo > 0 && p.Year > f.YearTo) ||
+			(f.Currency != nil && p.Currency != *f.Currency) ||
+			(f.PriceMin > 0 && (p.Price == nil || *p.Price < f.PriceMin)) ||
+			(f.PriceMax > 0 && (p.Price == nil || *p.Price > f.PriceMax)) ||
+			(f.SmartCleanup && f.Intent == "car" && !isPlausibleCar(p, titleTokens)) {
 			continue
 		}
 		excluded := false
-		for _, word := range f.KeysToExclude {
-			if strings.Contains(title, strings.ToLower(strings.TrimSpace(word))) {
+		for _, exclusion := range f.KeysToExclude {
+			if containsPhrase(titleTokens, words(exclusion)) {
 				excluded = true
 				break
 			}
@@ -441,4 +462,67 @@ func Filter(products []model.Product, f model.Filters) []model.Product {
 		return *result[i].Price < *result[j].Price
 	})
 	return result
+}
+
+var carNoise = map[string]struct{}{
+	"accesorii": {}, "acumulator": {}, "anvelope": {}, "capace": {}, "covorașe": {}, "covorase": {},
+	"dezmembrare": {}, "dezmembrări": {}, "faruri": {}, "huse": {}, "piese": {}, "roți": {}, "jante": {},
+	"разборка": {}, "запчасти": {}, "детали": {}, "коврики": {}, "чехлы": {}, "диски": {}, "шины": {},
+}
+
+func isPlausibleCar(product model.Product, titleTokens []string) bool {
+	if product.Make == "" || product.Model == "" || product.Year == 0 || product.Price == nil {
+		return false
+	}
+	for _, word := range titleTokens {
+		if _, noisy := carNoise[word]; noisy {
+			return false
+		}
+	}
+	minimum := 5_000
+	if product.Currency == 1 || product.Currency == 2 {
+		minimum = 300
+	}
+	return *product.Price >= minimum
+}
+
+func words(value string) []string {
+	return strings.FieldsFunc(strings.ToLower(value), func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsNumber(r)
+	})
+}
+
+func containsAll(haystack, needles []string) bool {
+	for _, needle := range needles {
+		found := false
+		for _, word := range haystack {
+			if word == needle {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return len(needles) > 0
+}
+
+func containsPhrase(haystack, phrase []string) bool {
+	if len(phrase) == 0 || len(phrase) > len(haystack) {
+		return false
+	}
+	for start := 0; start <= len(haystack)-len(phrase); start++ {
+		match := true
+		for offset := range phrase {
+			if haystack[start+offset] != phrase[offset] {
+				match = false
+				break
+			}
+		}
+		if match {
+			return true
+		}
+	}
+	return false
 }

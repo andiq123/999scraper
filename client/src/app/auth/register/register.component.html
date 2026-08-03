@@ -1,19 +1,15 @@
-<div class="login">
-  <div class="login-container">
-    <ng-container *ngIf="!loginCode(); else registered">
-      <h1>Create your login</h1>
-      <p>Press once to create a private login code.</p>
-      <button class="primary" type="button" (click)="createCode()" [disabled]="creating()">
-        {{ creating() ? 'Creating…' : 'Register' }}
-      </button>
-    </ng-container>
-
-    <ng-template #registered>
-      <h1>Save this code</h1>
-      <p>It is shown only now. There is no recovery if you lose it.</p>
-      <code>{{ loginCode() }}</code>
-      <button class="primary" type="button" (click)="copy()">{{ copied() ? 'Copied' : 'Copy code' }}</button>
-      <a routerLink="/auth/login">Go to login</a>
-    </ng-template>
-  </div>
-</div>
+<main class="auth-card">
+  @if (code()) {
+    <h1>Your login code</h1>
+    <p>Save these six digits. They are shown once.</p>
+    <code aria-label="Your six-digit login code">{{ code() }}</code>
+    <button type="button" (click)="copy()">{{ copied() ? 'Copied' : 'Copy code' }}</button>
+    <a routerLink="/login">Go to login</a>
+  } @else {
+    <h1>Register</h1>
+    <p>Create a private six-digit login code.</p>
+    <button type="button" (click)="create()" [disabled]="creating()">
+      {{ creating() ? 'Creating…' : 'Register' }}
+    </button>
+  }
+</main>

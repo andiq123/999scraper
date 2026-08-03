@@ -1,23 +1,20 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 import { AuthService } from './auth/auth.service';
-import { ToastService } from './core/_services/toast.service';
+import { NavComponent } from './nav/nav.component';
+import { ToastService } from './toast.service';
 
 @Component({
-  standalone: false,
-  selector: 'app-root',
+	selector: 'app-root',
+	changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [NavComponent, RouterOutlet],
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss'],
+  styleUrl: './app.component.scss',
 })
-export class AppComponent implements OnInit {
-  toast$;
-  constructor(
-    private authService: AuthService,
-    private toast: ToastService
-  ) {
-    this.toast$ = toast.messages$;
-  }
+export class AppComponent {
+  readonly toast = inject(ToastService).message;
 
-  ngOnInit(): void {
-    this.authService.loadUser();
+  constructor() {
+		void inject(AuthService).restore();
   }
 }

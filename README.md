@@ -3,7 +3,7 @@
 A clean, separated search application for 999.md:
 
 - Go 1.26 API with Air live reload
-- Angular 22 frontend with its own development server
+- Angular 22 standalone, zoneless frontend with signal-based state
 - PostgreSQL 18 for anonymous accounts and per-account search history
 - Redis 8 for normalized search caching
 - SSE for progressive search-result delivery
@@ -19,13 +19,13 @@ Docker Desktop is the only local requirement on macOS. The launcher starts Docke
 - Frontend: <http://localhost:4200>
 - Backend health: <http://localhost:8081/api/health>
 
-There are no usernames, passwords, roles, or admins. Press **Register** once, save the generated private login code, then use that code to log in. The code is shown once and only its cryptographic fingerprint is stored by the API.
+There are no usernames, passwords, roles, or admins. Press **Register** once, save the generated six-digit code, then use it to log in. The code is shown once and only its keyed cryptographic fingerprint is stored. Login attempts are rate-limited, and a successful login creates an HttpOnly, SameSite session cookie; browser JavaScript never handles the JWT.
 
 Changes under `cmd/` or `internal/` rebuild and restart the backend through Air. Angular source changes refresh through its independent development server.
 
 Press Ctrl+C to remove the project containers, network, database/cache volumes, dependency/build volumes, and locally built images. Docker Desktop itself stays open.
 
-For non-local use, copy `.env.example` to `.env` and replace every secret before starting.
+For non-local use, copy `.env.example` to `.env`, replace every secret, and set `COOKIE_SECURE=true` behind HTTPS.
 
 ## Why SSE
 

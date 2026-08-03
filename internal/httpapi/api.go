@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -16,7 +17,6 @@ import (
 	"github.com/andi/999scraper/internal/model"
 	"github.com/andi/999scraper/internal/scraper"
 	"github.com/andi/999scraper/internal/store"
-	"github.com/google/uuid"
 )
 
 type API struct {
@@ -26,10 +26,11 @@ type API struct {
 	cache   *cache.Cache
 	logger  *slog.Logger
 	queries *queryGate
+	logins  *loginLimiter
 }
 
 func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, logger *slog.Logger) http.Handler {
-	api := &API{store: s, auth: a, scraper: sc, cache: c, logger: logger, queries: newQueryGate()}
+	api := &API{store: s, auth: a, scraper: sc, cache: c, logger: logger, queries: newQueryGate(), logins: newLoginLimiter()}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
@@ -50,13 +51,24 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &input) {
 		return
 	}
-	if strings.TrimSpace(input.Code) == "" {
-		writeError(w, http.StatusBadRequest, "login code is required")
+	input.Code = strings.TrimSpace(input.Code)
+	if !auth.ValidLoginCode(input.Code) {
+		writeError(w, http.StatusBadRequest, "enter a six-digit login code")
 		return
 	}
-	account, err := a.store.AccountByCodeHash(r.Context(), auth.CodeHash(input.Code))
-	if err != nil {
+	client := clientAddress(r)
+	if !a.logins.allow(client, time.Now()) {
+		w.Header().Set("Retry-After", "60")
+		writeError(w, http.StatusTooManyRequests, "too many attempts; try again shortly")
+		return
+	}
+	account, err := a.store.AccountByCodeHash(r.Context(), a.auth.CodeHash(input.Code))
+	if errors.Is(err, store.ErrNotFound) {
 		writeError(w, http.StatusUnauthorized, "invalid login code")
+		return
+	}
+	if err != nil {
+		a.internal(w, err)
 		return
 	}
 	token, err := a.auth.Token(account.ID)
@@ -65,21 +77,29 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.auth.SetSession(w, token)
+	a.logins.reset(client)
 	writeJSON(w, http.StatusOK, model.Session{ID: account.ID})
 }
 
 func (a *API) register(w http.ResponseWriter, r *http.Request) {
-	code, err := auth.NewLoginCode()
-	if err != nil {
-		a.internal(w, err)
+	for range 8 {
+		code, err := auth.NewLoginCode()
+		if err != nil {
+			a.internal(w, err)
+			return
+		}
+		_, err = a.store.CreateAccount(r.Context(), a.auth.CodeHash(code))
+		if errors.Is(err, store.ErrCodeExists) {
+			continue
+		}
+		if err != nil {
+			a.internal(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, model.Registration{Code: code})
 		return
 	}
-	_, err = a.store.CreateAccount(r.Context(), auth.CodeHash(code))
-	if err != nil {
-		a.internal(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, model.Registration{Code: code})
+	writeError(w, http.StatusServiceUnavailable, "could not create a login code; try again")
 }
 
 func (a *API) currentAccount(w http.ResponseWriter, r *http.Request) {
@@ -117,14 +137,9 @@ func (a *API) history(w http.ResponseWriter, r *http.Request) {
 
 type searchEvent struct {
 	Type        string          `json:"type"`
-	ID          string          `json:"id,omitempty"`
 	Products    []model.Product `json:"products,omitempty"`
-	Page        int             `json:"page,omitempty"`
 	LoadedPages int             `json:"loadedPages,omitempty"`
 	TotalPages  int             `json:"totalPages,omitempty"`
-	Received    int             `json:"received,omitempty"`
-	Total       int             `json:"total,omitempty"`
-	Cached      bool            `json:"cached,omitempty"`
 	Message     string          `json:"message,omitempty"`
 }
 
@@ -136,6 +151,26 @@ func (a *API) productsStream(w http.ResponseWriter, r *http.Request) {
 	filters.ProductSearchCriteria = strings.TrimSpace(filters.ProductSearchCriteria)
 	if filters.ProductSearchCriteria == "" {
 		writeError(w, http.StatusBadRequest, "search criteria is required")
+		return
+	}
+	if len(filters.ProductSearchCriteria) > 160 || len(filters.KeysToExclude) > 24 {
+		writeError(w, http.StatusBadRequest, "search filters are too large")
+		return
+	}
+	if filters.Intent != "" && filters.Intent != "car" {
+		writeError(w, http.StatusBadRequest, "unsupported search intent")
+		return
+	}
+	if (filters.YearFrom != 0 && (filters.YearFrom < 1950 || filters.YearFrom > 2030)) ||
+		(filters.YearTo != 0 && (filters.YearTo < 1950 || filters.YearTo > 2030)) ||
+		(filters.YearFrom != 0 && filters.YearTo != 0 && filters.YearFrom > filters.YearTo) {
+		writeError(w, http.StatusBadRequest, "invalid year range")
+		return
+	}
+	if filters.PriceMin < 0 || filters.PriceMax < 0 || filters.PriceMin > 1_000_000_000 || filters.PriceMax > 1_000_000_000 ||
+		(filters.PriceMin != 0 && filters.PriceMax != 0 && filters.PriceMin > filters.PriceMax) ||
+		(filters.Currency != nil && (*filters.Currency < 0 || *filters.Currency > 2)) {
+		writeError(w, http.StatusBadRequest, "invalid price filters")
 		return
 	}
 	if err := a.store.AddSearch(r.Context(), accountID(r), filters.ProductSearchCriteria); err != nil {
@@ -161,28 +196,21 @@ func (a *API) productsStream(w http.ResponseWriter, r *http.Request) {
 		a.streamCached(w, flusher, cached, filters)
 		return
 	}
-	id := uuid.NewString()
 	var writer *streamWriter
 	loadedPages := 0
-	received := 0
 	products, err := a.scraper.SearchStream(r.Context(), filters.ProductSearchCriteria, func(batch scraper.Batch) error {
 		if writer == nil {
 			writer = beginStream(w, flusher)
-			if err := writer.write(searchEvent{Type: "start", ID: id, TotalPages: batch.TotalPages, Total: batch.Total}); err != nil {
+			if err := writer.write(searchEvent{Type: "start", TotalPages: batch.TotalPages}); err != nil {
 				return err
 			}
 		}
 		loadedPages++
-		received += len(batch.Products)
 		return writer.write(searchEvent{
 			Type:        "chunk",
-			ID:          id,
-			Products:    scraper.Filter(batch.Products, filters),
-			Page:        batch.Page,
+			Products:    batch.Products,
 			LoadedPages: loadedPages,
 			TotalPages:  batch.TotalPages,
-			Received:    received,
-			Total:       batch.Total,
 		})
 	})
 	if err != nil {
@@ -193,14 +221,14 @@ func (a *API) productsStream(w http.ResponseWriter, r *http.Request) {
 		}
 		if !errors.Is(err, r.Context().Err()) {
 			a.logger.Warn("streamed scrape failed", "error", err)
-			_ = writer.write(searchEvent{Type: "error", ID: id, Message: "The listing service interrupted this search. Partial results are shown."})
+			_ = writer.write(searchEvent{Type: "error", Message: "The listing service interrupted this search. Partial results are shown."})
 		}
 		return
 	}
 
-	container := model.ProductsContainer{ID: id, Products: products}
+	container := model.ProductsContainer{Products: products}
 	a.cache.SetSearch(r.Context(), filters.ProductSearchCriteria, container)
-	_ = writer.write(searchEvent{Type: "done", ID: id, LoadedPages: loadedPages, Received: received})
+	_ = writer.write(searchEvent{Type: "done", LoadedPages: loadedPages})
 }
 
 func (a *API) cachedSearch(ctx context.Context, filters model.Filters) (model.ProductsContainer, bool) {
@@ -210,26 +238,19 @@ func (a *API) cachedSearch(ctx context.Context, filters model.Filters) (model.Pr
 func (a *API) streamCached(w http.ResponseWriter, flusher http.Flusher, cached model.ProductsContainer, filters model.Filters) {
 	writer := beginStream(w, flusher)
 	totalPages := max((len(cached.Products)+39)/40, 1)
-	_ = writer.write(searchEvent{Type: "start", ID: cached.ID, TotalPages: totalPages, Total: len(cached.Products), Cached: true})
-	received := 0
+	_ = writer.write(searchEvent{Type: "start", TotalPages: totalPages})
 	for start := 0; start < len(cached.Products); start += 40 {
 		end := min(start+40, len(cached.Products))
-		received += end - start
 		if err := writer.write(searchEvent{
 			Type:        "chunk",
-			ID:          cached.ID,
-			Products:    scraper.Filter(cached.Products[start:end], filters),
-			Page:        start/40 + 1,
+			Products:    cached.Products[start:end],
 			LoadedPages: start/40 + 1,
 			TotalPages:  totalPages,
-			Received:    received,
-			Total:       len(cached.Products),
-			Cached:      true,
 		}); err != nil {
 			return
 		}
 	}
-	_ = writer.write(searchEvent{Type: "done", ID: cached.ID, LoadedPages: totalPages, Received: received, Cached: true})
+	_ = writer.write(searchEvent{Type: "done", LoadedPages: totalPages})
 }
 
 type streamWriter struct {
@@ -261,6 +282,49 @@ func (w *streamWriter) write(event searchEvent) error {
 type queryGate struct {
 	mu      sync.Mutex
 	running map[string]chan struct{}
+}
+
+type loginWindow struct {
+	count int
+	until time.Time
+}
+
+type loginLimiter struct {
+	mu      sync.Mutex
+	windows map[string]loginWindow
+}
+
+func newLoginLimiter() *loginLimiter {
+	return &loginLimiter{windows: make(map[string]loginWindow)}
+}
+
+func (l *loginLimiter) allow(client string, now time.Time) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	window := l.windows[client]
+	if now.After(window.until) {
+		window = loginWindow{until: now.Add(time.Minute)}
+	}
+	if window.count >= 6 {
+		return false
+	}
+	window.count++
+	l.windows[client] = window
+	return true
+}
+
+func (l *loginLimiter) reset(client string) {
+	l.mu.Lock()
+	delete(l.windows, client)
+	l.mu.Unlock()
+}
+
+func clientAddress(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err == nil {
+		return host
+	}
+	return r.RemoteAddr
 }
 
 func newQueryGate() *queryGate {
@@ -326,8 +390,8 @@ func (a *API) cors(next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.Header().Set("Vary", "Origin")
-			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		}
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)

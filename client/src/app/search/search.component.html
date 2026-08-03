@@ -1,0 +1,117 @@
+<main class="search-page">
+  <header class="search-heading">
+    <div><p>Market search</p><h1>What are you looking for?</h1></div>
+    @if (products().length) { <span>{{ products().length }} found</span> }
+  </header>
+
+  <form class="search-form" (submit)="search($event)">
+    <label class="sr-only" for="search-query">Search 999.md</label>
+    <input id="search-query" autofocus autocomplete="off" enterkeyhint="search" placeholder="Phones, cars, homes…" [value]="query()" (input)="query.set($any($event.target).value)">
+    <button type="submit" [disabled]="!query().trim() || loading() || yearRangeInvalid() || priceRangeInvalid()">Search</button>
+  </form>
+
+  @if (isVehicleSearch()) {
+    <section class="smart-prompt" aria-live="polite">
+      <div class="smart-icon" aria-hidden="true">✦</div>
+      <div class="smart-copy">
+        <strong>{{ queryYear() ? 'Year detected' : 'Car search detected' }}</strong>
+        <span>{{ queryYear() ? 'Only showing vehicles from ' + queryYear() + '.' : 'Which model years should we include?' }}</span>
+      </div>
+      @if (!queryYear()) {
+        <div class="year-presets" aria-label="Model year shortcuts">
+          <button type="button" [class.active]="yearFrom() === null" (click)="setYearPreset(null)">Any</button>
+          <button type="button" [class.active]="yearFrom() === 2010 && yearTo() === null" (click)="setYearPreset(2010)">2010+</button>
+          <button type="button" [class.active]="yearFrom() === 2015 && yearTo() === null" (click)="setYearPreset(2015)">2015+</button>
+          <button type="button" [class.active]="yearFrom() === 2020 && yearTo() === null" (click)="setYearPreset(2020)">2020+</button>
+        </div>
+        <div class="year-range">
+          <label>From <input type="number" inputmode="numeric" min="1950" max="2030" placeholder="Year" [value]="yearFrom() ?? ''" (input)="setYear('from', $event)"></label>
+          <span>–</span>
+          <label>To <input type="number" inputmode="numeric" min="1950" max="2030" placeholder="Year" [value]="yearTo() ?? ''" (input)="setYear('to', $event)"></label>
+        </div>
+        @if (yearRangeInvalid()) { <p class="year-error">The first year must be earlier than the last.</p> }
+      }
+    </section>
+  }
+
+  <div class="workspace">
+    <details class="filters">
+      <summary><span>Filters</span><small>Optional</small></summary>
+      <label>Order
+        <select [value]="order()" (change)="order.set($any($event.target).value)">
+          <option value="relevance">Best match</option>
+          <option value="priceAsc">Lowest price</option>
+          <option value="priceDesc">Highest price</option>
+        </select>
+      </label>
+      <fieldset class="price-filter">
+        <legend><span>Price</span><output>{{ priceMax() === null ? 'Any' : 'Up to ' + priceMax() }}</output></legend>
+        <select aria-label="Price currency" [value]="priceCurrency() ?? ''" (change)="setCurrency($event)">
+          <option value="">Any currency</option>
+          <option value="0">MDL</option>
+          <option value="1">EUR</option>
+          <option value="2">USD</option>
+        </select>
+        <input class="price-slider" type="range" min="0" [max]="priceCeiling()" [step]="priceStep()" [value]="priceMax() ?? priceCeiling()" (input)="setBudget($event)" aria-label="Maximum price slider" [disabled]="rawProducts().length === 0">
+        <div class="price-inputs">
+          <input type="number" inputmode="numeric" min="0" placeholder="Min" aria-label="Minimum price" [value]="priceMin() ?? ''" (input)="setPrice('min', $event)">
+          <span>–</span>
+          <input type="number" inputmode="numeric" min="0" placeholder="Max" aria-label="Maximum price" [value]="priceMax() ?? ''" (input)="setPrice('max', $event)">
+        </div>
+        @if (priceRangeInvalid()) { <small>Minimum must be below maximum.</small> }
+      </fieldset>
+      <div class="quick-filters">
+        <label class="switch"><span><b>Smart cleanup</b><small>Parts, ads and fake prices</small></span><input role="switch" type="checkbox" [checked]="smartCleanup()" (change)="smartCleanup.set($any($event.target).checked)"></label>
+        <label class="switch"><span>With photos</span><input role="switch" type="checkbox" [checked]="onlyWithPhotos()" (change)="onlyWithPhotos.set($any($event.target).checked)"></label>
+        <label class="switch"><span>Fixed price</span><input role="switch" type="checkbox" [checked]="excludeNegotiable()" (change)="excludeNegotiable.set($any($event.target).checked)"></label>
+      </div>
+      <details class="word-filters">
+        <summary>Word cleanup <small>{{ excludedWords().length || '' }}</small></summary>
+        <label>Exclude words
+          <input autocomplete="off" enterkeyhint="done" placeholder="Type and press Enter" [value]="excludedWord()" (input)="excludedWord.set($any($event.target).value)" (keydown)="addExcludedWord($event)">
+        </label>
+        @if (excludedWords().length) {
+          <div class="tags">
+            @for (word of excludedWords(); track word) {
+              <button type="button" (click)="removeExcludedWord(word)" [attr.aria-label]="'Remove ' + word">{{ word }} ×</button>
+            }
+          </div>
+        }
+        @if (suggestedExclusions().length) {
+          <div class="suggestions">
+            <span>Suggested</span>
+            <div>
+              @for (word of suggestedExclusions(); track word) {
+                <button type="button" (click)="addExclusion(word)">+ {{ word }}</button>
+              }
+            </div>
+          </div>
+        }
+      </details>
+    </details>
+
+    <section class="result-feed" aria-label="Search results">
+      @if (loading()) {
+        <div class="status" role="status" aria-live="polite">
+          <div><strong>Page {{ loadedPages() || 1 }} of {{ totalPages() || '?' }}</strong><span>{{ products().length }} matches</span></div>
+          <progress [value]="progress()" max="100"></progress>
+          <button type="button" (click)="cancel()">Cancel</button>
+        </div>
+      }
+
+      @if (products().length) {
+        <div class="result-bar">
+          <p><strong>{{ products().length }}</strong> shown @if (hiddenCount()) { <span>· {{ hiddenCount() }} cleaned</span> }</p>
+          @if (hasCustomFilters()) { <button type="button" (click)="resetFilters()">Reset</button> }
+        </div>
+        <div class="grid">
+          @for (product of products(); track product.id) { <app-product-card [product]="product" (exclude)="addExclusion($event)" /> }
+        </div>
+      } @else if (searched() && !loading()) {
+        <div class="empty"><h2>No products found</h2><p>Try a broader search or fewer filters.</p></div>
+      } @else if (loading()) {
+        <div class="spinner" aria-label="Loading"></div>
+      }
+    </section>
+  </div>
+</main>

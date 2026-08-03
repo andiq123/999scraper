@@ -1,0 +1,10 @@
+<nav aria-label="Primary navigation">
+  <a class="brand" routerLink="/" aria-label="999Scraper home"><span>999</span>Scraper</a>
+  @if (auth.session()) {
+    <div class="actions">
+      <a routerLink="/search" routerLinkActive="active">Search</a>
+      <a routerLink="/history" routerLinkActive="active">History</a>
+      <button class="logout" type="button" (click)="auth.logout()">Log out</button>
+    </div>
+  }
+</nav>
