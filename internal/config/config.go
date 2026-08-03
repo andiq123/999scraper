@@ -14,6 +14,7 @@ type Config struct {
 	JWTSecret      string
 	JWTIssuer      string
 	JWTLifetime    time.Duration
+	CookieSecure   bool
 	ScraperBaseURL string
 	ScraperMaxPage int
 	ScraperWorkers int
@@ -46,6 +47,7 @@ func Load() (Config, error) {
 		JWTSecret:      env("JWT_SECRET", "local-development-key-change-me-please"),
 		JWTIssuer:      env("JWT_ISSUER", "999scraper"),
 		JWTLifetime:    30 * 24 * time.Hour,
+		CookieSecure:   env("COOKIE_SECURE", "false") == "true",
 		ScraperBaseURL: env("SCRAPER_BASE_URL", "https://999.md"),
 		ScraperMaxPage: maxPages,
 		ScraperWorkers: workers,

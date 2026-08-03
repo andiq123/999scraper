@@ -23,10 +23,11 @@ type Service struct {
 	secret   []byte
 	issuer   string
 	lifetime time.Duration
+	secure   bool
 }
 
-func New(secret, issuer string, lifetime time.Duration) *Service {
-	return &Service{[]byte(secret), issuer, lifetime}
+func New(secret, issuer string, lifetime time.Duration, secure bool) *Service {
+	return &Service{[]byte(secret), issuer, lifetime, secure}
 }
 func NewLoginCode() (string, error) {
 	random := make([]byte, 16)
@@ -57,16 +58,39 @@ func (s *Service) Token(accountID string) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(s.secret)
 }
 
+func (s *Service) SetSession(w http.ResponseWriter, token string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session",
+		Value:    token,
+		Path:     "/api",
+		MaxAge:   int(s.lifetime.Seconds()),
+		HttpOnly: true,
+		Secure:   s.secure,
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+func (s *Service) ClearSession(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session",
+		Path:     "/api",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   s.secure,
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
 func (s *Service) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		header := r.Header.Get("Authorization")
-		if !strings.HasPrefix(header, "Bearer ") {
+		cookie, err := r.Cookie("session")
+		if err != nil || cookie.Value == "" {
 			w.Header().Set("Content-Type", "application/json")
 			http.Error(w, `{"error":"authentication required"}`, http.StatusUnauthorized)
 			return
 		}
 		claims := new(Claims)
-		token, err := jwt.ParseWithClaims(strings.TrimPrefix(header, "Bearer "), claims, func(token *jwt.Token) (any, error) {
+		token, err := jwt.ParseWithClaims(cookie.Value, claims, func(token *jwt.Token) (any, error) {
 			if token.Method != jwt.SigningMethodHS256 {
 				return nil, errors.New("unexpected signing method")
 			}

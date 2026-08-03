@@ -36,6 +36,7 @@ func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, l
 	})
 	mux.HandleFunc("POST /api/account/login", api.login)
 	mux.HandleFunc("POST /api/account/register", api.register)
+	mux.HandleFunc("POST /api/account/logout", api.logout)
 	mux.Handle("GET /api/account/current", a.Middleware(http.HandlerFunc(api.currentAccount)))
 	mux.Handle("POST /api/products/stream", a.Middleware(http.HandlerFunc(api.productsStream)))
 	mux.Handle("GET /api/history", a.Middleware(http.HandlerFunc(api.history)))
@@ -63,7 +64,8 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 		a.internal(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, model.Session{ID: account.ID, Token: token})
+	a.auth.SetSession(w, token)
+	writeJSON(w, http.StatusOK, model.Session{ID: account.ID})
 }
 
 func (a *API) register(w http.ResponseWriter, r *http.Request) {
@@ -95,7 +97,13 @@ func (a *API) currentAccount(w http.ResponseWriter, r *http.Request) {
 		a.internal(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, model.Session{ID: account.ID, Token: token})
+	a.auth.SetSession(w, token)
+	writeJSON(w, http.StatusOK, model.Session{ID: account.ID})
+}
+
+func (a *API) logout(w http.ResponseWriter, _ *http.Request) {
+	a.auth.ClearSession(w)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *API) history(w http.ResponseWriter, r *http.Request) {
@@ -316,6 +324,7 @@ func (a *API) cors(next http.Handler) http.Handler {
 		origin := r.Header.Get("Origin")
 		if origin == "http://localhost:4200" || origin == "https://localhost:4200" {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.Header().Set("Vary", "Origin")
 			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")

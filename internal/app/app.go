@@ -31,7 +31,7 @@ func New(ctx context.Context, logger *slog.Logger) (*http.Server, func(), error)
 		MaxRetries:     cfg.ScraperRetries,
 		RequestTimeout: 20 * time.Second,
 	})
-	handler := httpapi.New(db, auth.New(cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTLifetime), scrape, redisCache, logger)
+	handler := httpapi.New(db, auth.New(cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTLifetime, cfg.CookieSecure), scrape, redisCache, logger)
 	server := &http.Server{Addr: cfg.Address, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 30 * time.Second, WriteTimeout: 5 * time.Minute, IdleTimeout: 2 * time.Minute}
 	return server, func() { redisCache.Close(); db.Close() }, nil
 }
