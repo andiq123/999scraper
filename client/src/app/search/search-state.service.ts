@@ -2,6 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { Product, SortOrder } from '../models';
 
 const storageKey = '999scraper.search.v6';
+const lastStorageKey = '999scraper.search.last.v1';
 const maxAge = 12 * 60 * 60 * 1000;
 
 export interface SearchState {
@@ -39,6 +40,7 @@ export interface SearchState {
   powerTo: number | null;
   drivetrain: string | null;
   bodyType: string | null;
+  registration: 'moldova' | 'other' | null;
   deviceTags: string[];
   condition: 'new' | 'used' | null;
   listingMode: 'sale' | 'rent' | null;
@@ -52,10 +54,34 @@ export interface SearchState {
 
 @Injectable({ providedIn: 'root' })
 export class SearchStateService {
-  private readonly cached = signal<SearchState | null>(readStoredState());
+  private readonly cached = signal<SearchState | null>(readStoredState(storageKey));
+  readonly lastSearch = signal<SearchState | null>(readStoredState(lastStorageKey));
+  private readonly freshRequest = signal(0);
+  readonly freshRequests = this.freshRequest.asReadonly();
   private writeTimer?: number;
 
   snapshot(): SearchState | null { return this.cached(); }
+
+  startFresh(): void {
+    if (this.writeTimer !== undefined) window.clearTimeout(this.writeTimer);
+    this.writeTimer = undefined;
+    const current = this.cached();
+    try { sessionStorage.removeItem(storageKey); } catch { /* In-memory state still works. */ }
+    if (current && (current.searched || current.query.trim())) {
+      this.lastSearch.set(current);
+      writeStoredState(lastStorageKey, current);
+    }
+    this.cached.set(null);
+    this.freshRequest.update((value) => value + 1);
+  }
+
+  restoreLast(): SearchState | null {
+    const state = this.lastSearch();
+    if (!state) return null;
+    this.cached.set(state);
+    this.write(state);
+    return state;
+  }
 
   save(state: SearchState, immediately = false): void {
     this.cached.set(state);
@@ -68,34 +94,36 @@ export class SearchStateService {
 
   private write(state: SearchState): void {
     this.writeTimer = undefined;
-    try {
-      sessionStorage.setItem(storageKey, JSON.stringify(state));
-    } catch {
-      // Keep the complete in-memory cache for route navigation. If browser storage is
-      // full, retain as many results as fit so refresh recovery still degrades safely.
-      let products = state.products;
-      while (products.length > 25) {
-        products = products.slice(0, Math.ceil(products.length / 2));
-        try {
-          sessionStorage.setItem(storageKey, JSON.stringify({ ...state, products }));
-          return;
-        } catch { /* Try a smaller snapshot. */ }
-      }
-    }
+    writeStoredState(storageKey, state);
   }
 }
 
-function readStoredState(): SearchState | null {
+function readStoredState(key: string): SearchState | null {
   try {
-    const value: unknown = JSON.parse(sessionStorage.getItem(storageKey) ?? 'null');
+    const value: unknown = JSON.parse(sessionStorage.getItem(key) ?? 'null');
     if (!isSearchState(value) || Date.now() - value.updatedAt > maxAge) {
-      sessionStorage.removeItem(storageKey);
+      sessionStorage.removeItem(key);
       return null;
     }
-    return value;
+    return { ...value, registration: value.registration ?? null };
   } catch {
-    sessionStorage.removeItem(storageKey);
+    sessionStorage.removeItem(key);
     return null;
+  }
+}
+
+function writeStoredState(key: string, state: SearchState): void {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(state));
+  } catch {
+    let products = state.products;
+    while (products.length > 25) {
+      products = products.slice(0, Math.ceil(products.length / 2));
+      try {
+        sessionStorage.setItem(key, JSON.stringify({ ...state, products }));
+        return;
+      } catch { /* Try a smaller snapshot. */ }
+    }
   }
 }
 
@@ -118,7 +146,8 @@ function isSearchState(value: unknown): value is SearchState {
       state.generationTo, state.storageFrom, state.storageTo, state.ramFrom, state.ramTo, state.roomsFrom,
       state.roomsTo, state.areaFrom, state.areaTo, state.screenFrom, state.screenTo].every(isNullableNumber)
     && [state.mileageFrom, state.mileageTo, state.powerFrom, state.powerTo].every(isNullableNumber)
-    && [state.fuel, state.transmission, state.drivetrain, state.bodyType].every(isNullableString)
+    && [state.fuel, state.transmission, state.drivetrain, state.bodyType, state.registration ?? null].every(isNullableString)
+    && (state.registration === undefined || state.registration === null || state.registration === 'moldova' || state.registration === 'other')
     && (state.condition === null || state.condition === 'new' || state.condition === 'used')
     && (state.listingMode === null || state.listingMode === 'sale' || state.listingMode === 'rent')
     && isStringArray(state.excludedWords)

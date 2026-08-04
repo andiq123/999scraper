@@ -1,6 +1,6 @@
 import { fold, parseSearchIntent } from './search-intent';
 
-export type SuggestionKind = 'recent' | 'item' | 'category' | 'refine';
+export type SuggestionKind = 'recent' | 'item' | 'category' | 'refine' | 'direct';
 export interface SearchSuggestion { value: string; label: string; hint: string; kind: SuggestionKind }
 
 export const marketCategories = [
@@ -18,17 +18,28 @@ export const marketCategories = [
 ] as const;
 
 const popularItems: ReadonlyArray<Omit<SearchSuggestion, 'kind'>> = [
+  { value: 'Volkswagen', label: 'Volkswagen', hint: 'Car brand' },
+  { value: 'Volkswagen Golf', label: 'Volkswagen Golf', hint: 'Car' },
+  { value: 'Volkswagen Passat', label: 'Volkswagen Passat', hint: 'Car' },
+  { value: 'Volkswagen Tiguan', label: 'Volkswagen Tiguan', hint: 'Car' },
   { value: 'Tesla Model 3', label: 'Tesla Model 3', hint: 'Car' },
   { value: 'Toyota Corolla', label: 'Toyota Corolla', hint: 'Car' },
   { value: 'Honda Civic', label: 'Honda Civic', hint: 'Car' },
   { value: 'BMW X5', label: 'BMW X5', hint: 'Car' },
   { value: 'Dacia Duster', label: 'Dacia Duster', hint: 'Car' },
   { value: 'Mercedes-Benz', label: 'Mercedes-Benz', hint: 'Car' },
+  { value: 'Audi', label: 'Audi', hint: 'Car brand' },
+  { value: 'Škoda', label: 'Škoda', hint: 'Car brand' },
+  { value: 'Renault', label: 'Renault', hint: 'Car brand' },
+  { value: 'Volvo', label: 'Volvo', hint: 'Car brand' },
   { value: 'iPhone 16 Pro', label: 'iPhone 16 Pro', hint: 'Phone' },
   { value: 'Samsung Galaxy', label: 'Samsung Galaxy', hint: 'Phone' },
   { value: 'Google Pixel', label: 'Google Pixel', hint: 'Phone' },
   { value: 'MacBook Pro', label: 'MacBook Pro', hint: 'Laptop' },
   { value: 'Lenovo ThinkPad laptop', label: 'Lenovo ThinkPad', hint: 'Laptop' },
+  { value: 'Dell laptop', label: 'Dell laptop', hint: 'Laptop' },
+  { value: 'ASUS laptop', label: 'ASUS laptop', hint: 'Laptop' },
+  { value: 'Acer laptop', label: 'Acer laptop', hint: 'Laptop' },
   { value: 'PlayStation 5', label: 'PlayStation 5', hint: 'Console' },
   { value: 'smart TV Samsung', label: 'Samsung Smart TV', hint: 'TV' },
   { value: 'apartament de închiriat', label: 'Apartment for rent', hint: 'Property' },
@@ -39,6 +50,35 @@ const popularItems: ReadonlyArray<Omit<SearchSuggestion, 'kind'>> = [
   { value: 'mobilă', label: 'Furniture', hint: 'Home' },
   { value: 'anvelope auto', label: 'Car tyres', hint: 'Transport' },
 ];
+
+const entityCompletions: ReadonlyArray<{ canonical: string; aliases: readonly string[] }> = [
+  { canonical: 'Volkswagen', aliases: ['volkswagen'] }, { canonical: 'Volvo', aliases: ['volvo'] },
+  { canonical: 'Mercedes-Benz', aliases: ['mercedes', 'mercedes-benz'] }, { canonical: 'Toyota', aliases: ['toyota'] },
+  { canonical: 'Honda', aliases: ['honda'] }, { canonical: 'Hyundai', aliases: ['hyundai'] },
+  { canonical: 'Renault', aliases: ['renault'] }, { canonical: 'Škoda', aliases: ['skoda'] },
+  { canonical: 'Peugeot', aliases: ['peugeot'] }, { canonical: 'Porsche', aliases: ['porsche'] },
+  { canonical: 'Citroën', aliases: ['citroen'] }, { canonical: 'Chevrolet', aliases: ['chevrolet'] },
+  { canonical: 'Mitsubishi', aliases: ['mitsubishi'] }, { canonical: 'Nissan', aliases: ['nissan'] },
+  { canonical: 'Lexus', aliases: ['lexus'] }, { canonical: 'Dacia', aliases: ['dacia'] },
+  { canonical: 'Tesla', aliases: ['tesla'] }, { canonical: 'iPhone', aliases: ['iphone'] },
+  { canonical: 'PlayStation', aliases: ['playstation'] }, { canonical: 'Samsung', aliases: ['samsung'] },
+  { canonical: 'Xiaomi', aliases: ['xiaomi'] }, { canonical: 'Lenovo', aliases: ['lenovo'] },
+  { canonical: 'MacBook', aliases: ['macbook'] },
+];
+
+/** Completes only a unique marketplace entity prefix; ambiguous text is never guessed. */
+export function completeSearchInput(input: string): string {
+  for (const token of input.matchAll(/[\p{L}\p{N}-]+/gu)) {
+    const typed = fold(token[0]);
+    if (typed.length < 3) continue;
+    const matches = entityCompletions.filter((entity) => entity.aliases.some((alias) => fold(alias).startsWith(typed)));
+    const canonical = [...new Set(matches.map((entity) => entity.canonical))];
+    if (canonical.length !== 1 || matches.some((entity) => entity.aliases.some((alias) => fold(alias) === typed))) continue;
+    const start = token.index ?? 0;
+    return `${input.slice(0, start)}${canonical[0]}${input.slice(start + token[0].length)}`;
+  }
+  return input;
+}
 
 export function suggestionsFor(input: string, recent: readonly string[], limit = 7): SearchSuggestion[] {
   const query = input.trim();
@@ -58,13 +98,15 @@ export function suggestionsFor(input: string, recent: readonly string[], limit =
     const score = matchScore(normalized, fold(`${category.label} ${category.query}`));
     if (score !== null) ranked.push({ value: category.query, label: category.label, hint: 'Category', kind: 'category', score: score + 8 });
   }
+  ranked.push({ value: query, label: `Search for “${query}”`, hint: 'All categories', kind: 'direct', score: 24 });
   ranked.push(...refinementsFor(query).map((item, index) => ({ ...item, score: 30 + index })));
 
   const seen = new Set<string>();
   return ranked.sort((a, b) => a.score - b.score || a.label.localeCompare(b.label)).filter((item) => {
     const key = fold(item.value);
-    if (key === normalized || seen.has(key)) return false;
-    seen.add(key);
+    const seenKey = item.kind === 'direct' ? `direct:${key}` : key;
+    if ((key === normalized && item.kind !== 'direct') || seen.has(seenKey)) return false;
+    seen.add(seenKey);
     return true;
   }).slice(0, limit).map(({ score: _, ...item }) => item);
 }
@@ -75,7 +117,26 @@ function matchScore(query: string, candidate: string): number | null {
   const candidateWords = candidate.split(/\s+/);
   if (queryWords.every((word) => candidateWords.some((candidateWord) => candidateWord.startsWith(word)))) return 6;
   const index = candidate.indexOf(query);
-  return index >= 0 ? 12 + Math.min(index, 20) : null;
+  if (index >= 0) return 12 + Math.min(index, 20);
+  if (query.length >= 4 && queryWords.every((word) => candidateWords.some((candidateWord) => nearbyWord(word, candidateWord)))) return 16;
+  return null;
+}
+
+function nearbyWord(left: string, right: string): boolean {
+  const limit = left.length >= 5 ? 2 : 1;
+  if (Math.abs(left.length - right.length) > limit) return false;
+  const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+  for (let row = 1; row <= left.length; row += 1) {
+    const current = [row];
+    let rowMinimum = row;
+    for (let column = 1; column <= right.length; column += 1) {
+      current[column] = Math.min(current[column - 1] + 1, previous[column] + 1, previous[column - 1] + Number(left[row - 1] !== right[column - 1]));
+      rowMinimum = Math.min(rowMinimum, current[column]);
+    }
+    if (rowMinimum > limit) return false;
+    previous.splice(0, previous.length, ...current);
+  }
+  return previous[right.length] <= limit;
 }
 
 function refinementsFor(query: string): SearchSuggestion[] {
@@ -89,6 +150,7 @@ function refinementsFor(query: string): SearchSuggestion[] {
     if (!intent.transmission) add('automatic', 'Gearbox');
     if (intent.mileage.from === null && intent.mileage.to === null) add('under 150k km', 'Mileage');
     if (intent.price.from === null && intent.price.to === null) add('under 10000 EUR', 'Budget');
+    if (!intent.registration) add('înmatriculată în Republica Moldova', 'Registration');
   } else if (['iphone', 'phone', 'playstation', 'laptop'].includes(intent.kind)) {
     if (intent.storage.from === null && intent.storage.to === null) add('256 GB', 'Storage');
     if (intent.price.from === null && intent.price.to === null) add('under 10000 MDL', 'Budget');

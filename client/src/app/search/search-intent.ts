@@ -20,6 +20,7 @@ export interface SearchIntent {
   transmission: string | null;
   drivetrain: string | null;
   bodyType: string | null;
+  registration: 'moldova' | 'other' | null;
   condition: 'new' | 'used' | null;
   listingMode: 'sale' | 'rent' | null;
   tags: string[];
@@ -44,8 +45,8 @@ const vehicleModels = new Set([
   'sandero', 'sportage', 'tucson', 'x5', 'x6',
 ]);
 const vehiclePhrases = ['land cruiser', 'model 3', 'model s', 'model x', 'model y', 'range rover'];
-const vehicleWords = new Set(['autoturism', 'autoturisme', 'automobil', 'automobile', 'masina', 'masini', 'vehicle', 'автомобиль', 'автомобили']);
-const laptopWords = new Set(['laptop', 'laptops', 'notebook', 'ultrabook', 'macbook', 'thinkpad', 'ideapad', 'chromebook', 'ноутбук']);
+const vehicleWords = new Set(['autoturism', 'autoturisme', 'automobil', 'automobile', 'masina', 'masini', 'vehicle', 'inmatriculare', 'inmatriculat', 'inmatriculata', 'автомобиль', 'автомобили']);
+const laptopWords = new Set(['laptop', 'laptops', 'notebook', 'ultrabook', 'macbook', 'thinkpad', 'ideapad', 'chromebook', 'lenovo', 'dell', 'acer', 'asus', 'ноутбук']);
 const phoneWords = new Set(['telefon', 'telefonul', 'smartphone', 'samsung', 'galaxy', 'xiaomi', 'redmi', 'pixel', 'huawei', 'honor', 'oneplus', 'oppo', 'realme', 'телефон', 'смартфон']);
 const tvWords = new Set(['televizor', 'televizoare', 'television', 'smarttv', 'телевизор']);
 const propertyWords = new Set(['apartament', 'apartamente', 'garsoniera', 'penthouse', 'casa', 'vila', 'teren', 'imobil', 'apartment', 'house', 'land', 'квартира', 'дом', 'участок']);
@@ -76,6 +77,10 @@ const bodyTypes: ReadonlyArray<[string, readonly string[]]> = [
   ['Sedan', ['sedan', 'седан']], ['SUV', ['suv', 'внедорожник']], ['Crossover', ['crossover', 'кроссовер']],
   ['Hatchback', ['hatchback', 'хэтчбек']], ['Universal', ['wagon', 'estate', 'universal', 'универсал']],
   ['Coupe', ['coupe', 'купе']], ['Minivan', ['minivan', 'минивэн']],
+];
+const registrations: ReadonlyArray<['moldova' | 'other', readonly string[]]> = [
+  ['other', ['alta inmatriculare', 'inmatriculare straina', 'numere straine', 'foreign registration', 'foreign plates', 'иностранная регистрация', 'иностранные номера']],
+  ['moldova', ['inmatriculata in republica moldova', 'inmatriculat in republica moldova', 'inmatriculare republica moldova', 'inmatriculata in moldova', 'inmatriculat in moldova', 'inmatriculare moldova', 'numere moldovenesti', 'moldova registration', 'registered in moldova', 'moldovan plates', 'молдавская регистрация', 'молдавские номера', 'inmatriculata', 'inmatriculat', 'inmatriculare']],
 ];
 
 export function parseSearchIntent(input: string): SearchIntent {
@@ -127,6 +132,7 @@ export function parseSearchIntent(input: string): SearchIntent {
   const transmission = kind === 'vehicle' ? detectedChoice(plain, transmissions) : null;
   const drivetrain = kind === 'vehicle' ? detectedPhraseChoice(plain, drivetrains) : null;
   const bodyType = kind === 'vehicle' ? detectedPhraseChoice(plain, bodyTypes) : null;
+  const registration = kind === 'vehicle' ? detectedPhraseChoice(plain, registrations) : null;
   const listingMode = kind === 'realEstate' ? detectedPhraseChoice(plain, propertyModes) : null;
   const condition = kind === 'realEstate'
     ? null
@@ -163,6 +169,7 @@ export function parseSearchIntent(input: string): SearchIntent {
   if (kind === 'vehicle') {
     for (const [, aliases] of [...fuels, ...transmissions]) sourceQuery = removeWord(sourceQuery, aliases);
     sourceQuery = removePhrase(sourceQuery, [...drivetrains, ...bodyTypes].flatMap(([, aliases]) => aliases));
+    if (registration) sourceQuery = removePhrase(sourceQuery, registrations.find(([value]) => value === registration)?.[1] ?? []);
   }
   if (kind === 'realEstate' && listingMode) {
     sourceQuery = removePhrase(sourceQuery, propertyModes.find(([mode]) => mode === listingMode)?.[1] ?? []);
@@ -172,7 +179,7 @@ export function parseSearchIntent(input: string): SearchIntent {
 
   return {
     kind,
-    sourceQuery: clean(sourceQuery) || original,
+    sourceQuery: clean(sourceQuery) || (kind === 'vehicle' ? 'autoturism' : original),
     year: matchRange(yearMatch),
     generation: matchRange(modelMatch),
     storage: storageRange(storageMatch),
@@ -188,6 +195,7 @@ export function parseSearchIntent(input: string): SearchIntent {
     transmission,
     drivetrain,
     bodyType,
+    registration,
     condition,
     listingMode,
     tags,

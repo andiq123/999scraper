@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
+import { SearchStateService } from '../search/search-state.service';
 
 @Component({
 	selector: 'app-nav',
@@ -11,4 +12,13 @@ import { AuthService } from '../auth/auth.service';
 })
 export class NavComponent {
   readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly searchState = inject(SearchStateService);
+
+  freshHome(event: MouseEvent): void {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    this.searchState.startFresh();
+    void this.router.navigateByUrl('/');
+  }
 }

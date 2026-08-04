@@ -25,6 +25,7 @@ export interface Product {
   mileage?: number;
   power?: number;
   drivetrain?: string;
+  registration?: string;
   deviceModel?: string;
   storage?: string;
   brand?: string;

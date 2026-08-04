@@ -85,5 +85,5 @@ func queryKey(query string) string {
 		return ""
 	}
 	sum := sha256.Sum256([]byte(query))
-	return fmt.Sprintf("search-query:v5:%x", sum)
+	return fmt.Sprintf("search-query:v6:%x", sum)
 }

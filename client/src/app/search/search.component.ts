@@ -10,8 +10,9 @@ import { RecentSearchesService } from './recent-searches.service';
 import { UserDataService } from '../user-data.service';
 import { CurrencyService } from '../currency.service';
 import { SearchIntent, SearchKind, bodyTypeOptions, drivetrainOptions, fold, fuelOptions, generationIn, parseSearchIntent, storageIn, storageOptions, transmissionOptions } from './search-intent';
-import { SearchSuggestion, marketCategories, suggestionsFor } from './search-suggestions';
+import { SearchSuggestion, completeSearchInput, marketCategories, suggestionsFor } from './search-suggestions';
 import { RangeFilterComponent, type RangePreset } from './range-filter.component';
+import { type CollapsiblePanel, UiPreferencesService } from '../ui-preferences.service';
 const carNoise = new Set([
   'accesorii', 'acumulator', 'anvelope', 'capace', 'covorașe', 'covorase', 'dezmembrare', 'dezmembrări',
   'faruri', 'huse', 'jante', 'piese', 'roți', 'scut', 'sticlă', 'sticla', 'radiator', 'radiatoare', 'adaptor',
@@ -42,11 +43,12 @@ export class SearchComponent implements OnDestroy {
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
-  private readonly searchState = inject(SearchStateService);
+  readonly searchState = inject(SearchStateService);
   readonly recentSearches = inject(RecentSearchesService);
   readonly auth = inject(AuthService);
   readonly library = inject(UserDataService);
   readonly currency = inject(CurrencyService);
+  readonly uiPreferences = inject(UiPreferencesService);
   private readonly ids = new Set<string>();
   private controller?: AbortController;
   private draftKind: SearchKind = 'generic';
@@ -56,6 +58,7 @@ export class SearchComponent implements OnDestroy {
   readonly suggestionsOpen = signal(false);
   readonly activeSuggestionIndex = signal(-1);
   readonly activeQuery = signal('');
+  readonly searchAssist = signal<string | null>(null);
   readonly order = signal<SortOrder>('relevance');
   readonly smartCleanup = signal(true);
   readonly excludeNegotiable = signal(false);
@@ -88,6 +91,7 @@ export class SearchComponent implements OnDestroy {
   readonly powerTo = signal<number | null>(null);
   readonly drivetrain = signal<string | null>(null);
   readonly bodyType = signal<string | null>(null);
+  readonly registration = signal<'moldova' | 'other' | null>(null);
   readonly deviceTags = signal<string[]>([]);
   readonly condition = signal<'new' | 'used' | null>(null);
   readonly listingMode = signal<'sale' | 'rent' | null>(null);
@@ -129,7 +133,10 @@ export class SearchComponent implements OnDestroy {
   })[this.searchIntent().kind]);
   readonly smartSummary = computed(() => {
     const intent = this.searchIntent();
-    if (intent.kind === 'vehicle') return this.mileageFrom() !== null || this.mileageTo() !== null ? rangeSummary('Mileage', this.mileageFrom(), this.mileageTo()).replace(/(\d+)/g, '$1 km') : rangeSummary('Model years', this.yearFrom(), this.yearTo());
+    if (intent.kind === 'vehicle') {
+      const range = this.mileageFrom() !== null || this.mileageTo() !== null ? rangeSummary('Mileage', this.mileageFrom(), this.mileageTo()).replace(/(\d+)/g, '$1 km') : rangeSummary('Model years', this.yearFrom(), this.yearTo());
+      return this.registration() ? `${range} · ${this.registration() === 'moldova' ? 'Moldova registration' : 'Other registration'}` : range;
+    }
     if (intent.kind === 'iphone' || intent.kind === 'playstation') return rangeSummary(intent.kind === 'iphone' ? 'iPhone generations' : 'PlayStation generations', this.generationFrom(), this.generationTo());
     if (intent.kind === 'realEstate') return rangeSummary('Rooms', this.roomsFrom(), this.roomsTo());
     if (intent.kind === 'tv') return rangeSummary('Screen size', this.screenFrom(), this.screenTo());
@@ -165,7 +172,7 @@ export class SearchComponent implements OnDestroy {
     const range = minimum === maximum ? minimum : `${minimum}–${maximum}`;
     return `${converted ? '≈ ' : ''}${range} ${['MDL', 'EUR', 'USD'][target]}`;
   });
-  readonly hasCustomFilters = computed(() => this.order() !== 'relevance' || !this.smartCleanup() || this.excludeNegotiable() || this.onlyWithPhotos() || this.excludedWords().length > 0 || this.queryExclusions().length > 0 || this.yearFrom() !== null || this.yearTo() !== null || this.priceMin() !== null || this.priceMax() !== null || this.fuel() !== null || this.transmission() !== null || this.mileageFrom() !== null || this.mileageTo() !== null || this.powerFrom() !== null || this.powerTo() !== null || this.drivetrain() !== null || this.bodyType() !== null || this.generationFrom() !== null || this.generationTo() !== null || this.storageFrom() !== null || this.storageTo() !== null || this.ramFrom() !== null || this.ramTo() !== null || this.roomsFrom() !== null || this.roomsTo() !== null || this.areaFrom() !== null || this.areaTo() !== null || this.screenFrom() !== null || this.screenTo() !== null || this.deviceTags().length > 0 || this.condition() !== null || this.listingMode() !== null);
+  readonly hasCustomFilters = computed(() => this.order() !== 'relevance' || !this.smartCleanup() || this.excludeNegotiable() || this.onlyWithPhotos() || this.excludedWords().length > 0 || this.queryExclusions().length > 0 || this.yearFrom() !== null || this.yearTo() !== null || this.priceMin() !== null || this.priceMax() !== null || this.fuel() !== null || this.transmission() !== null || this.mileageFrom() !== null || this.mileageTo() !== null || this.powerFrom() !== null || this.powerTo() !== null || this.drivetrain() !== null || this.bodyType() !== null || this.registration() !== null || this.generationFrom() !== null || this.generationTo() !== null || this.storageFrom() !== null || this.storageTo() !== null || this.ramFrom() !== null || this.ramTo() !== null || this.roomsFrom() !== null || this.roomsTo() !== null || this.areaFrom() !== null || this.areaTo() !== null || this.screenFrom() !== null || this.screenTo() !== null || this.deviceTags().length > 0 || this.condition() !== null || this.listingMode() !== null);
   readonly priceCeiling = computed(() => priceCap(this.filterIntent(), this.priceCurrency()));
   readonly priceStep = computed(() => priceSliderStep(this.priceCeiling()));
   readonly pricePresets = computed(() => budgetPresets(this.filterIntent(), this.priceCurrency()));
@@ -201,6 +208,7 @@ export class SearchComponent implements OnDestroy {
     if (this.powerFrom() !== null || this.powerTo() !== null) chips.push({ id: 'power', label: rangeSummary('Power', this.powerFrom(), this.powerTo()).replace(/(\d+)/g, '$1 hp') });
     if (this.drivetrain()) chips.push({ id: 'drivetrain', label: this.drivetrain()! });
     if (this.bodyType()) chips.push({ id: 'body-type', label: this.bodyType()! });
+    if (this.registration()) chips.push({ id: 'registration', label: this.registration() === 'moldova' ? 'Registered in Moldova' : 'Other registration' });
     if (this.condition()) chips.push({ id: 'condition', label: this.condition() === 'new' ? 'New' : 'Used' });
     if (this.listingMode()) chips.push({ id: 'listing-mode', label: this.listingMode() === 'rent' ? 'For rent' : 'For sale' });
     for (const tag of this.deviceTags()) chips.push({ id: `tag:${tag}`, label: tag });
@@ -224,6 +232,11 @@ export class SearchComponent implements OnDestroy {
 
   constructor() {
     void this.currency.load();
+    const freshEntry = this.route.snapshot.queryParamMap.get('fresh') === '1';
+    if (freshEntry) {
+      this.searchState.startFresh();
+      void this.router.navigate([], { relativeTo: this.route, queryParams: { fresh: null }, replaceUrl: true });
+    }
     const cached = this.searchState.snapshot();
     const replay = this.route.snapshot.queryParamMap.get('q')?.trim();
     const canRestore = cached && (!replay || replay === cached.activeQuery);
@@ -235,6 +248,13 @@ export class SearchComponent implements OnDestroy {
       queueMicrotask(() => void this.search());
     }
     void this.loadPersonalData(!canRestore);
+    let handledFreshRequest = this.searchState.freshRequests();
+    effect(() => {
+      const request = this.searchState.freshRequests();
+      if (request === handledFreshRequest) return;
+      handledFreshRequest = request;
+      this.startFreshWorkspace();
+    });
     effect(() => this.searchState.save(this.snapshot(window.scrollY)));
   }
 
@@ -248,8 +268,15 @@ export class SearchComponent implements OnDestroy {
 
   async search(event?: SubmitEvent): Promise<void> {
     event?.preventDefault();
-    const query = this.query().trim();
+    const typedQuery = this.query().trim();
+    const query = completeSearchInput(typedQuery).trim();
     if (!query || this.loading()) return;
+    if (query !== typedQuery) {
+      this.updateQuery(query);
+      this.searchAssist.set(`Completed “${typedQuery}” to “${query}”`);
+    } else {
+      this.searchAssist.set(null);
+    }
 
     const intent = parseSearchIntent(query);
     if (this.newSearchPending()) this.applyIntentFilters(intent, true, true);
@@ -284,6 +311,7 @@ export class SearchComponent implements OnDestroy {
   }
 
   updateQuery(value: string): void {
+    this.searchAssist.set(null);
     this.activeSuggestionIndex.set(-1);
     const previousKind = this.draftKind;
     this.query.set(value);
@@ -360,6 +388,7 @@ export class SearchComponent implements OnDestroy {
     this.transmission.set(intent.transmission);
     this.drivetrain.set(intent.drivetrain);
     this.bodyType.set(intent.bodyType);
+    this.registration.set(intent.registration);
     this.deviceTags.set(intent.tags);
     this.condition.set(intent.condition);
     this.listingMode.set(intent.listingMode);
@@ -382,6 +411,23 @@ export class SearchComponent implements OnDestroy {
     void this.search();
   }
 
+  resumeLastSearch(): void {
+    const state = this.searchState.restoreLast();
+    if (!state) return;
+    this.controller?.abort();
+    this.controller = undefined;
+    this.closeSearchSuggestions();
+    this.restore(state);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { q: state.activeQuery || null, fresh: null },
+      replaceUrl: true,
+    });
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      window.scrollTo({ top: state.scrollY, behavior: 'instant' });
+    }));
+  }
+
   removeFilter(id: string): void {
     if (id === 'order') this.order.set('relevance');
     else if (id === 'cleanup') this.smartCleanup.set(true);
@@ -401,6 +447,7 @@ export class SearchComponent implements OnDestroy {
     else if (id === 'power') { this.powerFrom.set(null); this.powerTo.set(null); }
     else if (id === 'drivetrain') this.drivetrain.set(null);
     else if (id === 'body-type') this.bodyType.set(null);
+    else if (id === 'registration') this.registration.set(null);
     else if (id === 'condition') this.condition.set(null);
     else if (id === 'listing-mode') this.listingMode.set(null);
     else if (id.startsWith('tag:')) this.toggleDeviceTag(id.slice(4));
@@ -458,6 +505,19 @@ export class SearchComponent implements OnDestroy {
     this.deviceTags.update((tags) => tags.includes(tag) ? tags.filter((item) => item !== tag) : [...tags, tag]);
   }
 
+  rememberPanel(panel: CollapsiblePanel, event: Event): void {
+    this.uiPreferences.setOpen(panel, (event.currentTarget as HTMLDetailsElement).open);
+  }
+
+  setRegistration(value: 'moldova' | 'other' | null): void {
+    this.registration.set(value);
+    // A session restored from an older app version has no registration facet.
+    // Refresh it once; newly streamed searches continue filtering instantly.
+    if (value && this.rawProducts().length > 0 && this.rawProducts().every((product) => product.registration === undefined)) {
+      void this.search();
+    }
+  }
+
   setPrice(bound: 'min' | 'max', event: Event): void {
     const value = (event.target as HTMLInputElement).valueAsNumber;
     (bound === 'min' ? this.priceMin : this.priceMax).set(Number.isFinite(value) && value >= 0 ? value : null);
@@ -484,12 +544,12 @@ export class SearchComponent implements OnDestroy {
     if (this.priceMin() !== null && this.priceMin()! > value) this.priceMin.set(null);
   }
 
-  resetFilters(): void {
+  resetFilters(clearSavedWords = true): void {
     this.order.set('relevance');
     this.smartCleanup.set(true);
     this.excludeNegotiable.set(false);
     this.onlyWithPhotos.set(false);
-    this.excludedWords.set([]);
+    if (clearSavedWords) this.excludedWords.set([]);
     this.queryExclusions.set([]);
     this.yearFrom.set(null);
     this.yearTo.set(null);
@@ -504,6 +564,7 @@ export class SearchComponent implements OnDestroy {
     this.powerTo.set(null);
     this.drivetrain.set(null);
     this.bodyType.set(null);
+    this.registration.set(null);
     this.generationFrom.set(null);
     this.generationTo.set(null);
     this.storageFrom.set(null);
@@ -519,7 +580,33 @@ export class SearchComponent implements OnDestroy {
     this.deviceTags.set([]);
     this.condition.set(null);
     this.listingMode.set(null);
-    void this.library.saveExcludedWords([]);
+    if (clearSavedWords) void this.library.saveExcludedWords([]);
+  }
+
+  private startFreshWorkspace(): void {
+    this.controller?.abort();
+    this.controller = undefined;
+    this.resetFilters(false);
+    this.query.set('');
+    this.activeQuery.set('');
+    this.rawProducts.set([]);
+    this.ids.clear();
+    this.activeIntent.set(parseSearchIntent(''));
+    this.excludedWord.set('');
+    this.priceCurrency.set(null);
+    this.searched.set(false);
+    this.loadedPages.set(0);
+    this.totalPages.set(0);
+    this.loading.set(false);
+    this.draftKind = 'generic';
+    this.draftHadPrice = false;
+    this.closeSearchSuggestions();
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { q: null, fresh: null },
+      replaceUrl: true,
+    });
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'instant' }));
   }
 
   private setNumberRange(target: { set(value: number | null): void }, event: Event): void {
@@ -542,6 +629,7 @@ export class SearchComponent implements OnDestroy {
       this.powerTo.set(null);
       this.drivetrain.set(null);
       this.bodyType.set(null);
+      this.registration.set(null);
     }
     if (intent.kind !== 'iphone' && intent.kind !== 'playstation') {
       this.generationFrom.set(null);
@@ -587,6 +675,7 @@ export class SearchComponent implements OnDestroy {
 
   private restore(state: SearchState): void {
     this.query.set(state.query);
+    this.searchAssist.set(null);
     this.activeQuery.set(state.activeQuery);
     this.order.set(state.order);
     this.smartCleanup.set(state.smartCleanup);
@@ -620,6 +709,7 @@ export class SearchComponent implements OnDestroy {
     this.powerTo.set(state.powerTo);
     this.drivetrain.set(state.drivetrain);
     this.bodyType.set(state.bodyType);
+    this.registration.set(state.registration);
     this.deviceTags.set(state.deviceTags);
     this.condition.set(state.condition);
     this.listingMode.set(state.listingMode);
@@ -648,7 +738,7 @@ export class SearchComponent implements OnDestroy {
       storageTo: this.storageTo(), ramFrom: this.ramFrom(), ramTo: this.ramTo(), roomsFrom: this.roomsFrom(), roomsTo: this.roomsTo(),
       areaFrom: this.areaFrom(), areaTo: this.areaTo(), screenFrom: this.screenFrom(), screenTo: this.screenTo(),
       mileageFrom: this.mileageFrom(), mileageTo: this.mileageTo(), powerFrom: this.powerFrom(), powerTo: this.powerTo(),
-      drivetrain: this.drivetrain(), bodyType: this.bodyType(),
+      drivetrain: this.drivetrain(), bodyType: this.bodyType(), registration: this.registration(),
       deviceTags: this.deviceTags(), condition: this.condition(), listingMode: this.listingMode(), products: this.rawProducts(),
       searched: this.searched(), loadedPages: this.loadedPages(), totalPages: this.totalPages(), scrollY,
       updatedAt: Date.now(),
@@ -679,6 +769,7 @@ export class SearchComponent implements OnDestroy {
       if (!inRange(product.power ?? null, this.powerFrom(), this.powerTo())) return false;
       if (this.drivetrain() && !choiceMatches(product.drivetrain, this.drivetrain()!)) return false;
       if (this.bodyType() && !choiceMatches(product.bodyType, this.bodyType()!)) return false;
+      if (this.registration() && !registrationMatches(product.registration, this.registration()!)) return false;
       if (isDeviceIntent(intent) && !matchesDeviceFilters(product, intent, this.generationFrom(), this.generationTo(), this.storageFrom(), this.storageTo(), this.deviceTags())) return false;
       if (isStorageIntent(intent) && !inRange(storageValue(product), this.storageFrom(), this.storageTo())) return false;
       if ((intent.kind === 'laptop' || intent.kind === 'phone') && !inRange(ramValue(product), this.ramFrom(), this.ramTo())) return false;
@@ -806,6 +897,10 @@ function offerTypeMatches(value: string | undefined, mode: 'sale' | 'rent' | nul
   return mode === 'rent'
     ? /(inchiri|chirie|rent|аренд|сда)/u.test(normalized)
     : /(vand|vanzare|sale|прод|sell)/u.test(normalized);
+}
+function registrationMatches(value: string | undefined, registration: 'moldova' | 'other'): boolean {
+  const normalized = fold(value ?? '');
+  return registration === 'moldova' ? normalized === 'republica moldova' : normalized === 'alta';
 }
 function choiceMatches(value: string | undefined, expected: string): boolean {
   const actual = fold(value ?? '');

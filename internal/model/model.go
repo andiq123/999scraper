@@ -48,6 +48,7 @@ type Product struct {
 	Mileage       int    `json:"mileage,omitempty"`
 	Power         int    `json:"power,omitempty"`
 	Drivetrain    string `json:"drivetrain,omitempty"`
+	Registration  string `json:"registration,omitempty"`
 	DeviceModel   string `json:"deviceModel,omitempty"`
 	Storage       string `json:"storage,omitempty"`
 	Brand         string `json:"brand,omitempty"`
