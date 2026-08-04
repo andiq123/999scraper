@@ -1,10 +1,13 @@
 import { fold, parseSearchIntent } from './search-intent';
+import { popularChineseVehicleSearches, vehicleEntityCompletions, vehicleModelSearches } from './vehicle-catalog';
 
 export type SuggestionKind = 'recent' | 'item' | 'category' | 'refine' | 'direct';
 export interface SearchSuggestion { value: string; label: string; hint: string; kind: SuggestionKind }
 
 export const marketCategories = [
   { label: 'Cars', query: 'autoturism' }, { label: 'Property', query: 'apartament' },
+  { label: 'Motorcycles', query: 'motocicletă' }, { label: 'Commercial vehicles', query: 'transport comercial' },
+  { label: 'Car parts', query: 'piese auto' }, { label: 'Tyres & wheels', query: 'anvelope auto' },
   { label: 'Phones', query: 'telefon' }, { label: 'Computers', query: 'calculator' },
   { label: 'Construction', query: 'construcții' }, { label: 'Clothing', query: 'haine' },
   { label: 'Furniture', query: 'mobilă' }, { label: 'Audio & video', query: 'televizor' },
@@ -18,6 +21,8 @@ export const marketCategories = [
 ] as const;
 
 const popularItems: ReadonlyArray<Omit<SearchSuggestion, 'kind'>> = [
+  ...popularChineseVehicleSearches.map((value) => ({ value, label: value, hint: 'Car' })),
+  ...vehicleModelSearches.map((item) => ({ ...item, hint: 'Car model' })),
   { value: 'Volkswagen', label: 'Volkswagen', hint: 'Car brand' },
   { value: 'Volkswagen Golf', label: 'Volkswagen Golf', hint: 'Car' },
   { value: 'Volkswagen Passat', label: 'Volkswagen Passat', hint: 'Car' },
@@ -52,15 +57,8 @@ const popularItems: ReadonlyArray<Omit<SearchSuggestion, 'kind'>> = [
 ];
 
 const entityCompletions: ReadonlyArray<{ canonical: string; aliases: readonly string[] }> = [
-  { canonical: 'Volkswagen', aliases: ['volkswagen'] }, { canonical: 'Volvo', aliases: ['volvo'] },
-  { canonical: 'Mercedes-Benz', aliases: ['mercedes', 'mercedes-benz'] }, { canonical: 'Toyota', aliases: ['toyota'] },
-  { canonical: 'Honda', aliases: ['honda'] }, { canonical: 'Hyundai', aliases: ['hyundai'] },
-  { canonical: 'Renault', aliases: ['renault'] }, { canonical: 'Škoda', aliases: ['skoda'] },
-  { canonical: 'Peugeot', aliases: ['peugeot'] }, { canonical: 'Porsche', aliases: ['porsche'] },
-  { canonical: 'Citroën', aliases: ['citroen'] }, { canonical: 'Chevrolet', aliases: ['chevrolet'] },
-  { canonical: 'Mitsubishi', aliases: ['mitsubishi'] }, { canonical: 'Nissan', aliases: ['nissan'] },
-  { canonical: 'Lexus', aliases: ['lexus'] }, { canonical: 'Dacia', aliases: ['dacia'] },
-  { canonical: 'Tesla', aliases: ['tesla'] }, { canonical: 'iPhone', aliases: ['iphone'] },
+  ...vehicleEntityCompletions,
+  { canonical: 'iPhone', aliases: ['iphone'] },
   { canonical: 'PlayStation', aliases: ['playstation'] }, { canonical: 'Samsung', aliases: ['samsung'] },
   { canonical: 'Xiaomi', aliases: ['xiaomi'] }, { canonical: 'Lenovo', aliases: ['lenovo'] },
   { canonical: 'MacBook', aliases: ['macbook'] },

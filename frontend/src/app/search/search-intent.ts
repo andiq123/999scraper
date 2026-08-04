@@ -1,3 +1,5 @@
+import { matchesVehicleCatalog } from './vehicle-catalog';
+
 export type SearchKind = 'generic' | 'vehicle' | 'iphone' | 'phone' | 'playstation' | 'laptop' | 'tv' | 'realEstate';
 
 export interface NumberRange { from: number | null; to: number | null }
@@ -35,18 +37,6 @@ export const drivetrainOptions = ['Din față', 'Din spate', '4x4'] as const;
 export const bodyTypeOptions = ['Sedan', 'SUV', 'Crossover', 'Hatchback', 'Universal', 'Coupe', 'Minivan'] as const;
 export const storageOptions = [64, 128, 256, 512, 1024, 2048] as const;
 
-const vehicleMakes = new Set([
-  'acura', 'alfa', 'audi', 'bmw', 'cadillac', 'chery', 'chevrolet', 'chrysler', 'citroen', 'dacia',
-  'daewoo', 'dodge', 'fiat', 'ford', 'haval', 'honda', 'hyundai', 'infiniti', 'jaguar', 'jeep', 'kia',
-  'land rover', 'lexus', 'lixiang', 'mazda', 'mercedes', 'mercedes benz', 'mitsubishi', 'nissan', 'opel',
-  'peugeot', 'porsche', 'renault', 'seat', 'skoda', 'ssangyong', 'subaru', 'suzuki', 'tank', 'tesla',
-  'toyota', 'volkswagen', 'volvo', 'ваз', 'лада', 'газ', 'уаз',
-]);
-const vehicleModels = new Set([
-  'camry', 'civic', 'corolla', 'duster', 'golf', 'logan', 'octavia', 'passat', 'prius', 'qashqai', 'rav4',
-  'sandero', 'sportage', 'tucson', 'x5', 'x6',
-]);
-const vehiclePhrases = ['land cruiser', 'model 3', 'model s', 'model x', 'model y', 'range rover'];
 const vehicleWords = new Set(['autoturism', 'autoturisme', 'automobil', 'automobile', 'masina', 'masini', 'vehicle', 'inmatriculare', 'inmatriculat', 'inmatriculata', 'автомобиль', 'автомобили']);
 const laptopWords = new Set(['laptop', 'laptops', 'notebook', 'ultrabook', 'macbook', 'thinkpad', 'ideapad', 'chromebook', 'lenovo', 'dell', 'acer', 'asus', 'ноутбук']);
 const phoneWords = new Set(['telefon', 'telefonul', 'smartphone', 'samsung', 'galaxy', 'xiaomi', 'redmi', 'pixel', 'huawei', 'honor', 'oneplus', 'oppo', 'realme', 'телефон', 'смартфон']);
@@ -101,21 +91,22 @@ export function parseSearchIntent(input: string): SearchIntent {
   const original = input.trim();
   const plain = fold(original);
   const words = tokens(plain);
+  const vehicleMatch = words.some((word) => vehicleWords.has(word)) || matchesVehicleCatalog(plain, words);
   const kind: SearchKind = words.includes('iphone')
     ? 'iphone'
     : words.some((word) => /^ps[1-5]$/.test(word)) || words.includes('playstation')
       ? 'playstation'
-      : words.some((word) => laptopWords.has(word))
-        ? 'laptop'
-        : words.some((word) => tvWords.has(word)) || plain.includes('smart tv')
-          ? 'tv'
-          : words.some((word) => phoneWords.has(word))
-            ? 'phone'
-            : words.some((word) => propertyWords.has(word))
-              ? 'realEstate'
-      : words.some((word) => vehicleMakes.has(word) || vehicleModels.has(word) || vehicleWords.has(word)) || vehiclePhrases.some((phrase) => plain.includes(phrase))
-        ? 'vehicle'
-        : 'generic';
+      : words.some((word) => propertyWords.has(word))
+        ? 'realEstate'
+        : vehicleMatch
+          ? 'vehicle'
+          : words.some((word) => laptopWords.has(word))
+            ? 'laptop'
+            : words.some((word) => tvWords.has(word)) || plain.includes('smart tv')
+              ? 'tv'
+              : words.some((word) => phoneWords.has(word))
+                ? 'phone'
+                : 'generic';
 
   const yearMatch = kind === 'vehicle' ? plain.match(/\b(19[5-9]\d|20[0-3]\d)(?:\s*(?:-|–|—|to|pana la)\s*(19[5-9]\d|20[0-3]\d))?\b/) : null;
   const modelPattern = kind === 'iphone'
