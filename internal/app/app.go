@@ -10,6 +10,7 @@ import (
 	"github.com/andi/999scraper/internal/cache"
 	"github.com/andi/999scraper/internal/config"
 	"github.com/andi/999scraper/internal/currency"
+	"github.com/andi/999scraper/internal/data"
 	"github.com/andi/999scraper/internal/httpapi"
 	"github.com/andi/999scraper/internal/scraper"
 	"github.com/andi/999scraper/internal/store"
@@ -20,10 +21,11 @@ func New(ctx context.Context, logger *slog.Logger) (*http.Server, func(), error)
 	if err != nil {
 		return nil, nil, err
 	}
-	db, err := store.Open(ctx, cfg.DatabaseURL)
+	dbPool, err := data.Open(ctx, cfg.Database)
 	if err != nil {
 		return nil, nil, err
 	}
+	db := store.New(dbPool)
 	redisCache := cache.Open(ctx, cfg.RedisURL, logger)
 	scrape := scraper.New(cfg.ScraperBaseURL, scraper.Options{
 		MaxPages:       cfg.ScraperMaxPage,
@@ -33,7 +35,7 @@ func New(ctx context.Context, logger *slog.Logger) (*http.Server, func(), error)
 		MaxRetries:     cfg.ScraperRetries,
 		RequestTimeout: 20 * time.Second,
 	})
-	handler := httpapi.New(db, auth.New(cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTLifetime, cfg.CookieSecure), scrape, redisCache, currency.New(), logger)
+	handler := httpapi.New(db, auth.New(cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTLifetime, cfg.CookieSecure, cfg.CookieSameSite), scrape, redisCache, currency.New(), cfg.AllowedOrigins, logger)
 	server := &http.Server{Addr: cfg.Address, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 30 * time.Second, WriteTimeout: 5 * time.Minute, IdleTimeout: 2 * time.Minute}
-	return server, func() { redisCache.Close(); db.Close() }, nil
+	return server, func() { redisCache.Close(); dbPool.Close() }, nil
 }

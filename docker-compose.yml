@@ -24,6 +24,18 @@ services:
       timeout: 3s
       retries: 20
 
+  migrate:
+    build:
+      context: .
+      target: production
+    restart: "no"
+    entrypoint: ["./migrate"]
+    environment:
+      DATABASE_URL: postgres://appuser:secret@db:5432/999scraper?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
+
   backend:
     build:
       context: .
@@ -31,24 +43,21 @@ services:
     init: true
     restart: unless-stopped
     ports:
-      - ${BACKEND_PORT:-8081}:8080
+      - 8081:8080
     environment:
       APP_ADDRESS: :8080
       DATABASE_URL: postgres://appuser:secret@db:5432/999scraper?sslmode=disable
       REDIS_URL: redis://redis:6379/0
-      JWT_SECRET: ${JWT_SECRET:-local-development-key-change-me-please}
-      COOKIE_SECURE: ${COOKIE_SECURE:-false}
-      SCRAPER_MAX_PAGES: ${SCRAPER_MAX_PAGES:-25}
-      SCRAPER_WORKERS: ${SCRAPER_WORKERS:-3}
-      SCRAPER_CONCURRENT_SEARCHES: ${SCRAPER_CONCURRENT_SEARCHES:-2}
-      SCRAPER_REQUEST_DELAY: ${SCRAPER_REQUEST_DELAY:-350ms}
-      SCRAPER_RETRIES: ${SCRAPER_RETRIES:-3}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      CORS_ALLOWED_ORIGINS: http://localhost:${FRONTEND_PORT:?FRONTEND_PORT is required}
     volumes:
       - .:/app
       - backend-build:/app/.air-tmp
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     healthcheck:
@@ -65,7 +74,9 @@ services:
     init: true
     restart: unless-stopped
     ports:
-      - ${FRONTEND_PORT:-4200}:4200
+      - ${FRONTEND_PORT:?FRONTEND_PORT is required}:4200
+    environment:
+      API_URL: ${API_URL:?API_URL is required}
     volumes:
       - ./client:/app
       - frontend-modules:/app/node_modules

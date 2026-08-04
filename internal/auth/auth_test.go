@@ -26,7 +26,7 @@ func TestLoginCodeIsSixRandomDigits(t *testing.T) {
 			t.Fatalf("code contains a non-digit: %q", first)
 		}
 	}
-	service := New(strings.Repeat("s", 32), "test", time.Hour, false)
+	service := New(strings.Repeat("s", 32), "test", time.Hour, false, http.SameSiteLaxMode)
 	if service.CodeHash(first) != service.CodeHash(" "+first+" ") {
 		t.Fatal("surrounding whitespace changed the hash")
 	}
@@ -44,7 +44,7 @@ func TestLoginCodeValidation(t *testing.T) {
 }
 
 func TestSessionCookieAuthenticatesRequest(t *testing.T) {
-	service := New(strings.Repeat("s", 32), "test", time.Hour, false)
+	service := New(strings.Repeat("s", 32), "test", time.Hour, false, http.SameSiteLaxMode)
 	token, err := service.Token("account-1")
 	if err != nil {
 		t.Fatal(err)

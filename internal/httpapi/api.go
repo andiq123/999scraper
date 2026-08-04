@@ -29,10 +29,15 @@ type API struct {
 	queries *queryGate
 	logins  *loginLimiter
 	rates   *currency.Service
+	origins map[string]struct{}
 }
 
-func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, rates *currency.Service, logger *slog.Logger) http.Handler {
-	api := &API{store: s, auth: a, scraper: sc, cache: c, rates: rates, logger: logger, queries: newQueryGate(), logins: newLoginLimiter()}
+func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, rates *currency.Service, allowedOrigins []string, logger *slog.Logger) http.Handler {
+	origins := make(map[string]struct{}, len(allowedOrigins))
+	for _, origin := range allowedOrigins {
+		origins[origin] = struct{}{}
+	}
+	api := &API{store: s, auth: a, scraper: sc, cache: c, rates: rates, origins: origins, logger: logger, queries: newQueryGate(), logins: newLoginLimiter()}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
@@ -480,12 +485,17 @@ func (a *API) log(next http.Handler) http.Handler {
 func (a *API) cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
-		if origin == "http://localhost:4200" || origin == "https://localhost:4200" {
+		if origin != "" {
+			if _, allowed := a.origins[origin]; !allowed {
+				writeError(w, http.StatusForbidden, "origin is not allowed")
+				return
+			}
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			w.Header().Set("Vary", "Origin")
+			w.Header().Add("Vary", "Origin")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Max-Age", "600")
 		}
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)

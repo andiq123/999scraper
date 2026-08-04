@@ -4,12 +4,34 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestCORSAllowsOnlyConfiguredFrontend(t *testing.T) {
+	api := &API{origins: map[string]struct{}{"https://market.example": {}}, logger: slog.Default()}
+	handler := api.cors(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }))
+
+	allowed := httptest.NewRequest(http.MethodOptions, "/api/products/stream", nil)
+	allowed.Header.Set("Origin", "https://market.example")
+	allowedResponse := httptest.NewRecorder()
+	handler.ServeHTTP(allowedResponse, allowed)
+	if allowedResponse.Code != http.StatusNoContent || allowedResponse.Header().Get("Access-Control-Allow-Origin") != "https://market.example" || allowedResponse.Header().Get("Access-Control-Allow-Credentials") != "true" {
+		t.Fatalf("configured origin was not allowed: %#v", allowedResponse.Result().Header)
+	}
+
+	denied := httptest.NewRequest(http.MethodOptions, "/api/products/stream", nil)
+	denied.Header.Set("Origin", "https://attacker.example")
+	deniedResponse := httptest.NewRecorder()
+	handler.ServeHTTP(deniedResponse, denied)
+	if deniedResponse.Code != http.StatusForbidden || deniedResponse.Header().Get("Access-Control-Allow-Origin") != "" {
+		t.Fatalf("unexpected response for denied origin: %d %#v", deniedResponse.Code, deniedResponse.Result().Header)
+	}
+}
 
 func TestQueryGateWaitIsCancelable(t *testing.T) {
 	gate := newQueryGate()

@@ -16,6 +16,7 @@ FROM dependencies AS builder
 COPY cmd/ cmd/
 COPY internal/ internal/
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /server ./cmd/server
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /migrate ./cmd/migrate
 
 FROM alpine:3.24 AS production
 RUN apk add --no-cache ca-certificates \
@@ -23,6 +24,7 @@ RUN apk add --no-cache ca-certificates \
     && adduser -S -G app app
 WORKDIR /app
 COPY --from=builder /server ./server
+COPY --from=builder /migrate ./migrate
 USER app
 EXPOSE 8080
 ENTRYPOINT ["./server"]

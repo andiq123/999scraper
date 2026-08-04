@@ -27,10 +27,11 @@ type Service struct {
 	issuer   string
 	lifetime time.Duration
 	secure   bool
+	sameSite http.SameSite
 }
 
-func New(secret, issuer string, lifetime time.Duration, secure bool) *Service {
-	return &Service{[]byte(secret), issuer, lifetime, secure}
+func New(secret, issuer string, lifetime time.Duration, secure bool, sameSite http.SameSite) *Service {
+	return &Service{secret: []byte(secret), issuer: issuer, lifetime: lifetime, secure: secure, sameSite: sameSite}
 }
 func NewLoginCode() (string, error) {
 	number, err := rand.Int(rand.Reader, big.NewInt(1_000_000))
@@ -72,7 +73,7 @@ func (s *Service) SetSession(w http.ResponseWriter, token string) {
 		MaxAge:   int(s.lifetime.Seconds()),
 		HttpOnly: true,
 		Secure:   s.secure,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: s.sameSite,
 	})
 }
 
@@ -83,7 +84,7 @@ func (s *Service) ClearSession(w http.ResponseWriter) {
 		MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   s.secure,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: s.sameSite,
 	})
 }
 

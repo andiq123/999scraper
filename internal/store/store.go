@@ -18,33 +18,14 @@ var (
 	ErrCodeExists = errors.New("login code already exists")
 )
 
+const queryTimeout = 5 * time.Second
+
 type Store struct{ db *pgxpool.Pool }
 
-func Open(ctx context.Context, databaseURL string) (*Store, error) {
-	db, err := pgxpool.New(ctx, databaseURL)
-	if err != nil {
-		return nil, fmt.Errorf("open database: %w", err)
-	}
-	if err := db.Ping(ctx); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("ping database: %w", err)
-	}
-	s := &Store{db: db}
-	if err := s.migrate(ctx); err != nil {
-		db.Close()
-		return nil, err
-	}
-	return s, nil
-}
+func New(db *pgxpool.Pool) *Store { return &Store{db: db} }
 
-func (s *Store) Close() { s.db.Close() }
-
-func (s *Store) migrate(ctx context.Context) error {
+func (s *Store) Migrate(ctx context.Context) error {
 	const schema = `
-DROP TABLE IF EXISTS favorites;
-DROP TABLE IF EXISTS activities;
-DROP TABLE IF EXISTS users;
-
 CREATE TABLE IF NOT EXISTS accounts (
   id uuid PRIMARY KEY,
   code_hash text NOT NULL UNIQUE,
@@ -87,6 +68,8 @@ func scanAccount(row pgx.Row) (model.Account, error) {
 }
 
 func (s *Store) CreateAccount(ctx context.Context, codeHash string) (model.Account, error) {
+	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
+	defer cancel()
 	account, err := scanAccount(s.db.QueryRow(ctx, `
 INSERT INTO accounts (id, code_hash) VALUES ($1, $2)
 ON CONFLICT (code_hash) DO NOTHING
@@ -98,16 +81,22 @@ RETURNING id::text, created_at`, uuid.NewString(), codeHash))
 }
 
 func (s *Store) AccountByCodeHash(ctx context.Context, codeHash string) (model.Account, error) {
+	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
+	defer cancel()
 	return scanAccount(s.db.QueryRow(ctx, `
 SELECT id::text, created_at FROM accounts WHERE code_hash=$1`, codeHash))
 }
 
 func (s *Store) AccountByID(ctx context.Context, id string) (model.Account, error) {
+	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
+	defer cancel()
 	return scanAccount(s.db.QueryRow(ctx, `
 SELECT id::text, created_at FROM accounts WHERE id=$1`, id))
 }
 
 func (s *Store) AddSearch(ctx context.Context, accountID, query string) error {
+	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
+	defer cancel()
 	_, err := s.db.Exec(ctx, `
 INSERT INTO search_history (id, account_id, query, searched_at)
 SELECT $1, id, $3, $4 FROM accounts WHERE id=$2`, uuid.NewString(), accountID, query, time.Now().UTC())
@@ -115,6 +104,8 @@ SELECT $1, id, $3, $4 FROM accounts WHERE id=$2`, uuid.NewString(), accountID, q
 }
 
 func (s *Store) SearchHistory(ctx context.Context, accountID string) ([]model.SearchHistory, error) {
+	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
+	defer cancel()
 	rows, err := s.db.Query(ctx, `
 SELECT id::text, query, searched_at
 FROM search_history
@@ -138,6 +129,8 @@ LIMIT 200`, accountID)
 }
 
 func (s *Store) Preferences(ctx context.Context, accountID string) (model.Preferences, error) {
+	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
+	defer cancel()
 	var preferences model.Preferences
 	err := s.db.QueryRow(ctx, `SELECT excluded_words FROM account_preferences WHERE account_id=$1`, accountID).Scan(&preferences.ExcludedWords)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -147,6 +140,8 @@ func (s *Store) Preferences(ctx context.Context, accountID string) (model.Prefer
 }
 
 func (s *Store) SavePreferences(ctx context.Context, accountID string, preferences model.Preferences) error {
+	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
+	defer cancel()
 	_, err := s.db.Exec(ctx, `
 INSERT INTO account_preferences (account_id, excluded_words) VALUES ($1, $2)
 ON CONFLICT (account_id) DO UPDATE SET excluded_words=EXCLUDED.excluded_words`, accountID, preferences.ExcludedWords)
@@ -154,6 +149,8 @@ ON CONFLICT (account_id) DO UPDATE SET excluded_words=EXCLUDED.excluded_words`, 
 }
 
 func (s *Store) SavedListings(ctx context.Context, accountID string) ([]model.SavedListing, error) {
+	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
+	defer cancel()
 	rows, err := s.db.Query(ctx, `SELECT product, saved_at FROM saved_listings WHERE account_id=$1 ORDER BY saved_at DESC LIMIT 500`, accountID)
 	if err != nil {
 		return nil, err
@@ -175,6 +172,8 @@ func (s *Store) SavedListings(ctx context.Context, accountID string) ([]model.Sa
 }
 
 func (s *Store) SaveListing(ctx context.Context, accountID string, product model.Product) error {
+	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
+	defer cancel()
 	raw, err := json.Marshal(product)
 	if err != nil {
 		return err
@@ -186,6 +185,8 @@ ON CONFLICT (account_id, product_id) DO UPDATE SET product=EXCLUDED.product, sav
 }
 
 func (s *Store) DeleteListing(ctx context.Context, accountID, productID string) error {
+	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
+	defer cancel()
 	_, err := s.db.Exec(ctx, `DELETE FROM saved_listings WHERE account_id=$1 AND product_id=$2`, accountID, productID)
 	return err
 }
