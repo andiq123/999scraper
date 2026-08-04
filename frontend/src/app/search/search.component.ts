@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, HostListener, OnDestroy, afterNextRender, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, OnDestroy, afterNextRender, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { Product, SortOrder } from '../models';
@@ -56,6 +56,7 @@ export class SearchComponent implements OnDestroy {
   private controller?: AbortController;
   private draftKind: SearchKind = 'generic';
   private draftHadPrice = false;
+  private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
 
   readonly query = signal('');
   readonly suggestionsOpen = signal(false);
@@ -333,6 +334,12 @@ export class SearchComponent implements OnDestroy {
   cancel(): void {
     this.controller?.abort();
     this.loading.set(false);
+  }
+
+  startOver(): void {
+    this.searchState.clearAll();
+    this.startFreshWorkspace();
+    window.requestAnimationFrame(() => this.searchInput()?.nativeElement.focus());
   }
 
   updateQuery(value: string): void {

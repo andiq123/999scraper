@@ -83,6 +83,17 @@ export class SearchStateService {
     this.freshRequest.update((value) => value + 1);
   }
 
+  clearAll(): void {
+    if (this.writeTimer !== undefined) window.clearTimeout(this.writeTimer);
+    this.writeTimer = undefined;
+    try {
+      sessionStorage.removeItem(storageKey);
+      sessionStorage.removeItem(lastStorageKey);
+    } catch { /* In-memory state still works. */ }
+    this.cached.set(null);
+    this.lastSearch.set(null);
+  }
+
   restoreLast(): SearchState | null {
     const state = this.lastSearch();
     if (!state) return null;

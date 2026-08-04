@@ -1,7 +1,7 @@
 <main class="search-page">
   <form class="search-form ui-surface" (submit)="search($event)">
     <label class="sr-only" for="search-query">Search 999.md</label>
-    <input id="search-query" autofocus autocomplete="off" enterkeyhint="search" role="combobox" aria-autocomplete="list" aria-controls="search-suggestions" [attr.aria-expanded]="showSearchSuggestions()" [attr.aria-activedescendant]="activeSuggestionId()" placeholder="Try ‘Corolla automatic under 10k EUR -piese’" [value]="query()" (focus)="openSearchSuggestions()" (blur)="closeSearchSuggestions()" (input)="updateQuery($any($event.target).value)" (keydown)="handleSearchKeys($event)">
+    <input #searchInput id="search-query" autofocus autocomplete="off" enterkeyhint="search" role="combobox" aria-autocomplete="list" aria-controls="search-suggestions" [attr.aria-expanded]="showSearchSuggestions()" [attr.aria-activedescendant]="activeSuggestionId()" placeholder="Try ‘Corolla automatic under 10k EUR -piese’" [value]="query()" (focus)="openSearchSuggestions()" (blur)="closeSearchSuggestions()" (input)="updateQuery($any($event.target).value)" (keydown)="handleSearchKeys($event)">
     <button class="ui-button ui-button-primary" type="submit" [disabled]="!query().trim() || loading() || (!newSearchPending() && (yearRangeInvalid() || mileageRangeInvalid() || powerRangeInvalid() || generationRangeInvalid() || storageRangeInvalid() || ramRangeInvalid() || roomsRangeInvalid() || areaRangeInvalid() || floorRangeInvalid() || screenRangeInvalid() || priceRangeInvalid()))">{{ newSearchPending() ? 'Update' : 'Search' }}</button>
     @if (showSearchSuggestions()) {
       <ul id="search-suggestions" class="search-suggestions" role="listbox" aria-label="Search suggestions">
@@ -276,12 +276,13 @@
         <div class="result-bar" animate.enter="reveal-enter" animate.leave="reveal-leave">
           <p><strong>{{ products().length }}</strong> shown @if (hiddenCount()) { <span>· {{ hiddenCount() }} cleaned</span> }</p>
           @if (visiblePriceSummary()) { <p class="visible-price" aria-label="Visible result price range"><small>Price</small><strong>{{ visiblePriceSummary() }}</strong></p> }
+          <button class="restart-search" type="button" (click)="startOver()" aria-label="Clear this search and start over"><span aria-hidden="true">×</span> Start over</button>
         </div>
         <div class="grid">
           @for (product of products(); track product.id; let index = $index) { <app-product-card [product]="product" [saved]="library.savedIds().has(product.id)" [eager]="index < 6" [priority]="index === 0" [convertedPrice]="currency.label(product, priceCurrency())" (save)="toggleSaved($event)" (exclude)="addExclusion($event)" /> }
         </div>
       } @else if (searched() && !loading()) {
-        <div class="empty empty-state" animate.enter="reveal-enter" animate.leave="reveal-leave"><h2>No products found</h2><p>Try a broader search or fewer filters.</p>@if (hasCustomFilters()) { <button class="ui-button ui-button-primary" type="button" (click)="resetFilters()">Show broader results</button> }</div>
+        <div class="empty empty-state" animate.enter="reveal-enter" animate.leave="reveal-leave"><h2>No products found</h2><p>Try a broader search or fewer filters.</p><div class="empty-actions">@if (hasCustomFilters()) { <button class="ui-button ui-button-primary" type="button" (click)="resetFilters()">Show broader results</button> }<button class="ui-button ui-button-quiet" type="button" (click)="startOver()">Start over</button></div></div>
       } @else if (loading()) {
         <div class="spinner" animate.enter="reveal-enter" animate.leave="reveal-leave" aria-label="Loading"></div>
       } @else {

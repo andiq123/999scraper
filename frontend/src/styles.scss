@@ -108,6 +108,9 @@ summary:focus-visible { outline: 0; border-radius: var(--radius-xs); box-shadow:
 .page-heading > p:first-child { color: var(--accent); font-size: .65rem; font-weight: 780; letter-spacing: .12em; text-transform: uppercase; }
 .page-heading > p:last-child, .page-heading > span { color: var(--muted); }
 .empty-state { border: 1px dashed var(--line-strong); border-radius: var(--radius-lg); background: rgb(255 255 255 / 46%); text-align: center; }
+.search-page .restart-search { min-height: 30px; padding: .26rem .45rem; border: 0; border-radius: 999px; color: var(--muted); background: transparent; font-size: .66rem; font-weight: 680; cursor: pointer; }
+.search-page .restart-search span { color: inherit; }
+.search-page .empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem; margin-top: 1rem; }
 
 .sr-only {
   position: absolute;
