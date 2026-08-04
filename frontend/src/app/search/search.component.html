@@ -222,7 +222,7 @@
           <span>–</span>
           <input type="number" inputmode="numeric" min="0" placeholder="Max" aria-label="Maximum price" [value]="priceMax() ?? ''" (input)="setPrice('max', $event)">
         </div>
-        <p class="price-help">Results {{ priceFloorLabel() }}–{{ priceCeilingLabel() }} {{ priceCurrencyLabel() }} · type any amount</p>
+        <p class="price-help">@if (priceRangeUpdating()) { <span class="stream-dot" aria-hidden="true"></span> Updating } @else { Results } {{ priceFloorLabel() }}–{{ priceCeilingLabel() }} {{ priceCurrencyLabel() }} · type any amount</p>
         @if (priceRangeInvalid()) { <small>Minimum must be below maximum.</small> }
       </fieldset>
       <div class="quick-filters">

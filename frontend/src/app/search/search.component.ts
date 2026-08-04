@@ -172,10 +172,19 @@ export class SearchComponent implements OnDestroy {
   readonly mileageRangeInvalid = computed(() => this.mileageFrom() !== null && this.mileageTo() !== null && this.mileageFrom()! > this.mileageTo()!);
   readonly powerRangeInvalid = computed(() => this.powerFrom() !== null && this.powerTo() !== null && this.powerFrom()! > this.powerTo()!);
   readonly priceRangeInvalid = computed(() => this.priceMin() !== null && this.priceMax() !== null && this.priceMin()! > this.priceMax()!);
-  private readonly productsBeforePrice = computed(() => this.filterAndSort(this.rawProducts(), true));
+  private readonly productsBeforePrice = computed(() => this.filterAndSort(this.rawProducts()));
   private readonly availablePrices = computed(() => convertedPrices(this.productsBeforePrice(), this.currency, this.priceCurrency() ?? defaultPriceCurrency(this.filterIntent())));
   private readonly observedPriceRange = computed(() => priceBounds(this.availablePrices()));
-  readonly products = computed(() => this.filterAndSort(this.rawProducts()));
+  readonly products = computed(() => {
+    const min = this.priceMin();
+    const max = this.priceMax();
+    if (min === null && max === null) return this.productsBeforePrice();
+    return this.productsBeforePrice().filter((product) => {
+      const value = this.currency.convert(product, this.priceCurrency());
+      return value !== null && (min === null || value >= min) && (max === null || value <= max);
+    });
+  });
+  readonly priceRangeUpdating = computed(() => this.loading() && this.availablePrices().length > 0);
   readonly hiddenCount = computed(() => this.rawProducts().length - this.products().length);
   readonly visiblePriceSummary = computed(() => {
     const target = this.priceCurrency() ?? defaultPriceCurrency(this.filterIntent());
@@ -820,7 +829,7 @@ export class SearchComponent implements OnDestroy {
     };
   }
 
-  private filterAndSort(source: Product[], ignorePrice = false): Product[] {
+  private filterAndSort(source: Product[]): Product[] {
     const intent = this.activeIntent();
     const queryWords = requiredQueryWords(this.activeQuery(), intent);
     const excluded = [...this.excludedWords(), ...this.queryExclusions()].map(tokens);
@@ -861,9 +870,6 @@ export class SearchComponent implements OnDestroy {
       if (this.condition() && !conditionMatches(product.condition, this.condition()!)) return false;
       if (this.excludeNegotiable() && product.price == null) return false;
       if (this.onlyWithPhotos() && !product.thumbnailURL) return false;
-      const comparablePrice = this.currency.convert(product, this.priceCurrency());
-      if (!ignorePrice && this.priceMin() !== null && (comparablePrice === null || comparablePrice < this.priceMin()!)) return false;
-      if (!ignorePrice && this.priceMax() !== null && (comparablePrice === null || comparablePrice > this.priceMax()!)) return false;
       if (excluded.some((phrase) => containsPhrase(titleWords, phrase))) return false;
       if (this.smartCleanup()) signatures.add(signature);
       return true;
