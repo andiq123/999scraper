@@ -39,9 +39,11 @@ func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, r
 	}
 	api := &API{store: s, auth: a, scraper: sc, cache: c, rates: rates, origins: origins, logger: logger, queries: newQueryGate(), logins: newLoginLimiter()}
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, _ *http.Request) {
+	health := func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-	})
+	}
+	mux.HandleFunc("GET /health", health)
+	mux.HandleFunc("GET /api/health", health)
 	mux.HandleFunc("POST /api/account/login", api.login)
 	mux.HandleFunc("POST /api/account/register", api.register)
 	mux.HandleFunc("POST /api/account/logout", api.logout)

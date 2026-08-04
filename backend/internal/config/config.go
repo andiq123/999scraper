@@ -42,6 +42,10 @@ type Config struct {
 
 // Load reads and validates the API's environment-based runtime configuration.
 func Load() (Config, error) {
+	address, err := listenAddress()
+	if err != nil {
+		return Config{}, err
+	}
 	database, err := LoadDatabase()
 	if err != nil {
 		return Config{}, err
@@ -86,7 +90,7 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	cfg := Config{
-		Address:         env("APP_ADDRESS", ":8080"),
+		Address:         address,
 		Database:        database,
 		Redis:           redisConfig,
 		JWTSecret:       strings.TrimSpace(os.Getenv("JWT_SECRET")),
@@ -106,6 +110,26 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("JWT_SECRET must contain at least 32 characters")
 	}
 	return cfg, nil
+}
+
+// listenAddress honors an explicit address locally and otherwise binds the
+// dynamic PORT assigned by application hosting platforms.
+func listenAddress() (string, error) {
+	if address := strings.TrimSpace(os.Getenv("APP_ADDRESS")); address != "" {
+		if _, _, err := net.SplitHostPort(address); err != nil {
+			return "", fmt.Errorf("APP_ADDRESS must be a valid host:port address")
+		}
+		return address, nil
+	}
+	port := strings.TrimSpace(os.Getenv("PORT"))
+	if port == "" {
+		return ":8080", nil
+	}
+	portNumber, err := strconv.ParseUint(port, 10, 16)
+	if err != nil || portNumber == 0 {
+		return "", fmt.Errorf("PORT must be a valid port")
+	}
+	return ":" + port, nil
 }
 
 // LoadRedis accepts the linked service's REDIS_URL and otherwise constructs an

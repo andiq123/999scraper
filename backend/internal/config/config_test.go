@@ -20,6 +20,32 @@ func TestCrossOriginCookieConfiguration(t *testing.T) {
 	}
 }
 
+func TestListenAddressUsesPlatformPort(t *testing.T) {
+	t.Setenv("APP_ADDRESS", "")
+	t.Setenv("PORT", "5103")
+	address, err := listenAddress()
+	if err != nil || address != ":5103" {
+		t.Fatalf("unexpected platform address: %q %v", address, err)
+	}
+}
+
+func TestListenAddressPrefersExplicitAddress(t *testing.T) {
+	t.Setenv("APP_ADDRESS", "127.0.0.1:9090")
+	t.Setenv("PORT", "5103")
+	address, err := listenAddress()
+	if err != nil || address != "127.0.0.1:9090" {
+		t.Fatalf("unexpected explicit address: %q %v", address, err)
+	}
+}
+
+func TestListenAddressRejectsInvalidPort(t *testing.T) {
+	t.Setenv("APP_ADDRESS", "")
+	t.Setenv("PORT", "not-a-port")
+	if _, err := listenAddress(); err == nil {
+		t.Fatal("expected invalid platform port to fail")
+	}
+}
+
 func TestLoadDatabasePrefersURL(t *testing.T) {
 	clearDatabaseEnvironment(t)
 	t.Setenv("DATABASE_URL", "postgres://linked:secret@database.internal:5432/app?sslmode=require")

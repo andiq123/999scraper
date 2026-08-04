@@ -87,6 +87,8 @@ The API reads its secret from [backend/.env.example](backend/.env.example) durin
 
 The public API is limited to health, exchange rates, registration, login, and progressive search. History, preferences, saved listings, and the current session require the private code session.
 
+In production the Go server automatically binds the hosting platform's injected `PORT`; no port variable needs to be configured manually. `APP_ADDRESS` remains available as an explicit local/container override. Deployment health checks may use the lightweight `/health` endpoint, while `/api/health` remains available for the frontend-facing API path.
+
 ## PostgreSQL deployment
 
 Link the PostgreSQL resource to the Go app so the platform injects its scoped variables. `DATABASE_URL` is preferred. When it is unavailable, the app safely builds the connection from either `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, and `DB_SSLMODE`, or the equivalent `POSTGRES_*` names. No production database credentials are embedded in the binary.
