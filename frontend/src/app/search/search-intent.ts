@@ -1,6 +1,7 @@
 export type SearchKind = 'generic' | 'vehicle' | 'iphone' | 'phone' | 'playstation' | 'laptop' | 'tv' | 'realEstate';
 
 export interface NumberRange { from: number | null; to: number | null }
+export type PropertyListingMode = 'sale' | 'monthly' | 'daily';
 
 export interface SearchIntent {
   kind: SearchKind;
@@ -22,7 +23,8 @@ export interface SearchIntent {
   bodyType: string | null;
   registration: 'moldova' | 'other' | null;
   condition: 'new' | 'used' | null;
-  listingMode: 'sale' | 'rent' | null;
+  listingMode: PropertyListingMode | null;
+  propertySector: string | null;
   tags: string[];
   exclusions: string[];
 }
@@ -50,9 +52,21 @@ const laptopWords = new Set(['laptop', 'laptops', 'notebook', 'ultrabook', 'macb
 const phoneWords = new Set(['telefon', 'telefonul', 'smartphone', 'samsung', 'galaxy', 'xiaomi', 'redmi', 'pixel', 'huawei', 'honor', 'oneplus', 'oppo', 'realme', 'телефон', 'смартфон']);
 const tvWords = new Set(['televizor', 'televizoare', 'television', 'smarttv', 'телевизор']);
 const propertyWords = new Set(['apartament', 'apartamente', 'garsoniera', 'penthouse', 'casa', 'vila', 'teren', 'imobil', 'apartment', 'house', 'land', 'квартира', 'дом', 'участок']);
-const propertyModes: ReadonlyArray<['sale' | 'rent', readonly string[]]> = [
-  ['rent', ['de inchiriat', 'inchiriere', 'chirie', 'rent', 'rental', 'for rent', 'аренда', 'снять', 'сдается', 'сдаётся']],
+const propertyModes: ReadonlyArray<[PropertyListingMode, readonly string[]]> = [
+  ['daily', ['de inchiriat pe zi', 'chirie pe zi', 'pe noapte', 'daily rent', 'short term rent', 'посуточно', 'на сутки']],
+  ['monthly', ['de inchiriat lunar', 'chirie lunara', 'chirie lunară', 'de inchiriat', 'inchiriere', 'chirie', 'monthly rent', 'long term rent', 'rent', 'rental', 'for rent', 'аренда', 'снять', 'сдается', 'сдаётся']],
   ['sale', ['de vanzare', 'vanzare', 'vand', 'buy', 'for sale', 'продажа', 'купить', 'продам']],
+];
+const propertySectors: ReadonlyArray<[string, readonly string[]]> = [
+  ['Aeroport', ['aeroport']],
+  ['Botanica', ['botanica']],
+  ['Buiucani', ['buiucani']],
+  ['Centru', ['centru', 'center', 'центр']],
+  ['Ciocana', ['ciocana']],
+  ['Poșta Veche', ['posta veche', 'poșta veche']],
+  ['Râșcani', ['rascani', 'râșcani', 'рышкановка']],
+  ['Sculeni', ['sculeni']],
+  ['Telecentru', ['telecentru']],
 ];
 
 const fuels: ReadonlyArray<[string, readonly string[]]> = [
@@ -134,6 +148,7 @@ export function parseSearchIntent(input: string): SearchIntent {
   const bodyType = kind === 'vehicle' ? detectedPhraseChoice(plain, bodyTypes) : null;
   const registration = kind === 'vehicle' ? detectedPhraseChoice(plain, registrations) : null;
   const listingMode = kind === 'realEstate' ? detectedPhraseChoice(plain, propertyModes) : null;
+  const propertySector = kind === 'realEstate' ? detectedPhraseChoice(plain, propertySectors) : null;
   const condition = kind === 'realEstate'
     ? null
     : tokens(plain).some((word) => ['new', 'nou', 'noua', 'sigilat', 'sealed', 'новый', 'новая'].includes(word))
@@ -198,6 +213,7 @@ export function parseSearchIntent(input: string): SearchIntent {
     registration,
     condition,
     listingMode,
+    propertySector,
     tags,
     exclusions,
   };

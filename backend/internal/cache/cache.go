@@ -108,5 +108,6 @@ func queryKey(query string) string {
 		return ""
 	}
 	sum := sha256.Sum256([]byte(query))
-	return fmt.Sprintf("999scraper:search:v6:%x", sum)
+	// Bump when the cached Product payload gains searchable facets.
+	return fmt.Sprintf("999scraper:search:v7:%x", sum)
 }

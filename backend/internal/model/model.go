@@ -61,6 +61,9 @@ type Product struct {
 	OS            string `json:"os,omitempty"`
 	Rooms         string `json:"rooms,omitempty"`
 	Area          string `json:"area,omitempty"`
+	Sector        string `json:"sector,omitempty"`
+	HousingStock  string `json:"housingStock,omitempty"`
+	ListingAuthor string `json:"listingAuthor,omitempty"`
 	Floor         string `json:"floor,omitempty"`
 	PropertyState string `json:"propertyState,omitempty"`
 	BuildingType  string `json:"buildingType,omitempty"`

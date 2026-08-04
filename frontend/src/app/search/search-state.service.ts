@@ -1,5 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { Product, SortOrder } from '../models';
+import { PropertyListingMode } from './search-intent';
 
 const storageKey = '999scraper.search.v6';
 const lastStorageKey = '999scraper.search.last.v1';
@@ -32,6 +33,13 @@ export interface SearchState {
   roomsTo: number | null;
   areaFrom: number | null;
   areaTo: number | null;
+  floorFrom: number | null;
+  floorTo: number | null;
+  propertySector: string;
+  propertyState: string | null;
+  housingStock: string | null;
+  listingAuthor: string | null;
+  buildingType: string | null;
   screenFrom: number | null;
   screenTo: number | null;
   mileageFrom: number | null;
@@ -43,7 +51,7 @@ export interface SearchState {
   registration: 'moldova' | 'other' | null;
   deviceTags: string[];
   condition: 'new' | 'used' | null;
-  listingMode: 'sale' | 'rent' | null;
+  listingMode: PropertyListingMode | null;
   products: Product[];
   searched: boolean;
   loadedPages: number;
@@ -105,7 +113,18 @@ function readStoredState(key: string): SearchState | null {
       sessionStorage.removeItem(key);
       return null;
     }
-    return { ...value, registration: value.registration ?? null };
+    return {
+      ...value,
+      registration: value.registration ?? null,
+      listingMode: (value as unknown as { listingMode?: string }).listingMode === 'rent' ? 'monthly' : value.listingMode,
+      floorFrom: value.floorFrom ?? null,
+      floorTo: value.floorTo ?? null,
+      propertySector: value.propertySector ?? '',
+      propertyState: value.propertyState ?? null,
+      housingStock: value.housingStock ?? null,
+      listingAuthor: value.listingAuthor ?? null,
+      buildingType: value.buildingType ?? null,
+    };
   } catch {
     sessionStorage.removeItem(key);
     return null;
@@ -144,12 +163,14 @@ function isSearchState(value: unknown): value is SearchState {
     && typeof state.scrollY === 'number'
     && [state.yearFrom, state.yearTo, state.priceMin, state.priceMax, state.priceCurrency, state.generationFrom,
       state.generationTo, state.storageFrom, state.storageTo, state.ramFrom, state.ramTo, state.roomsFrom,
-      state.roomsTo, state.areaFrom, state.areaTo, state.screenFrom, state.screenTo].every(isNullableNumber)
+      state.roomsTo, state.areaFrom, state.areaTo, state.floorFrom ?? null, state.floorTo ?? null, state.screenFrom, state.screenTo].every(isNullableNumber)
     && [state.mileageFrom, state.mileageTo, state.powerFrom, state.powerTo].every(isNullableNumber)
     && [state.fuel, state.transmission, state.drivetrain, state.bodyType, state.registration ?? null].every(isNullableString)
     && (state.registration === undefined || state.registration === null || state.registration === 'moldova' || state.registration === 'other')
     && (state.condition === null || state.condition === 'new' || state.condition === 'used')
-    && (state.listingMode === null || state.listingMode === 'sale' || state.listingMode === 'rent')
+    && (state.listingMode === null || state.listingMode === 'sale' || (state as unknown as { listingMode?: string }).listingMode === 'rent' || state.listingMode === 'monthly' || state.listingMode === 'daily')
+    && (state.propertySector === undefined || typeof state.propertySector === 'string')
+    && [state.propertyState ?? null, state.housingStock ?? null, state.listingAuthor ?? null, state.buildingType ?? null].every(isNullableString)
     && isStringArray(state.excludedWords)
     && isStringArray(state.queryExclusions)
     && isStringArray(state.deviceTags)

@@ -9,7 +9,7 @@ import { SearchState, SearchStateService } from './search-state.service';
 import { RecentSearchesService } from './recent-searches.service';
 import { UserDataService } from '../user-data.service';
 import { CurrencyService } from '../currency.service';
-import { SearchIntent, SearchKind, bodyTypeOptions, drivetrainOptions, fold, fuelOptions, generationIn, parseSearchIntent, storageIn, storageOptions, transmissionOptions } from './search-intent';
+import { SearchIntent, SearchKind, type PropertyListingMode, bodyTypeOptions, drivetrainOptions, fold, fuelOptions, generationIn, parseSearchIntent, storageIn, storageOptions, transmissionOptions } from './search-intent';
 import { SearchSuggestion, completeSearchInput, marketCategories, suggestionsFor } from './search-suggestions';
 import { RangeFilterComponent, type RangePreset } from './range-filter.component';
 import { type CollapsiblePanel, UiPreferencesService } from '../ui-preferences.service';
@@ -29,6 +29,9 @@ const deviceNoise = new Set([
   'husa', 'joc', 'jocuri', 'repair', 'reparație', 'reparatie', 'service', 'abonament', 'subscription', 'cont',
   'account', 'аренда', 'игры', 'ремонт', 'чехол', 'кабель', 'подписка',
 ]);
+const chisinauSectors = ['Aeroport', 'Botanica', 'Buiucani', 'Centru', 'Ciocana', 'Poșta Veche', 'Râșcani', 'Sculeni', 'Telecentru'] as const;
+const housingStockOptions = ['Construcții noi', 'Secundar'] as const;
+const listingAuthorOptions = ['Persoană fizică', 'Agenție', 'Dezvoltator imobiliar', 'Bancă'] as const;
 interface FilterChip { id: string; label: string }
 
 @Component({
@@ -83,6 +86,13 @@ export class SearchComponent implements OnDestroy {
   readonly roomsTo = signal<number | null>(null);
   readonly areaFrom = signal<number | null>(null);
   readonly areaTo = signal<number | null>(null);
+  readonly floorFrom = signal<number | null>(null);
+  readonly floorTo = signal<number | null>(null);
+  readonly propertySector = signal('');
+  readonly propertyState = signal<string | null>(null);
+  readonly housingStock = signal<string | null>(null);
+  readonly listingAuthor = signal<string | null>(null);
+  readonly buildingType = signal<string | null>(null);
   readonly screenFrom = signal<number | null>(null);
   readonly screenTo = signal<number | null>(null);
   readonly mileageFrom = signal<number | null>(null);
@@ -94,7 +104,7 @@ export class SearchComponent implements OnDestroy {
   readonly registration = signal<'moldova' | 'other' | null>(null);
   readonly deviceTags = signal<string[]>([]);
   readonly condition = signal<'new' | 'used' | null>(null);
-  readonly listingMode = signal<'sale' | 'rent' | null>(null);
+  readonly listingMode = signal<PropertyListingMode | null>(null);
   readonly activeIntent = signal<SearchIntent>(parseSearchIntent(''));
   readonly fuelOptions = fuelOptions;
   readonly transmissionOptions = transmissionOptions;
@@ -104,6 +114,11 @@ export class SearchComponent implements OnDestroy {
   readonly yearPresets: readonly RangePreset[] = [{ label: 'Any', from: null, to: null }, { label: '2010+', from: 2010, to: null }, { label: '2015+', from: 2015, to: null }, { label: '2020+', from: 2020, to: null }];
   readonly mileagePresets: readonly RangePreset[] = [{ label: 'Any', from: null, to: null }, { label: '≤ 50k', from: null, to: 50_000 }, { label: '≤ 100k', from: null, to: 100_000 }, { label: '≤ 200k', from: null, to: 200_000 }];
   readonly powerPresets: readonly RangePreset[] = [{ label: 'Any', from: null, to: null }, { label: '≤ 150', from: null, to: 150 }, { label: '150–250', from: 150, to: 250 }, { label: '250+', from: 250, to: null }];
+  readonly roomPresets: readonly RangePreset[] = [{ label: 'Any', from: null, to: null }, { label: '1', from: 1, to: 1 }, { label: '2', from: 2, to: 2 }, { label: '3+', from: 3, to: null }];
+  readonly areaPresets: readonly RangePreset[] = [{ label: 'Any', from: null, to: null }, { label: '≤ 50', from: null, to: 50 }, { label: '50–100', from: 50, to: 100 }, { label: '100+', from: 100, to: null }];
+  readonly floorPresets: readonly RangePreset[] = [{ label: 'Any', from: null, to: null }, { label: '1–3', from: 1, to: 3 }, { label: '4–8', from: 4, to: 8 }, { label: '9+', from: 9, to: null }];
+  readonly housingStockOptions = housingStockOptions;
+  readonly listingAuthorOptions = listingAuthorOptions;
   readonly marketCategories = marketCategories;
   readonly searchSuggestions = computed(() => suggestionsFor(this.query(), this.recentSearches.items()));
   readonly showSearchSuggestions = computed(() => this.suggestionsOpen() && this.query().trim().length > 0 && this.searchSuggestions().length > 0);
@@ -111,6 +126,9 @@ export class SearchComponent implements OnDestroy {
   readonly deviceTagOptions = computed(() => this.searchIntent().kind === 'iphone' ? ['pro', 'max', 'plus', 'mini'] : ['slim', 'pro', 'digital', 'disc']);
 
   readonly rawProducts = signal<Product[]>([]);
+  readonly propertySectorOptions = computed(() => facetValues(this.rawProducts(), (product) => product.sector, chisinauSectors));
+  readonly propertyStateOptions = computed(() => facetValues(this.rawProducts(), (product) => product.propertyState));
+  readonly buildingTypeOptions = computed(() => facetValues(this.rawProducts(), (product) => product.buildingType));
   readonly loading = signal(false);
   readonly searched = signal(false);
   readonly loadedPages = signal(0);
@@ -138,7 +156,7 @@ export class SearchComponent implements OnDestroy {
       return this.registration() ? `${range} · ${this.registration() === 'moldova' ? 'Moldova registration' : 'Other registration'}` : range;
     }
     if (intent.kind === 'iphone' || intent.kind === 'playstation') return rangeSummary(intent.kind === 'iphone' ? 'iPhone generations' : 'PlayStation generations', this.generationFrom(), this.generationTo());
-    if (intent.kind === 'realEstate') return rangeSummary('Rooms', this.roomsFrom(), this.roomsTo());
+    if (intent.kind === 'realEstate') return this.propertySector().trim() || (this.listingMode() === 'monthly' ? 'Monthly rentals' : this.listingMode() === 'daily' ? 'Daily rentals' : rangeSummary('Rooms', this.roomsFrom(), this.roomsTo()));
     if (intent.kind === 'tv') return rangeSummary('Screen size', this.screenFrom(), this.screenTo());
     return rangeSummary('RAM', this.ramFrom(), this.ramTo());
   });
@@ -148,6 +166,7 @@ export class SearchComponent implements OnDestroy {
   readonly ramRangeInvalid = computed(() => this.ramFrom() !== null && this.ramTo() !== null && this.ramFrom()! > this.ramTo()!);
   readonly roomsRangeInvalid = computed(() => this.roomsFrom() !== null && this.roomsTo() !== null && this.roomsFrom()! > this.roomsTo()!);
   readonly areaRangeInvalid = computed(() => this.areaFrom() !== null && this.areaTo() !== null && this.areaFrom()! > this.areaTo()!);
+  readonly floorRangeInvalid = computed(() => this.floorFrom() !== null && this.floorTo() !== null && this.floorFrom()! > this.floorTo()!);
   readonly screenRangeInvalid = computed(() => this.screenFrom() !== null && this.screenTo() !== null && this.screenFrom()! > this.screenTo()!);
   readonly mileageRangeInvalid = computed(() => this.mileageFrom() !== null && this.mileageTo() !== null && this.mileageFrom()! > this.mileageTo()!);
   readonly powerRangeInvalid = computed(() => this.powerFrom() !== null && this.powerTo() !== null && this.powerFrom()! > this.powerTo()!);
@@ -172,10 +191,10 @@ export class SearchComponent implements OnDestroy {
     const range = minimum === maximum ? minimum : `${minimum}–${maximum}`;
     return `${converted ? '≈ ' : ''}${range} ${['MDL', 'EUR', 'USD'][target]}`;
   });
-  readonly hasCustomFilters = computed(() => this.order() !== 'relevance' || !this.smartCleanup() || this.excludeNegotiable() || this.onlyWithPhotos() || this.excludedWords().length > 0 || this.queryExclusions().length > 0 || this.yearFrom() !== null || this.yearTo() !== null || this.priceMin() !== null || this.priceMax() !== null || this.fuel() !== null || this.transmission() !== null || this.mileageFrom() !== null || this.mileageTo() !== null || this.powerFrom() !== null || this.powerTo() !== null || this.drivetrain() !== null || this.bodyType() !== null || this.registration() !== null || this.generationFrom() !== null || this.generationTo() !== null || this.storageFrom() !== null || this.storageTo() !== null || this.ramFrom() !== null || this.ramTo() !== null || this.roomsFrom() !== null || this.roomsTo() !== null || this.areaFrom() !== null || this.areaTo() !== null || this.screenFrom() !== null || this.screenTo() !== null || this.deviceTags().length > 0 || this.condition() !== null || this.listingMode() !== null);
-  readonly priceCeiling = computed(() => priceCap(this.filterIntent(), this.priceCurrency()));
+  readonly hasCustomFilters = computed(() => this.order() !== 'relevance' || !this.smartCleanup() || this.excludeNegotiable() || this.onlyWithPhotos() || this.excludedWords().length > 0 || this.queryExclusions().length > 0 || this.yearFrom() !== null || this.yearTo() !== null || this.priceMin() !== null || this.priceMax() !== null || this.fuel() !== null || this.transmission() !== null || this.mileageFrom() !== null || this.mileageTo() !== null || this.powerFrom() !== null || this.powerTo() !== null || this.drivetrain() !== null || this.bodyType() !== null || this.registration() !== null || this.generationFrom() !== null || this.generationTo() !== null || this.storageFrom() !== null || this.storageTo() !== null || this.ramFrom() !== null || this.ramTo() !== null || this.roomsFrom() !== null || this.roomsTo() !== null || this.areaFrom() !== null || this.areaTo() !== null || this.floorFrom() !== null || this.floorTo() !== null || this.propertySector().trim() !== '' || this.propertyState() !== null || this.housingStock() !== null || this.listingAuthor() !== null || this.buildingType() !== null || this.screenFrom() !== null || this.screenTo() !== null || this.deviceTags().length > 0 || this.condition() !== null || this.listingMode() !== null);
+  readonly priceCeiling = computed(() => priceCap(this.filterIntent(), this.priceCurrency(), this.listingMode()));
   readonly priceStep = computed(() => priceSliderStep(this.priceCeiling()));
-  readonly pricePresets = computed(() => budgetPresets(this.filterIntent(), this.priceCurrency()));
+  readonly pricePresets = computed(() => budgetPresets(this.filterIntent(), this.priceCurrency(), this.listingMode()));
   readonly priceCurrencyLabel = computed(() => ['MDL', 'EUR', 'USD'][this.priceCurrency() ?? -1] ?? 'listing currency');
   readonly priceCeilingLabel = computed(() => formatNumber(this.priceCeiling()));
   readonly priceMinPercent = computed(() => percentage(this.priceMin() ?? 0, this.priceCeiling()));
@@ -200,6 +219,12 @@ export class SearchComponent implements OnDestroy {
     if (this.ramFrom() !== null || this.ramTo() !== null) chips.push({ id: 'ram', label: rangeSummary('RAM', this.ramFrom(), this.ramTo()).replace(/(\d+)/g, '$1 GB') });
     if (this.roomsFrom() !== null || this.roomsTo() !== null) chips.push({ id: 'rooms', label: rangeSummary('Rooms', this.roomsFrom(), this.roomsTo()) });
     if (this.areaFrom() !== null || this.areaTo() !== null) chips.push({ id: 'area', label: rangeSummary('Area', this.areaFrom(), this.areaTo()).replace(/(\d+)/g, '$1 m²') });
+    if (this.floorFrom() !== null || this.floorTo() !== null) chips.push({ id: 'floor', label: rangeSummary('Floor', this.floorFrom(), this.floorTo()) });
+    if (this.propertySector().trim()) chips.push({ id: 'property-sector', label: this.propertySector().trim() });
+    if (this.propertyState()) chips.push({ id: 'property-state', label: this.propertyState()! });
+    if (this.housingStock()) chips.push({ id: 'housing-stock', label: this.housingStock()! });
+    if (this.listingAuthor()) chips.push({ id: 'listing-author', label: this.listingAuthor()! });
+    if (this.buildingType()) chips.push({ id: 'building-type', label: this.buildingType()! });
     if (this.screenFrom() !== null || this.screenTo() !== null) chips.push({ id: 'screen', label: rangeSummary('Screen', this.screenFrom(), this.screenTo()).replace(/(\d+(?:\.\d+)?)/g, '$1″') });
     if (this.priceMin() !== null || this.priceMax() !== null) chips.push({ id: 'price', label: `${this.priceRangeLabel()} ${this.priceCurrencyLabel()}` });
     if (this.fuel()) chips.push({ id: 'fuel', label: this.fuel()! });
@@ -210,7 +235,7 @@ export class SearchComponent implements OnDestroy {
     if (this.bodyType()) chips.push({ id: 'body-type', label: this.bodyType()! });
     if (this.registration()) chips.push({ id: 'registration', label: this.registration() === 'moldova' ? 'Registered in Moldova' : 'Other registration' });
     if (this.condition()) chips.push({ id: 'condition', label: this.condition() === 'new' ? 'New' : 'Used' });
-    if (this.listingMode()) chips.push({ id: 'listing-mode', label: this.listingMode() === 'rent' ? 'For rent' : 'For sale' });
+    if (this.listingMode()) chips.push({ id: 'listing-mode', label: this.listingMode() === 'monthly' ? 'Monthly rent' : this.listingMode() === 'daily' ? 'Daily rent' : 'For sale' });
     for (const tag of this.deviceTags()) chips.push({ id: `tag:${tag}`, label: tag });
     for (const word of this.queryExclusions()) chips.push({ id: `query-exclude:${word}`, label: `Without ${word}` });
     for (const word of this.excludedWords()) chips.push({ id: `exclude:${word}`, label: `Hide ${word}` });
@@ -280,7 +305,7 @@ export class SearchComponent implements OnDestroy {
 
     const intent = parseSearchIntent(query);
     if (this.newSearchPending()) this.applyIntentFilters(intent, true, true);
-    if (this.yearRangeInvalid() || this.mileageRangeInvalid() || this.powerRangeInvalid() || this.generationRangeInvalid() || this.storageRangeInvalid() || this.ramRangeInvalid() || this.roomsRangeInvalid() || this.areaRangeInvalid() || this.screenRangeInvalid() || this.priceRangeInvalid()) return;
+    if (this.yearRangeInvalid() || this.mileageRangeInvalid() || this.powerRangeInvalid() || this.generationRangeInvalid() || this.storageRangeInvalid() || this.ramRangeInvalid() || this.roomsRangeInvalid() || this.areaRangeInvalid() || this.floorRangeInvalid() || this.screenRangeInvalid() || this.priceRangeInvalid()) return;
     this.recentSearches.add(query);
 
     this.controller?.abort();
@@ -378,6 +403,7 @@ export class SearchComponent implements OnDestroy {
     this.roomsTo.set(intent.rooms.to);
     this.areaFrom.set(intent.area.from);
     this.areaTo.set(intent.area.to);
+    this.propertySector.set(intent.propertySector ?? '');
     this.screenFrom.set(intent.screen.from);
     this.screenTo.set(intent.screen.to);
     this.mileageFrom.set(intent.mileage.from);
@@ -391,7 +417,7 @@ export class SearchComponent implements OnDestroy {
     this.registration.set(intent.registration);
     this.deviceTags.set(intent.tags);
     this.condition.set(intent.condition);
-    this.listingMode.set(intent.listingMode);
+    this.setPropertyListingMode(intent.listingMode);
     this.queryExclusions.set(intent.exclusions);
     if (resetPrice) {
       this.priceMin.set(intent.price.from);
@@ -439,6 +465,12 @@ export class SearchComponent implements OnDestroy {
     else if (id === 'ram') { this.ramFrom.set(null); this.ramTo.set(null); }
     else if (id === 'rooms') { this.roomsFrom.set(null); this.roomsTo.set(null); }
     else if (id === 'area') { this.areaFrom.set(null); this.areaTo.set(null); }
+    else if (id === 'floor') { this.floorFrom.set(null); this.floorTo.set(null); }
+    else if (id === 'property-sector') this.propertySector.set('');
+    else if (id === 'property-state') this.propertyState.set(null);
+    else if (id === 'housing-stock') this.housingStock.set(null);
+    else if (id === 'listing-author') this.listingAuthor.set(null);
+    else if (id === 'building-type') this.buildingType.set(null);
     else if (id === 'screen') { this.screenFrom.set(null); this.screenTo.set(null); }
     else if (id === 'price') { this.priceMin.set(null); this.priceMax.set(null); }
     else if (id === 'fuel') this.fuel.set(null);
@@ -544,6 +576,15 @@ export class SearchComponent implements OnDestroy {
     if (this.priceMin() !== null && this.priceMin()! > value) this.priceMin.set(null);
   }
 
+  setPropertyListingMode(mode: PropertyListingMode | null): void {
+    if (this.listingMode() === mode) return;
+    this.listingMode.set(mode);
+    // Sale and rental budgets are not comparable; never carry a stale price
+    // range across offer types.
+    this.priceMin.set(null);
+    this.priceMax.set(null);
+  }
+
   resetFilters(clearSavedWords = true): void {
     this.order.set('relevance');
     this.smartCleanup.set(true);
@@ -575,6 +616,13 @@ export class SearchComponent implements OnDestroy {
     this.roomsTo.set(null);
     this.areaFrom.set(null);
     this.areaTo.set(null);
+    this.floorFrom.set(null);
+    this.floorTo.set(null);
+    this.propertySector.set('');
+    this.propertyState.set(null);
+    this.housingStock.set(null);
+    this.listingAuthor.set(null);
+    this.buildingType.set(null);
     this.screenFrom.set(null);
     this.screenTo.set(null);
     this.deviceTags.set([]);
@@ -643,6 +691,8 @@ export class SearchComponent implements OnDestroy {
     if (intent.kind !== 'laptop' && intent.kind !== 'phone') { this.ramFrom.set(null); this.ramTo.set(null); }
     if (intent.kind !== 'realEstate') {
       this.roomsFrom.set(null); this.roomsTo.set(null); this.areaFrom.set(null); this.areaTo.set(null);
+      this.floorFrom.set(null); this.floorTo.set(null); this.propertySector.set(''); this.propertyState.set(null);
+      this.housingStock.set(null); this.listingAuthor.set(null); this.buildingType.set(null);
       this.listingMode.set(null);
     }
     if (!['laptop', 'phone', 'tv'].includes(intent.kind)) { this.screenFrom.set(null); this.screenTo.set(null); }
@@ -701,6 +751,13 @@ export class SearchComponent implements OnDestroy {
     this.roomsTo.set(state.roomsTo);
     this.areaFrom.set(state.areaFrom);
     this.areaTo.set(state.areaTo);
+    this.floorFrom.set(state.floorFrom);
+    this.floorTo.set(state.floorTo);
+    this.propertySector.set(state.propertySector);
+    this.propertyState.set(state.propertyState);
+    this.housingStock.set(state.housingStock);
+    this.listingAuthor.set(state.listingAuthor);
+    this.buildingType.set(state.buildingType);
     this.screenFrom.set(state.screenFrom);
     this.screenTo.set(state.screenTo);
     this.mileageFrom.set(state.mileageFrom);
@@ -736,7 +793,9 @@ export class SearchComponent implements OnDestroy {
       priceCurrency: this.priceCurrency(), fuel: this.fuel(), transmission: this.transmission(),
       generationFrom: this.generationFrom(), generationTo: this.generationTo(), storageFrom: this.storageFrom(),
       storageTo: this.storageTo(), ramFrom: this.ramFrom(), ramTo: this.ramTo(), roomsFrom: this.roomsFrom(), roomsTo: this.roomsTo(),
-      areaFrom: this.areaFrom(), areaTo: this.areaTo(), screenFrom: this.screenFrom(), screenTo: this.screenTo(),
+      areaFrom: this.areaFrom(), areaTo: this.areaTo(), floorFrom: this.floorFrom(), floorTo: this.floorTo(),
+      propertySector: this.propertySector(), propertyState: this.propertyState(), housingStock: this.housingStock(),
+      listingAuthor: this.listingAuthor(), buildingType: this.buildingType(), screenFrom: this.screenFrom(), screenTo: this.screenTo(),
       mileageFrom: this.mileageFrom(), mileageTo: this.mileageTo(), powerFrom: this.powerFrom(), powerTo: this.powerTo(),
       drivetrain: this.drivetrain(), bodyType: this.bodyType(), registration: this.registration(),
       deviceTags: this.deviceTags(), condition: this.condition(), listingMode: this.listingMode(), products: this.rawProducts(),
@@ -752,7 +811,9 @@ export class SearchComponent implements OnDestroy {
     const signatures = new Set<string>();
     const vehiclePriceFloor = this.smartCleanup() && this.activeVehicleSearch() ? inferredVehiclePriceFloor(source, this.currency) : 0;
     const devicePriceFloor = this.smartCleanup() && isDeviceIntent(intent) ? inferredDevicePriceFloor(source, this.currency) : 0;
-    const categoryPriceFloor = this.smartCleanup() && isStructuredIntent(intent) ? inferredCategoryPriceFloor(source, this.currency, intent) : 0;
+    // Property sale, monthly-rent and daily-rent prices legitimately occupy
+    // very different ranges. A shared inferred floor would hide valid rentals.
+    const categoryPriceFloor = this.smartCleanup() && isStructuredIntent(intent) && intent.kind !== 'realEstate' ? inferredCategoryPriceFloor(source, this.currency, intent) : 0;
     const products = source.filter((product) => {
       const titleWords = tokens(product.title);
       const signature = `${titleWords.join(' ')}|${product.price ?? ''}|${product.currency}`;
@@ -773,8 +834,13 @@ export class SearchComponent implements OnDestroy {
       if (isDeviceIntent(intent) && !matchesDeviceFilters(product, intent, this.generationFrom(), this.generationTo(), this.storageFrom(), this.storageTo(), this.deviceTags())) return false;
       if (isStorageIntent(intent) && !inRange(storageValue(product), this.storageFrom(), this.storageTo())) return false;
       if ((intent.kind === 'laptop' || intent.kind === 'phone') && !inRange(ramValue(product), this.ramFrom(), this.ramTo())) return false;
-      if (intent.kind === 'realEstate' && (!inRange(roomsValue(product), this.roomsFrom(), this.roomsTo()) || !inRange(areaValue(product), this.areaFrom(), this.areaTo()))) return false;
+      if (intent.kind === 'realEstate' && (!inRange(roomsValue(product), this.roomsFrom(), this.roomsTo()) || !inRange(areaValue(product), this.areaFrom(), this.areaTo()) || !inRange(floorValue(product), this.floorFrom(), this.floorTo()))) return false;
       if (intent.kind === 'realEstate' && !offerTypeMatches(product.offerType, this.listingMode())) return false;
+      if (intent.kind === 'realEstate' && this.propertySector().trim() && !facetMatches(product.sector, this.propertySector())) return false;
+      if (intent.kind === 'realEstate' && this.propertyState() && !facetMatches(product.propertyState, this.propertyState()!)) return false;
+      if (intent.kind === 'realEstate' && this.housingStock() && !facetMatches(product.housingStock, this.housingStock()!)) return false;
+      if (intent.kind === 'realEstate' && this.listingAuthor() && !facetMatches(product.listingAuthor, this.listingAuthor()!)) return false;
+      if (intent.kind === 'realEstate' && this.buildingType() && !facetMatches(product.buildingType, this.buildingType()!)) return false;
       if ((intent.kind === 'laptop' || intent.kind === 'phone' || intent.kind === 'tv') && !inRange(screenValue(product), this.screenFrom(), this.screenTo())) return false;
       if (this.condition() && !conditionMatches(product.condition, this.condition()!)) return false;
       if (this.excludeNegotiable() && product.price == null) return false;
@@ -881,6 +947,11 @@ function areaValue(product: Product): number | null {
   const match = value.match(/(\d{1,4})\s*(?:m2|m²|mp|кв)/u) ?? (product.area ? value.match(/\d{1,4}/) : null);
   return match ? Number(match[1] ?? match[0]) : null;
 }
+function floorValue(product: Product): number | null {
+  const value = fold(`${product.floor ?? ''}`);
+  const match = value.match(/-?\d{1,2}/);
+  return match ? Number(match[0]) : null;
+}
 function screenValue(product: Product): number | null {
   const value = fold(`${product.screen ?? ''} ${product.title}`);
   const match = value.match(/(\d{1,3}(?:[.,]\d)?)\s*(?:inch|toli|дюйм|")/u) ?? (product.screen ? value.match(/\d{1,3}(?:[.,]\d)?/) : null);
@@ -890,13 +961,31 @@ function conditionMatches(value: string | undefined, condition: 'new' | 'used'):
   const normalized = fold(value ?? '');
   return condition === 'new' ? normalized.includes('nou') : normalized.includes('uzat') || normalized.includes('rulaj');
 }
-function offerTypeMatches(value: string | undefined, mode: 'sale' | 'rent' | null): boolean {
+function offerTypeMatches(value: string | undefined, mode: PropertyListingMode | null): boolean {
   if (!mode) return true;
   const normalized = fold(value ?? '');
   if (!normalized) return false;
-  return mode === 'rent'
-    ? /(inchiri|chirie|rent|аренд|сда)/u.test(normalized)
-    : /(vand|vanzare|sale|прод|sell)/u.test(normalized);
+  if (mode === 'daily') return /(inchiriat pe zi|chirie pe zi|pe noapte|daily|short term|posut|сут)/u.test(normalized);
+  if (mode === 'monthly') return /(inchiriat lunar|chirie lunara|monthly|long term|аренд|сда)/u.test(normalized) && !/(pe zi|daily|short term|posut|сут)/u.test(normalized);
+  return /(vand|vanzare|sale|прод|sell)/u.test(normalized);
+}
+function facetMatches(value: string | undefined, expected: string): boolean {
+  const actual = fold(value ?? '').trim();
+  const choice = fold(expected).trim();
+  return Boolean(actual && choice && (actual.includes(choice) || choice.includes(actual)));
+}
+function facetValues(
+  products: readonly Product[],
+  picker: (product: Product) => string | undefined,
+  defaults: readonly string[] = [],
+): string[] {
+  const values = new Map<string, string>();
+  for (const value of defaults) values.set(fold(value), value);
+  for (const product of products) {
+    const value = picker(product)?.trim();
+    if (value) values.set(fold(value), value);
+  }
+  return [...values.values()].sort((a, b) => a.localeCompare(b, 'ro'));
 }
 function registrationMatches(value: string | undefined, registration: 'moldova' | 'other'): boolean {
   const normalized = fold(value ?? '');
@@ -914,7 +1003,7 @@ function requiredQueryWords(value: string, intent: SearchIntent): string[] {
     phone: ['telefon', 'smartphone', 'телефон', 'смартфон'], tv: ['tv', 'televizor', 'televizoare', 'television', 'телевизор'],
     realEstate: ['apartament', 'apartamente', 'apartment', 'casa', 'house', 'teren', 'land', 'квартира', 'дом', 'участок'],
   };
-  const ignored = new Set(['gb', 'tb', ...(ignoredByKind[intent.kind] ?? []), ...intent.tags]);
+  const ignored = new Set(['gb', 'tb', ...(ignoredByKind[intent.kind] ?? []), ...intent.tags, ...tokens(intent.propertySector ?? '')]);
   return tokens(value).filter((word) => !ignored.has(word) && !/^ps[1-5]$/.test(word) && (!isDeviceIntent(intent) || !/^\d{1,4}$/.test(word)));
 }
 function rangeSummary(label: string, from: number | null, to: number | null): string {
@@ -929,12 +1018,18 @@ function relevance(product: Product, queryWords: string[]): number {
   return exact + (containsAll(title, queryWords) ? 40 : 0) + (product.make && product.model ? 20 : 0) + (product.isBoosted ? 0 : 5);
 }
 function defaultPriceCurrency(intent: SearchIntent): number { return intent.kind === 'vehicle' || intent.kind === 'realEstate' ? 1 : 0; }
-function priceCap(intent: SearchIntent, currency: number | null): number {
+function priceCap(intent: SearchIntent, currency: number | null, listingMode: PropertyListingMode | null): number {
+  if (intent.kind === 'realEstate' && (listingMode === 'monthly' || listingMode === 'daily')) {
+    if (currency === 0) return listingMode === 'daily' ? 20_000 : 100_000;
+    return listingMode === 'daily' ? 1_000 : 5_000;
+  }
   if (currency === 0) return intent.kind === 'vehicle' || intent.kind === 'realEstate' ? 10_000_000 : isTechIntent(intent) ? 100_000 : 500_000;
   if (currency === 1 || currency === 2) return intent.kind === 'realEstate' ? 500_000 : intent.kind === 'vehicle' ? 50_000 : isTechIntent(intent) ? 5_000 : 10_000;
   return intent.kind === 'realEstate' ? 500_000 : intent.kind === 'vehicle' ? 50_000 : 100_000;
 }
-function budgetPresets(intent: SearchIntent, currency: number | null): number[] {
+function budgetPresets(intent: SearchIntent, currency: number | null, listingMode: PropertyListingMode | null): number[] {
+  if (intent.kind === 'realEstate' && listingMode === 'monthly') return currency === 0 ? [5_000, 10_000, 20_000] : [300, 500, 1_000];
+  if (intent.kind === 'realEstate' && listingMode === 'daily') return currency === 0 ? [1_000, 2_000, 5_000] : [50, 100, 250];
   if (currency === 0) return intent.kind === 'realEstate' ? [1_000_000, 5_000_000, 10_000_000] : intent.kind === 'vehicle' ? [100_000, 500_000, 1_000_000] : isTechIntent(intent) ? [25_000, 50_000, 100_000] : [50_000, 100_000, 500_000];
   if (intent.kind === 'realEstate') return [50_000, 100_000, 250_000];
   return isTechIntent(intent) ? [1_000, 2_500, 5_000] : [5_000, 10_000, 50_000];

@@ -2,7 +2,7 @@
   <form class="search-form ui-surface" (submit)="search($event)">
     <label class="sr-only" for="search-query">Search 999.md</label>
     <input id="search-query" autofocus autocomplete="off" enterkeyhint="search" role="combobox" aria-autocomplete="list" aria-controls="search-suggestions" [attr.aria-expanded]="showSearchSuggestions()" [attr.aria-activedescendant]="activeSuggestionId()" placeholder="Try ‘Corolla automatic under 10k EUR -piese’" [value]="query()" (focus)="openSearchSuggestions()" (blur)="closeSearchSuggestions()" (input)="updateQuery($any($event.target).value)" (keydown)="handleSearchKeys($event)">
-    <button class="ui-button ui-button-primary" type="submit" [disabled]="!query().trim() || loading() || (!newSearchPending() && (yearRangeInvalid() || mileageRangeInvalid() || powerRangeInvalid() || generationRangeInvalid() || storageRangeInvalid() || ramRangeInvalid() || roomsRangeInvalid() || areaRangeInvalid() || screenRangeInvalid() || priceRangeInvalid()))">{{ newSearchPending() ? 'Update' : 'Search' }}</button>
+    <button class="ui-button ui-button-primary" type="submit" [disabled]="!query().trim() || loading() || (!newSearchPending() && (yearRangeInvalid() || mileageRangeInvalid() || powerRangeInvalid() || generationRangeInvalid() || storageRangeInvalid() || ramRangeInvalid() || roomsRangeInvalid() || areaRangeInvalid() || floorRangeInvalid() || screenRangeInvalid() || priceRangeInvalid()))">{{ newSearchPending() ? 'Update' : 'Search' }}</button>
     @if (showSearchSuggestions()) {
       <ul id="search-suggestions" class="search-suggestions" role="listbox" aria-label="Search suggestions">
         @for (suggestion of searchSuggestions(); track suggestion.value; let index = $index) {
@@ -124,26 +124,42 @@
         @if (ramRangeInvalid() || storageRangeInvalid() || screenRangeInvalid()) { <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">The lower value must come before the upper value.</p> }
       } @else if (isPropertySearch()) {
         <div class="smart-choice">
-          <span>Listing type</span>
+          <span>Offer</span>
           <div class="choice-chips">
-            <button type="button" [class.active]="listingMode() === null" (click)="listingMode.set(null)">Any</button>
-            <button type="button" [class.active]="listingMode() === 'sale'" (click)="listingMode.set('sale')">For sale</button>
-            <button type="button" [class.active]="listingMode() === 'rent'" (click)="listingMode.set('rent')">For rent</button>
+            <button type="button" [class.active]="listingMode() === null" (click)="setPropertyListingMode(null)">Any</button>
+            <button type="button" [class.active]="listingMode() === 'sale'" (click)="setPropertyListingMode('sale')">For sale</button>
+            <button type="button" [class.active]="listingMode() === 'monthly'" (click)="setPropertyListingMode('monthly')">Monthly rent</button>
+            <button type="button" [class.active]="listingMode() === 'daily'" (click)="setPropertyListingMode('daily')">Daily rent</button>
           </div>
         </div>
-        <div class="smart-fields device-ranges">
-          <div class="compact-range">
-            <label>Rooms from <input type="number" inputmode="numeric" min="1" max="30" placeholder="Any" [value]="roomsFrom() ?? ''" (input)="setRooms('from', $event)"></label>
-            <span>–</span>
-            <label>To <input type="number" inputmode="numeric" min="1" max="30" placeholder="Any" [value]="roomsTo() ?? ''" (input)="setRooms('to', $event)"></label>
-          </div>
-          <div class="compact-range">
-            <label>Area from <input type="number" inputmode="numeric" min="1" max="100000" placeholder="Any" [value]="areaFrom() ?? ''" (input)="setArea('from', $event)"></label>
-            <span>–</span>
-            <label>To <input type="number" inputmode="numeric" min="1" max="100000" placeholder="Any" [value]="areaTo() ?? ''" (input)="setArea('to', $event)"></label>
+        <label class="property-sector">Sector
+          <input type="search" list="property-sector-options" autocomplete="off" placeholder="Botanica, Buiucani…" [value]="propertySector()" (input)="propertySector.set($any($event.target).value)">
+          <datalist id="property-sector-options">@for (sector of propertySectorOptions(); track sector) { <option [value]="sector"></option> }</datalist>
+        </label>
+        <div class="property-ranges">
+          <app-range-filter label="Rooms" [min]="1" [max]="20" [from]="roomsFrom()" [to]="roomsTo()" [presets]="roomPresets" (fromChange)="roomsFrom.set($event)" (toChange)="roomsTo.set($event)" />
+          <app-range-filter label="Area" unit="m²" [min]="1" [max]="1000" [step]="5" [from]="areaFrom()" [to]="areaTo()" [presets]="areaPresets" (fromChange)="areaFrom.set($event)" (toChange)="areaTo.set($event)" />
+          <app-range-filter label="Floor" [min]="0" [max]="50" [from]="floorFrom()" [to]="floorTo()" [presets]="floorPresets" (fromChange)="floorFrom.set($event)" (toChange)="floorTo.set($event)" />
+        </div>
+        <div class="smart-choice">
+          <span>Housing stock</span>
+          <div class="choice-chips">
+            <button type="button" [class.active]="housingStock() === null" (click)="housingStock.set(null)">Any</button>
+            @for (option of housingStockOptions; track option) { <button type="button" [class.active]="housingStock() === option" (click)="housingStock.set(option)">{{ option }}</button> }
           </div>
         </div>
-        @if (roomsRangeInvalid() || areaRangeInvalid()) { <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">The lower value must come before the upper value.</p> }
+        <div class="smart-choice">
+          <span>Listed by</span>
+          <div class="choice-chips">
+            <button type="button" [class.active]="listingAuthor() === null" (click)="listingAuthor.set(null)">Any</button>
+            @for (option of listingAuthorOptions; track option) { <button type="button" [class.active]="listingAuthor() === option" (click)="listingAuthor.set(option)">{{ option }}</button> }
+          </div>
+        </div>
+        <div class="property-selects smart-fields">
+          <label>Condition<select [value]="propertyState() ?? ''" (change)="propertyState.set($any($event.target).value || null)"><option value="">Any</option>@for (option of propertyStateOptions(); track option) { <option [value]="option">{{ option }}</option> }</select></label>
+          <label>Building type<select [value]="buildingType() ?? ''" (change)="buildingType.set($any($event.target).value || null)"><option value="">Any</option>@for (option of buildingTypeOptions(); track option) { <option [value]="option">{{ option }}</option> }</select></label>
+        </div>
+        @if (roomsRangeInvalid() || areaRangeInvalid() || floorRangeInvalid()) { <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">The lower value must come before the upper value.</p> }
       } @else if (isTVSearch()) {
         <div class="smart-fields">
           <label>Screen from <input type="number" inputmode="decimal" min="10" max="150" step="0.1" placeholder="Any" [value]="screenFrom() ?? ''" (input)="setScreen('from', $event)"></label>

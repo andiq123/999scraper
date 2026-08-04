@@ -37,6 +37,9 @@ export interface Product {
   os?: string;
   rooms?: string;
   area?: string;
+  sector?: string;
+  housingStock?: string;
+  listingAuthor?: string;
   floor?: string;
   propertyState?: string;
   buildingType?: string;

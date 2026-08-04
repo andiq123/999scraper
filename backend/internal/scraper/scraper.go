@@ -62,6 +62,9 @@ const searchQuery = `query SearchAds($input: Ads_SearchInput!) {
       tvPlatform: feature(id: 1807) { value }
       rooms: feature(id: 241) { value }
       area: feature(id: 244) { value }
+      sector: feature(id: 9) { value }
+      housingStock: feature(id: 852) { value }
+      listingAuthor: feature(id: 795) { value }
       floor: feature(id: 248) { value }
       propertyState: feature(id: 253) { value }
       buildingType: feature(id: 247) { value }
@@ -163,6 +166,9 @@ type advert struct {
 	TVPlatform       rawFeature    `json:"tvPlatform"`
 	Rooms            rawFeature    `json:"rooms"`
 	Area             rawFeature    `json:"area"`
+	Sector           rawFeature    `json:"sector"`
+	HousingStock     rawFeature    `json:"housingStock"`
+	ListingAuthor    rawFeature    `json:"listingAuthor"`
 	Floor            rawFeature    `json:"floor"`
 	PropertyState    rawFeature    `json:"propertyState"`
 	BuildingType     rawFeature    `json:"buildingType"`
@@ -521,6 +527,9 @@ func (s *Scraper) product(ad advert) model.Product {
 		OS:            os,
 		Rooms:         featureText(ad.Rooms.Value),
 		Area:          featureText(ad.Area.Value),
+		Sector:        featureText(ad.Sector.Value),
+		HousingStock:  featureText(ad.HousingStock.Value),
+		ListingAuthor: featureText(ad.ListingAuthor.Value),
 		Floor:         featureText(ad.Floor.Value),
 		PropertyState: featureText(ad.PropertyState.Value),
 		BuildingType:  featureText(ad.BuildingType.Value),

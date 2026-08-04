@@ -21,7 +21,7 @@ export class ProductCardComponent {
   readonly metadata = computed(() => {
     const product = this.product();
     const vehicle = [product.mileage && `${product.mileage.toLocaleString('ro-MD')} km`, product.fuel, product.transmission, product.drivetrain, product.bodyType, product.power && `${product.power} hp`];
-    const property = [product.offerType, product.rooms, product.area && (/^\d+(?:[.,]\d+)?$/.test(product.area) ? `${product.area} m²` : product.area), product.floor && `Floor ${product.floor}`];
+    const property = [product.sector, product.offerType, product.rooms, product.area && (/^\d+(?:[.,]\d+)?$/.test(product.area) ? `${product.area} m²` : product.area), product.floor && `Floor ${product.floor}`];
     const technology = [product.ram && `${product.ram} RAM`, product.storage, product.processor, product.screen, product.resolution];
     return [...vehicle, ...property, ...technology, product.condition]
       .filter((value): value is string => Boolean(value)).slice(0, 3);
