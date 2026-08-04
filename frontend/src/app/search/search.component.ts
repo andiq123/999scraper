@@ -122,8 +122,6 @@ export class SearchComponent implements OnDestroy {
   readonly listingAuthorOptions = listingAuthorOptions;
   readonly marketCategories = marketCategories;
   readonly searchSuggestions = computed(() => suggestionsFor(this.query(), this.recentSearches.items()));
-  readonly showSearchSuggestions = computed(() => this.suggestionsOpen() && this.query().trim().length > 0 && this.searchSuggestions().length > 0);
-  readonly activeSuggestionId = computed(() => this.activeSuggestionIndex() >= 0 ? `search-suggestion-${this.activeSuggestionIndex()}` : null);
   readonly deviceTagOptions = computed(() => this.searchIntent().kind === 'iphone' ? ['pro', 'max', 'plus', 'mini'] : ['slim', 'pro', 'digital', 'disc']);
 
   readonly rawProducts = signal<Product[]>([]);
@@ -137,6 +135,8 @@ export class SearchComponent implements OnDestroy {
   readonly progress = computed(() => this.totalPages() ? Math.round(this.loadedPages() / this.totalPages() * 100) : 0);
   readonly searchIntent = computed(() => parseSearchIntent(this.query()));
   readonly newSearchPending = computed(() => this.searched() && searchKey(this.searchIntent().sourceQuery) !== searchKey(this.activeQuery()));
+  readonly showSearchSuggestions = computed(() => this.suggestionsOpen() && (!this.searched() || this.newSearchPending()) && this.query().trim().length > 0 && this.searchSuggestions().length > 0);
+  readonly activeSuggestionId = computed(() => this.showSearchSuggestions() && this.activeSuggestionIndex() >= 0 ? `search-suggestion-${this.activeSuggestionIndex()}` : null);
   readonly filterIntent = computed(() => this.newSearchPending() ? this.activeIntent() : this.searchIntent());
   readonly isVehicleSearch = computed(() => this.filterIntent().kind === 'vehicle');
   readonly isDeviceSearch = computed(() => this.filterIntent().kind === 'iphone' || this.filterIntent().kind === 'playstation');
@@ -146,9 +146,9 @@ export class SearchComponent implements OnDestroy {
   readonly hasSmartPrompt = computed(() => this.searchIntent().kind !== 'generic' && !this.newSearchPending());
   readonly activeVehicleSearch = computed(() => this.activeIntent().kind === 'vehicle');
   readonly smartTitle = computed(() => ({
-    vehicle: 'Vehicle details detected', iphone: 'iPhone search detected', phone: 'Phone search detected',
-    playstation: 'PlayStation search detected', laptop: 'Laptop search detected', tv: 'TV search detected',
-    realEstate: 'Property search detected', generic: 'Smart search',
+    vehicle: 'Smart vehicle filters', iphone: 'Smart iPhone filters', phone: 'Smart phone filters',
+    playstation: 'Smart PlayStation filters', laptop: 'Smart laptop filters', tv: 'Smart TV filters',
+    realEstate: 'Smart property filters', generic: 'Smart filters',
   })[this.searchIntent().kind]);
   readonly smartSummary = computed(() => {
     const intent = this.searchIntent();
@@ -259,7 +259,13 @@ export class SearchComponent implements OnDestroy {
     for (const word of this.queryExclusions()) chips.push({ id: `query-exclude:${word}`, label: `Without ${word}` });
     const queryExcluded = new Set(this.queryExclusions().map(fold));
     for (const word of this.excludedWords()) if (!queryExcluded.has(fold(word))) chips.push({ id: `exclude:${word}`, label: `Hide ${word}` });
-    return chips;
+    const labels = new Set<string>();
+    return chips.filter((chip) => {
+      const label = fold(chip.label);
+      if (labels.has(label)) return false;
+      labels.add(label);
+      return true;
+    });
   });
   readonly suggestedExclusions = computed(() => {
     const queryWords = new Set(tokens(this.activeQuery()));
@@ -311,11 +317,18 @@ export class SearchComponent implements OnDestroy {
   @HostListener('window:pagehide')
   cacheBeforePageExit(): void { this.searchState.save(this.snapshot(window.scrollY), true); }
 
+  @HostListener('window:scroll')
+  closeSuggestionsOnScroll(): void {
+    if (this.suggestionsOpen()) this.closeSearchSuggestions();
+  }
+
   async search(event?: SubmitEvent): Promise<void> {
     event?.preventDefault();
+    this.closeSearchSuggestions();
+    this.searchInput()?.nativeElement.blur();
     const typedQuery = this.query().trim();
     const query = completeSearchInput(typedQuery).trim();
-    if (!query || this.loading()) return;
+    if (!query || (this.loading() && !this.newSearchPending())) return;
     if (query !== typedQuery) {
       this.updateQuery(query);
       this.searchAssist.set(`Completed “${typedQuery}” to “${query}”`);
@@ -346,12 +359,16 @@ export class SearchComponent implements OnDestroy {
     } catch (error) {
       if (!controller.signal.aborted) this.toast.error(error instanceof Error ? error.message : 'Search failed.');
     } finally {
-      if (this.controller === controller) this.loading.set(false);
+      if (this.controller === controller) {
+        this.controller = undefined;
+        this.loading.set(false);
+      }
     }
   }
 
   cancel(): void {
     this.controller?.abort();
+    this.controller = undefined;
     this.loading.set(false);
   }
 
@@ -372,13 +389,9 @@ export class SearchComponent implements OnDestroy {
     const hasParsedPrice = intent.price.from !== null || intent.price.to !== null;
     if (value.trim()) this.draftKind = intent.kind;
     this.draftHadPrice = hasParsedPrice;
-    if (this.newSearchPending()) {
-      if (this.loading()) {
-        this.controller?.abort();
-        this.loading.set(false);
-      }
-      return;
-    }
+    // Keep the submitted search streaming while a different query is only a
+    // draft. Replace it after the user explicitly submits the draft.
+    if (this.newSearchPending()) return;
     this.applyIntentFilters(intent, kindChanged, kindChanged || hadParsedPrice || hasParsedPrice);
   }
 
@@ -507,7 +520,7 @@ export class SearchComponent implements OnDestroy {
     else if (id === 'body-type') this.bodyType.set(null);
     else if (id === 'registration') this.registration.set(null);
     else if (id === 'condition') this.condition.set(null);
-    else if (id === 'listing-mode') this.listingMode.set(null);
+    else if (id === 'listing-mode') this.setPropertyListingMode(null);
     else if (id.startsWith('tag:')) this.toggleDeviceTag(id.slice(4));
     else if (id.startsWith('query-exclude:')) this.queryExclusions.update((words) => words.filter((word) => word !== id.slice(14)));
     else if (id.startsWith('exclude:')) this.removeExcludedWord(id.slice(8));

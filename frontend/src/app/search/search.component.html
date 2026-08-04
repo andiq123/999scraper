@@ -2,7 +2,7 @@
   <form class="search-form ui-surface" (submit)="search($event)">
     <label class="sr-only" for="search-query">Search 999.md</label>
     <input #searchInput id="search-query" autofocus autocomplete="off" enterkeyhint="search" role="combobox" aria-autocomplete="list" aria-controls="search-suggestions" [attr.aria-expanded]="showSearchSuggestions()" [attr.aria-activedescendant]="activeSuggestionId()" placeholder="Try ‘Corolla automatic under 10k EUR -piese’" [value]="query()" (focus)="openSearchSuggestions()" (blur)="closeSearchSuggestions()" (input)="updateQuery($any($event.target).value)" (keydown)="handleSearchKeys($event)">
-    <button class="ui-button ui-button-primary" type="submit" [disabled]="!query().trim() || loading() || (!newSearchPending() && (yearRangeInvalid() || mileageRangeInvalid() || powerRangeInvalid() || generationRangeInvalid() || storageRangeInvalid() || ramRangeInvalid() || roomsRangeInvalid() || areaRangeInvalid() || floorRangeInvalid() || screenRangeInvalid() || priceRangeInvalid()))">{{ newSearchPending() ? 'Update' : 'Search' }}</button>
+    <button class="ui-button ui-button-primary" type="submit" [disabled]="!query().trim() || (loading() && !newSearchPending()) || (!newSearchPending() && (yearRangeInvalid() || mileageRangeInvalid() || powerRangeInvalid() || generationRangeInvalid() || storageRangeInvalid() || ramRangeInvalid() || roomsRangeInvalid() || areaRangeInvalid() || floorRangeInvalid() || screenRangeInvalid() || priceRangeInvalid()))">{{ newSearchPending() ? 'Update' : 'Search' }}</button>
     @if (showSearchSuggestions()) {
       <ul id="search-suggestions" class="search-suggestions" role="listbox" aria-label="Search suggestions">
         @for (suggestion of searchSuggestions(); track suggestion.value; let index = $index) {
@@ -36,7 +36,7 @@
       <summary>
         <span class="smart-icon" aria-hidden="true">✦</span>
         <span class="smart-copy"><strong>{{ smartTitle() }}</strong><small>{{ smartSummary() }}</small></span>
-        <span class="refine-label">Refine</span>
+        <span class="refine-label">Smart filters</span>
       </summary>
 
       <div class="smart-controls">
@@ -187,7 +187,7 @@
 
   <div class="workspace">
     <details class="filters ui-surface" [open]="uiPreferences.isOpen('filters')" (toggle)="rememberPanel('filters', $event)">
-      <summary><span>Filters</span><small>Optional</small></summary>
+      <summary><span class="filters-title"><i aria-hidden="true"></i>More filters</span><small>{{ activeFilterChips().length ? activeFilterChips().length + ' active' : 'Price · cleanup · words' }}</small></summary>
       <label>Order
         <select [value]="order()" (change)="order.set($any($event.target).value)">
           <option value="relevance">Best match</option>
