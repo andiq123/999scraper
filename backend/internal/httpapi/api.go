@@ -43,7 +43,6 @@ func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, r
 	mux.HandleFunc("GET /api/health", api.health)
 	mux.HandleFunc("POST /api/account/login", api.login)
 	mux.HandleFunc("POST /api/account/register", api.register)
-	mux.HandleFunc("POST /api/account/logout", api.logout)
 	mux.HandleFunc("GET /api/rates", api.exchangeRates)
 	mux.Handle("GET /api/account/current", a.OptionalMiddleware(http.HandlerFunc(api.currentAccount)))
 	mux.Handle("POST /api/products/stream", a.OptionalMiddleware(http.HandlerFunc(api.productsStream)))
@@ -130,9 +129,8 @@ func (a *API) login(w http.ResponseWriter, r *http.Request) {
 		a.internal(w, err)
 		return
 	}
-	a.auth.SetSession(w, token)
 	a.logins.reset(client)
-	writeJSON(w, http.StatusOK, model.Session{ID: account.ID})
+	writeJSON(w, http.StatusOK, model.Session{ID: account.ID, Token: token})
 }
 
 func (a *API) register(w http.ResponseWriter, r *http.Request) {
@@ -164,7 +162,6 @@ func (a *API) currentAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	account, err := a.store.AccountByID(r.Context(), claims.Subject)
 	if errors.Is(err, store.ErrNotFound) {
-		a.auth.ClearSession(w)
 		writeJSON(w, http.StatusOK, nil)
 		return
 	}
@@ -172,18 +169,7 @@ func (a *API) currentAccount(w http.ResponseWriter, r *http.Request) {
 		a.internal(w, err)
 		return
 	}
-	token, err := a.auth.Token(account.ID)
-	if err != nil {
-		a.internal(w, err)
-		return
-	}
-	a.auth.SetSession(w, token)
 	writeJSON(w, http.StatusOK, model.Session{ID: account.ID})
-}
-
-func (a *API) logout(w http.ResponseWriter, _ *http.Request) {
-	a.auth.ClearSession(w)
-	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *API) history(w http.ResponseWriter, r *http.Request) {
@@ -523,9 +509,8 @@ func (a *API) cors(next http.Handler) http.Handler {
 				return
 			}
 			w.Header().Set("Access-Control-Allow-Origin", origin)
-			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.Header().Add("Vary", "Origin")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Max-Age", "600")
 		}

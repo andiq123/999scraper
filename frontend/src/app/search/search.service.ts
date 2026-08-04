@@ -16,13 +16,11 @@ export class SearchService {
 	private readonly auth = inject(AuthService);
 
   async stream(query: string, signal: AbortSignal, emit: (event: SearchEvent) => void): Promise<void> {
-    const response = await fetch(environment.apiUrl + 'products/stream', {
+    const response = await fetch(environment.apiUrl + 'products/stream', this.auth.withSession({
       method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ productSearchCriteria: query }),
       signal,
-	});
+	}));
 	if (response.status === 401) this.auth.expire();
 	if (!response.ok) throw new Error(await this.errorMessage(response));
     if (!response.body) throw new Error('Streaming is unavailable in this browser.');

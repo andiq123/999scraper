@@ -20,7 +20,7 @@ func TestCORSAllowsOnlyConfiguredFrontend(t *testing.T) {
 	allowed.Header.Set("Origin", "https://market.example")
 	allowedResponse := httptest.NewRecorder()
 	handler.ServeHTTP(allowedResponse, allowed)
-	if allowedResponse.Code != http.StatusNoContent || allowedResponse.Header().Get("Access-Control-Allow-Origin") != "https://market.example" || allowedResponse.Header().Get("Access-Control-Allow-Credentials") != "true" {
+	if allowedResponse.Code != http.StatusNoContent || allowedResponse.Header().Get("Access-Control-Allow-Origin") != "https://market.example" || !strings.Contains(allowedResponse.Header().Get("Access-Control-Allow-Headers"), "Authorization") {
 		t.Fatalf("configured origin was not allowed: %#v", allowedResponse.Result().Header)
 	}
 

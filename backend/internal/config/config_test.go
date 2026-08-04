@@ -1,16 +1,11 @@
 package config
 
 import (
-	"net/http"
 	"net/url"
 	"testing"
 )
 
-func TestCrossOriginCookieConfiguration(t *testing.T) {
-	mode, err := sameSite("none")
-	if err != nil || mode != http.SameSiteNoneMode {
-		t.Fatalf("unexpected SameSite mode: %v %v", mode, err)
-	}
+func TestCrossOriginConfiguration(t *testing.T) {
 	values, err := origins("https://market.example, https://preview.example/,https://market.example")
 	if err != nil || len(values) != 2 || values[0] != "https://market.example" || values[1] != "https://preview.example" {
 		t.Fatalf("unexpected origins: %#v %v", values, err)
@@ -24,16 +19,12 @@ func TestAllowedOriginsUseFrontendURLAndOptionalExtras(t *testing.T) {
 	t.Setenv("PORT", "5103")
 	t.Setenv("FRONTEND_URL", "https://999scraper.vercel.app/")
 	t.Setenv("CORS_ALLOWED_ORIGINS", "https://preview.example,https://999scraper.vercel.app")
-	values, primary, err := loadAllowedOrigins()
+	values, err := loadAllowedOrigins()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if primary != "https://999scraper.vercel.app" || len(values) != 2 || values[0] != primary || values[1] != "https://preview.example" {
-		t.Fatalf("unexpected allowed origins: %q %#v", primary, values)
-	}
-	secure, mode := cookieDefaults(primary)
-	if secure != "true" || mode != "none" {
-		t.Fatalf("unexpected HTTPS cookie defaults: %s %s", secure, mode)
+	if len(values) != 2 || values[0] != "https://999scraper.vercel.app" || values[1] != "https://preview.example" {
+		t.Fatalf("unexpected allowed origins: %#v", values)
 	}
 }
 
@@ -41,7 +32,7 @@ func TestAllowedOriginsRequireFrontendURLWhenDeployed(t *testing.T) {
 	t.Setenv("PORT", "5103")
 	t.Setenv("FRONTEND_URL", "")
 	t.Setenv("CORS_ALLOWED_ORIGINS", "")
-	if _, _, err := loadAllowedOrigins(); err == nil {
+	if _, err := loadAllowedOrigins(); err == nil {
 		t.Fatal("expected a deployed app without FRONTEND_URL to fail")
 	}
 }

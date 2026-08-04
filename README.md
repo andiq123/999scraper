@@ -38,13 +38,13 @@ Configuration is split by ownership and both files are ignored by Git. Root `.en
 - Frontend: <http://localhost:4200>
 - Backend health: <http://localhost:8081/api/health>
 
-Search is public and needs no account. Log in only to save listings, sync excluded-word preferences, and retain search history. There are no usernames, passwords, roles, or admins: press **Register** once, save the generated six-digit code, then use it to log in. The code is shown once and only its keyed cryptographic fingerprint is stored. Login attempts are rate-limited, and a successful login creates an HttpOnly, SameSite session cookie; browser JavaScript never handles the JWT.
+Search is public and needs no account. Log in only to save listings, sync excluded-word preferences, and retain search history. There are no usernames, passwords, roles, or admins: press **Register** once, save the generated six-digit code, then use it to log in. The code is shown once and only its keyed cryptographic fingerprint is stored. Login attempts are rate-limited, and a successful login returns a signed JWT that the frontend keeps in local storage.
 
 Changes under `backend/cmd/` or `backend/internal/` rebuild and restart the backend through Air. Changes under `frontend/src/` refresh through the independent Angular development server.
 
 Press Ctrl+C to remove the project containers, network, database and dependency/build volumes, and locally built images. The Redis search cache is intentionally ephemeral. Docker Desktop itself stays open.
 
-For non-local use, inject production backend configuration through the deployment platform and set `COOKIE_SECURE=true` behind HTTPS.
+For non-local use, inject production backend configuration through the deployment platform. Login uses a bearer JWT stored by the frontend, so it works across the Vercel frontend and a separate HTTPS API origin without cookies.
 
 ## Why SSE
 
@@ -126,4 +126,4 @@ Expose the Raspberry Pi API through a public HTTPS hostname using a secure rever
 FRONTEND_URL=https://999scraper.vercel.app
 ```
 
-An HTTPS `FRONTEND_URL` automatically enables secure `SameSite=None` cookies so code login can cross from Vercel to a Cloudflare tunnel. `COOKIE_SECURE` and `COOKIE_SAME_SITE` remain optional explicit overrides. Use comma-separated exact origins in `CORS_ALLOWED_ORIGINS` only when a specific preview deployment also needs access. Wildcards are deliberately unsupported because authenticated cross-origin requests use cookies. Browser third-party-cookie policies may still limit login across unrelated sites, so sibling custom domains remain the most reliable production setup. Anonymous search is unaffected.
+The frontend stores the signed JWT locally and sends it as an `Authorization: Bearer` header. This avoids cross-site cookie restrictions on iOS when Vercel and the API use different domains. Use comma-separated exact origins in `CORS_ALLOWED_ORIGINS` only when a specific preview deployment also needs access; wildcard origins remain unsupported. Anonymous search is unaffected.

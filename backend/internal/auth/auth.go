@@ -15,8 +15,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const sessionCookie = "999scraper_session"
-
 type Claims struct {
 	jwt.RegisteredClaims
 }
@@ -26,12 +24,10 @@ type Service struct {
 	secret   []byte
 	issuer   string
 	lifetime time.Duration
-	secure   bool
-	sameSite http.SameSite
 }
 
-func New(secret, issuer string, lifetime time.Duration, secure bool, sameSite http.SameSite) *Service {
-	return &Service{secret: []byte(secret), issuer: issuer, lifetime: lifetime, secure: secure, sameSite: sameSite}
+func New(secret, issuer string, lifetime time.Duration) *Service {
+	return &Service{secret: []byte(secret), issuer: issuer, lifetime: lifetime}
 }
 func NewLoginCode() (string, error) {
 	number, err := rand.Int(rand.Reader, big.NewInt(1_000_000))
@@ -65,29 +61,6 @@ func (s *Service) Token(accountID string) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(s.secret)
 }
 
-func (s *Service) SetSession(w http.ResponseWriter, token string) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     sessionCookie,
-		Value:    token,
-		Path:     "/api",
-		MaxAge:   int(s.lifetime.Seconds()),
-		HttpOnly: true,
-		Secure:   s.secure,
-		SameSite: s.sameSite,
-	})
-}
-
-func (s *Service) ClearSession(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     sessionCookie,
-		Path:     "/api",
-		MaxAge:   -1,
-		HttpOnly: true,
-		Secure:   s.secure,
-		SameSite: s.sameSite,
-	})
-}
-
 func (s *Service) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		claims, ok := s.claims(r)
@@ -110,12 +83,12 @@ func (s *Service) OptionalMiddleware(next http.Handler) http.Handler {
 }
 
 func (s *Service) claims(r *http.Request) (*Claims, bool) {
-	cookie, err := r.Cookie(sessionCookie)
-	if err != nil || cookie.Value == "" {
+	scheme, tokenValue, ok := strings.Cut(strings.TrimSpace(r.Header.Get("Authorization")), " ")
+	if !ok || !strings.EqualFold(scheme, "Bearer") || strings.TrimSpace(tokenValue) == "" {
 		return nil, false
 	}
 	claims := new(Claims)
-	token, err := jwt.ParseWithClaims(cookie.Value, claims, func(_ *jwt.Token) (any, error) { return s.secret, nil },
+	token, err := jwt.ParseWithClaims(strings.TrimSpace(tokenValue), claims, func(_ *jwt.Token) (any, error) { return s.secret, nil },
 		jwt.WithIssuer(s.issuer), jwt.WithExpirationRequired(), jwt.WithValidMethods([]string{"HS256"}))
 	return claims, err == nil && token.Valid
 }

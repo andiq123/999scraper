@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"net"
-	"net/http"
 	"net/url"
 	"os"
 	"strconv"
@@ -29,8 +28,6 @@ type Config struct {
 	JWTSecret       string
 	JWTIssuer       string
 	JWTLifetime     time.Duration
-	CookieSecure    bool
-	CookieSameSite  http.SameSite
 	AllowedOrigins  []string
 	ScraperBaseURL  string
 	ScraperMaxPage  int
@@ -74,21 +71,9 @@ func Load() (Config, error) {
 	if err != nil || retries < 0 || retries > 8 {
 		return Config{}, fmt.Errorf("SCRAPER_RETRIES must be between 0 and 8")
 	}
-	allowedOrigins, frontendURL, err := loadAllowedOrigins()
+	allowedOrigins, err := loadAllowedOrigins()
 	if err != nil {
 		return Config{}, err
-	}
-	secureDefault, sameSiteDefault := cookieDefaults(frontendURL)
-	cookieSecure, err := strconv.ParseBool(env("COOKIE_SECURE", secureDefault))
-	if err != nil {
-		return Config{}, fmt.Errorf("COOKIE_SECURE must be true or false")
-	}
-	cookieSameSite, err := sameSite(env("COOKIE_SAME_SITE", sameSiteDefault))
-	if err != nil {
-		return Config{}, err
-	}
-	if cookieSameSite == http.SameSiteNoneMode && !cookieSecure {
-		return Config{}, fmt.Errorf("COOKIE_SECURE must be true when COOKIE_SAME_SITE is none")
 	}
 	cfg := Config{
 		Address:         address,
@@ -97,8 +82,6 @@ func Load() (Config, error) {
 		JWTSecret:       strings.TrimSpace(os.Getenv("JWT_SECRET")),
 		JWTIssuer:       env("JWT_ISSUER", "999scraper"),
 		JWTLifetime:     30 * 24 * time.Hour,
-		CookieSecure:    cookieSecure,
-		CookieSameSite:  cookieSameSite,
 		AllowedOrigins:  allowedOrigins,
 		ScraperBaseURL:  env("SCRAPER_BASE_URL", "https://999.md"),
 		ScraperMaxPage:  maxPages,
@@ -113,34 +96,27 @@ func Load() (Config, error) {
 	return cfg, nil
 }
 
-func loadAllowedOrigins() ([]string, string, error) {
+func loadAllowedOrigins() ([]string, error) {
 	frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
 	if frontendURL == "" {
 		if strings.TrimSpace(os.Getenv("PORT")) != "" {
-			return nil, "", fmt.Errorf("FRONTEND_URL is required when the app is deployed")
+			return nil, fmt.Errorf("FRONTEND_URL is required when the app is deployed")
 		}
 		frontendURL = "http://localhost:4200"
 	}
 	primary, err := origins(frontendURL)
 	if err != nil || len(primary) != 1 {
-		return nil, "", fmt.Errorf("FRONTEND_URL must be one HTTP(S) origin without a path")
+		return nil, fmt.Errorf("FRONTEND_URL must be one HTTP(S) origin without a path")
 	}
 	values := primary
 	if extras := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS")); extras != "" {
 		additional, err := origins(extras)
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 		values = append(values, additional...)
 	}
-	return unique(values), primary[0], nil
-}
-
-func cookieDefaults(frontendURL string) (secure, sameSite string) {
-	if strings.HasPrefix(frontendURL, "https://") {
-		return "true", "none"
-	}
-	return "false", "lax"
+	return unique(values), nil
 }
 
 // listenAddress honors an explicit address locally and otherwise binds the
@@ -214,19 +190,6 @@ func redisURLFromParts() (string, error) {
 		connection.User = url.UserPassword(username, password)
 	}
 	return connection.String(), nil
-}
-
-func sameSite(value string) (http.SameSite, error) {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "strict":
-		return http.SameSiteStrictMode, nil
-	case "lax":
-		return http.SameSiteLaxMode, nil
-	case "none":
-		return http.SameSiteNoneMode, nil
-	default:
-		return http.SameSiteDefaultMode, fmt.Errorf("COOKIE_SAME_SITE must be strict, lax, or none")
-	}
 }
 
 func origins(value string) ([]string, error) {

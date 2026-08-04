@@ -8,7 +8,8 @@ type Account struct {
 }
 
 type Session struct {
-	ID string `json:"id"`
+	ID    string `json:"id"`
+	Token string `json:"token,omitempty"`
 }
 
 type Registration struct {

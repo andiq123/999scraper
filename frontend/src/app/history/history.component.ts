@@ -19,7 +19,7 @@ export class HistoryComponent {
   constructor() { void this.load(); }
 
   private async load(): Promise<void> {
-    const response = await fetch(environment.apiUrl + 'history', { credentials: 'include' });
+    const response = await fetch(environment.apiUrl + 'history', this.auth.withSession());
     if (response.status === 401) return this.auth.expire();
     if (response.ok) this.items.set(await response.json());
   }

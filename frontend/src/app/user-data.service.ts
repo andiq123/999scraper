@@ -65,11 +65,7 @@ export class UserDataService {
   }
 
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
-    const response = await fetch(this.api + path, {
-      ...init,
-      credentials: 'include',
-      headers: init?.body ? { 'Content-Type': 'application/json' } : undefined,
-    });
+    const response = await fetch(this.api + path, this.auth.withSession(init));
     if (response.status === 401) this.auth.expire();
     if (!response.ok) throw new Error(`Request failed (${response.status}).`);
     return response.status === 204 ? undefined as T : response.json();
