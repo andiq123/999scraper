@@ -4,38 +4,127 @@
     @if (products().length) { <span>{{ products().length }} found</span> }
   </header>
 
-  <form class="search-form" (submit)="search($event)">
+  <form class="search-form ui-surface" (submit)="search($event)">
     <label class="sr-only" for="search-query">Search 999.md</label>
-    <input id="search-query" autofocus autocomplete="off" enterkeyhint="search" placeholder="Phones, cars, homes…" [value]="query()" (input)="query.set($any($event.target).value)">
-    <button type="submit" [disabled]="!query().trim() || loading() || yearRangeInvalid() || priceRangeInvalid()">Search</button>
+    <input id="search-query" autofocus autocomplete="off" enterkeyhint="search" list="recent-searches" placeholder="Try ‘Corolla automatic under 10k EUR -piese’" [value]="query()" (input)="updateQuery($any($event.target).value)">
+    <datalist id="recent-searches">@for (item of recentSearches.items(); track item) { <option [value]="item"></option> }</datalist>
+    <button class="ui-button ui-button-primary" type="submit" [disabled]="!query().trim() || loading() || yearRangeInvalid() || generationRangeInvalid() || storageRangeInvalid() || ramRangeInvalid() || roomsRangeInvalid() || areaRangeInvalid() || screenRangeInvalid() || priceRangeInvalid()">Search</button>
   </form>
 
-  @if (isVehicleSearch()) {
-    <section class="smart-prompt" aria-live="polite">
+  @if (hasSmartPrompt()) {
+    <section class="smart-prompt ui-surface" aria-live="polite">
       <div class="smart-icon" aria-hidden="true">✦</div>
       <div class="smart-copy">
-        <strong>{{ queryYear() ? 'Year detected' : 'Car search detected' }}</strong>
-        <span>{{ queryYear() ? 'Only showing vehicles from ' + queryYear() + '.' : 'Which model years should we include?' }}</span>
+        <strong>{{ smartTitle() }}</strong>
+        <span>{{ smartSummary() }}</span>
       </div>
-      @if (!queryYear()) {
-        <div class="year-presets" aria-label="Model year shortcuts">
-          <button type="button" [class.active]="yearFrom() === null" (click)="setYearPreset(null)">Any</button>
-          <button type="button" [class.active]="yearFrom() === 2010 && yearTo() === null" (click)="setYearPreset(2010)">2010+</button>
-          <button type="button" [class.active]="yearFrom() === 2015 && yearTo() === null" (click)="setYearPreset(2015)">2015+</button>
-          <button type="button" [class.active]="yearFrom() === 2020 && yearTo() === null" (click)="setYearPreset(2020)">2020+</button>
-        </div>
-        <div class="year-range">
-          <label>From <input type="number" inputmode="numeric" min="1950" max="2030" placeholder="Year" [value]="yearFrom() ?? ''" (input)="setYear('from', $event)"></label>
+
+      <div class="smart-controls">
+      @if (isVehicleSearch()) {
+        <div class="smart-fields year-range">
+          <label>Year from <input type="number" inputmode="numeric" min="1950" max="2030" placeholder="Any" [value]="yearFrom() ?? ''" (input)="setYear('from', $event)"></label>
           <span>–</span>
-          <label>To <input type="number" inputmode="numeric" min="1950" max="2030" placeholder="Year" [value]="yearTo() ?? ''" (input)="setYear('to', $event)"></label>
+          <label>Year to <input type="number" inputmode="numeric" min="1950" max="2030" placeholder="Any" [value]="yearTo() ?? ''" (input)="setYear('to', $event)"></label>
         </div>
-        @if (yearRangeInvalid()) { <p class="year-error">The first year must be earlier than the last.</p> }
+        <div class="smart-choice">
+          <span>Fuel</span>
+          <div class="choice-chips">
+            <button type="button" [class.active]="fuel() === null" (click)="fuel.set(null)">Any</button>
+            @for (option of fuelOptions; track option) { <button type="button" [class.active]="fuel() === option" (click)="fuel.set(option)">{{ option }}</button> }
+          </div>
+        </div>
+        <div class="smart-choice">
+          <span>Gearbox</span>
+          <div class="choice-chips">
+            <button type="button" [class.active]="transmission() === null" (click)="transmission.set(null)">Any</button>
+            @for (option of transmissionOptions; track option) { <button type="button" [class.active]="transmission() === option" (click)="transmission.set(option)">{{ option }}</button> }
+          </div>
+        </div>
+        @if (yearRangeInvalid()) { <p class="range-error">The first year must be earlier than the last.</p> }
+      } @else if (isDeviceSearch()) {
+        <div class="smart-fields device-ranges">
+          <div class="compact-range">
+            <label>Generation from <input type="number" inputmode="numeric" [min]="searchIntent().kind === 'iphone' ? 3 : 1" [max]="searchIntent().kind === 'iphone' ? 20 : 5" placeholder="Any" [value]="generationFrom() ?? ''" (input)="setGeneration('from', $event)"></label>
+            <span>–</span>
+            <label>To <input type="number" inputmode="numeric" [min]="searchIntent().kind === 'iphone' ? 3 : 1" [max]="searchIntent().kind === 'iphone' ? 20 : 5" placeholder="Any" [value]="generationTo() ?? ''" (input)="setGeneration('to', $event)"></label>
+          </div>
+          <div class="compact-range storage-range">
+            <label>Storage from <select [value]="storageFrom() ?? ''" (change)="setStorage('from', $event)"><option value="">Any</option>@for (size of storageOptions; track size) { <option [value]="size">{{ size >= 1024 ? size / 1024 + ' TB' : size + ' GB' }}</option> }</select></label>
+            <span>–</span>
+            <label>To <select [value]="storageTo() ?? ''" (change)="setStorage('to', $event)"><option value="">Any</option>@for (size of storageOptions; track size) { <option [value]="size">{{ size >= 1024 ? size / 1024 + ' TB' : size + ' GB' }}</option> }</select></label>
+          </div>
+        </div>
+        <div class="smart-choice device-choice">
+          <span>Edition</span>
+          <div class="choice-chips">
+            @for (tag of deviceTagOptions(); track tag) { <button type="button" [class.active]="deviceTags().includes(tag)" (click)="toggleDeviceTag(tag)">{{ tag === 'disc' ? 'Disc' : (tag[0].toUpperCase() + tag.slice(1)) }}</button> }
+          </div>
+        </div>
+        @if (generationRangeInvalid() || storageRangeInvalid()) { <p class="range-error">The lower value must come before the upper value.</p> }
+      } @else if (isComputerSearch()) {
+        <div class="smart-fields device-ranges">
+          <div class="compact-range">
+            <label>RAM from <input type="number" inputmode="numeric" min="1" max="256" placeholder="Any" [value]="ramFrom() ?? ''" (input)="setRAM('from', $event)"></label>
+            <span>–</span>
+            <label>To <input type="number" inputmode="numeric" min="1" max="256" placeholder="Any" [value]="ramTo() ?? ''" (input)="setRAM('to', $event)"></label>
+          </div>
+          <div class="compact-range storage-range">
+            <label>Storage from <select [value]="storageFrom() ?? ''" (change)="setStorage('from', $event)"><option value="">Any</option>@for (size of storageOptions; track size) { <option [value]="size">{{ size >= 1024 ? size / 1024 + ' TB' : size + ' GB' }}</option> }</select></label>
+            <span>–</span>
+            <label>To <select [value]="storageTo() ?? ''" (change)="setStorage('to', $event)"><option value="">Any</option>@for (size of storageOptions; track size) { <option [value]="size">{{ size >= 1024 ? size / 1024 + ' TB' : size + ' GB' }}</option> }</select></label>
+          </div>
+          <div class="compact-range">
+            <label>Screen from <input type="number" inputmode="decimal" min="3" max="100" step="0.1" placeholder="Any" [value]="screenFrom() ?? ''" (input)="setScreen('from', $event)"></label>
+            <span>–</span>
+            <label>To <input type="number" inputmode="decimal" min="3" max="100" step="0.1" placeholder="Any" [value]="screenTo() ?? ''" (input)="setScreen('to', $event)"></label>
+          </div>
+        </div>
+        @if (ramRangeInvalid() || storageRangeInvalid() || screenRangeInvalid()) { <p class="range-error">The lower value must come before the upper value.</p> }
+      } @else if (isPropertySearch()) {
+        <div class="smart-choice">
+          <span>Listing type</span>
+          <div class="choice-chips">
+            <button type="button" [class.active]="listingMode() === null" (click)="listingMode.set(null)">Any</button>
+            <button type="button" [class.active]="listingMode() === 'sale'" (click)="listingMode.set('sale')">For sale</button>
+            <button type="button" [class.active]="listingMode() === 'rent'" (click)="listingMode.set('rent')">For rent</button>
+          </div>
+        </div>
+        <div class="smart-fields device-ranges">
+          <div class="compact-range">
+            <label>Rooms from <input type="number" inputmode="numeric" min="1" max="30" placeholder="Any" [value]="roomsFrom() ?? ''" (input)="setRooms('from', $event)"></label>
+            <span>–</span>
+            <label>To <input type="number" inputmode="numeric" min="1" max="30" placeholder="Any" [value]="roomsTo() ?? ''" (input)="setRooms('to', $event)"></label>
+          </div>
+          <div class="compact-range">
+            <label>Area from <input type="number" inputmode="numeric" min="1" max="100000" placeholder="Any" [value]="areaFrom() ?? ''" (input)="setArea('from', $event)"></label>
+            <span>–</span>
+            <label>To <input type="number" inputmode="numeric" min="1" max="100000" placeholder="Any" [value]="areaTo() ?? ''" (input)="setArea('to', $event)"></label>
+          </div>
+        </div>
+        @if (roomsRangeInvalid() || areaRangeInvalid()) { <p class="range-error">The lower value must come before the upper value.</p> }
+      } @else if (isTVSearch()) {
+        <div class="smart-fields">
+          <label>Screen from <input type="number" inputmode="decimal" min="10" max="150" step="0.1" placeholder="Any" [value]="screenFrom() ?? ''" (input)="setScreen('from', $event)"></label>
+          <span>–</span>
+          <label>Screen to <input type="number" inputmode="decimal" min="10" max="150" step="0.1" placeholder="Any" [value]="screenTo() ?? ''" (input)="setScreen('to', $event)"></label>
+        </div>
+        @if (screenRangeInvalid()) { <p class="range-error">The lower value must come before the upper value.</p> }
       }
+
+      @if (!isPropertySearch()) { <div class="smart-choice condition-choice">
+        <span>Condition</span>
+        <div class="choice-chips">
+          <button type="button" [class.active]="condition() === null" (click)="condition.set(null)">Any</button>
+          <button type="button" [class.active]="condition() === 'new'" (click)="condition.set('new')">New</button>
+          <button type="button" [class.active]="condition() === 'used'" (click)="condition.set('used')">Used</button>
+        </div>
+      </div> }
+      </div>
     </section>
   }
 
   <div class="workspace">
-    <details class="filters">
+    <details class="filters ui-surface">
       <summary><span>Filters</span><small>Optional</small></summary>
       <label>Order
         <select [value]="order()" (change)="order.set($any($event.target).value)">
@@ -44,6 +133,13 @@
           <option value="priceDesc">Highest price</option>
         </select>
       </label>
+      @if (!isPropertySearch()) { <label>Condition
+        <select [value]="condition() ?? ''" (change)="condition.set($any($event.target).value || null)">
+          <option value="">Any condition</option>
+          <option value="new">New</option>
+          <option value="used">Used</option>
+        </select>
+      </label> }
       <fieldset class="price-filter">
         <legend><span>Price</span><output>{{ priceRangeLabel() }}</output></legend>
         <select aria-label="Price currency" [value]="priceCurrency() ?? ''" (change)="setCurrency($event)">
@@ -52,15 +148,19 @@
           <option value="1">EUR</option>
           <option value="2">USD</option>
         </select>
-        <div class="dual-range" [style.--from.%]="priceMinPercent()" [style.--to.%]="priceMaxPercent()" [class.disabled]="rawProducts().length === 0">
-          <input type="range" min="0" [max]="priceCeiling()" [step]="priceStep()" [value]="priceMin() ?? 0" (input)="setPriceSlider('min', $event)" aria-label="Minimum price slider" [disabled]="rawProducts().length === 0">
-          <input type="range" min="0" [max]="priceCeiling()" [step]="priceStep()" [value]="priceMax() ?? priceCeiling()" (input)="setPriceSlider('max', $event)" aria-label="Maximum price slider" [disabled]="rawProducts().length === 0">
+        <div class="budget-presets" aria-label="Quick maximum price">
+          @for (value of pricePresets(); track value) { <button type="button" [class.active]="priceMax() === value" (click)="setPricePreset(value)">{{ value >= 1000000 ? value / 1000000 + 'm' : value / 1000 + 'k' }}</button> }
+        </div>
+        <div class="dual-range" [style.--from.%]="priceMinPercent()" [style.--to.%]="priceMaxPercent()">
+          <input type="range" min="0" [max]="priceCeiling()" [step]="priceStep()" [value]="priceMin() ?? 0" (input)="setPriceSlider('min', $event)" aria-label="Minimum price slider">
+          <input type="range" min="0" [max]="priceCeiling()" [step]="priceStep()" [value]="priceMax() ?? priceCeiling()" (input)="setPriceSlider('max', $event)" aria-label="Maximum price slider">
         </div>
         <div class="price-inputs">
           <input type="number" inputmode="numeric" min="0" placeholder="Min" aria-label="Minimum price" [value]="priceMin() ?? ''" (input)="setPrice('min', $event)">
           <span>–</span>
           <input type="number" inputmode="numeric" min="0" placeholder="Max" aria-label="Maximum price" [value]="priceMax() ?? ''" (input)="setPrice('max', $event)">
         </div>
+        <p class="price-help">Slider up to {{ priceCeilingLabel() }} {{ priceCurrencyLabel() }} · type any amount</p>
         @if (priceRangeInvalid()) { <small>Minimum must be below maximum.</small> }
       </fieldset>
       <div class="quick-filters">
@@ -91,27 +191,38 @@
           </div>
         }
       </details>
+      <button class="clear-all-filters" type="button" (click)="resetFilters()" [disabled]="!hasCustomFilters()">Clear all filters</button>
     </details>
 
     <section class="result-feed" aria-label="Search results">
       @if (loading()) {
-        <div class="status" role="status" aria-live="polite">
+        <div class="status ui-surface" role="status" aria-live="polite">
           <div><strong>Page {{ loadedPages() || 1 }} of {{ totalPages() || '?' }}</strong><span>{{ products().length }} matches</span></div>
           <progress [value]="progress()" max="100"></progress>
           <button type="button" (click)="cancel()">Cancel</button>
         </div>
       }
 
+      @if (activeFilterChips().length) {
+        <div class="active-filters" aria-label="Active filters">
+          <div>
+            @for (filter of activeFilterChips(); track filter.id) {
+              <button type="button" (click)="removeFilter(filter.id)" [attr.aria-label]="'Remove ' + filter.label">{{ filter.label }} <span aria-hidden="true">×</span></button>
+            }
+          </div>
+          <button class="clear-filters" type="button" (click)="resetFilters()">Clear all</button>
+        </div>
+      }
+
       @if (products().length) {
         <div class="result-bar">
           <p><strong>{{ products().length }}</strong> shown @if (hiddenCount()) { <span>· {{ hiddenCount() }} cleaned</span> }</p>
-          @if (hasCustomFilters()) { <button type="button" (click)="resetFilters()">Reset</button> }
         </div>
         <div class="grid">
           @for (product of products(); track product.id) { <app-product-card [product]="product" [saved]="library.savedIds().has(product.id)" [convertedPrice]="currency.label(product, priceCurrency())" (save)="toggleSaved($event)" (exclude)="addExclusion($event)" /> }
         </div>
       } @else if (searched() && !loading()) {
-        <div class="empty"><h2>No products found</h2><p>Try a broader search or fewer filters.</p></div>
+        <div class="empty empty-state"><h2>No products found</h2><p>Try a broader search or fewer filters.</p>@if (hasCustomFilters()) { <button class="ui-button ui-button-primary" type="button" (click)="resetFilters()">Show broader results</button> }</div>
       } @else if (loading()) {
         <div class="spinner" aria-label="Loading"></div>
       } @else {
@@ -119,6 +230,13 @@
           <span aria-hidden="true">⌕</span>
           <h2>Search the marketplace</h2>
           <p>Browse without an account. Log in only when you want to save a listing or keep your cleanup preferences.</p>
+          @if (recentSearches.items().length) {
+            <div class="recent-searches">
+              <span>Recent</span>
+              <div>@for (item of recentSearches.items(); track item) { <button type="button" (click)="runRecent(item)">{{ item }}</button> }</div>
+              <button class="clear-recent" type="button" (click)="recentSearches.clear()">Clear</button>
+            </div>
+          }
         </div>
       }
     </section>

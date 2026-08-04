@@ -31,10 +31,40 @@ const searchQuery = `query SearchAds($input: Ads_SearchInput!) {
       id
       title
       price: feature(id: 2) { value }
+      offerType: feature(id: 1) { value }
       images: feature(id: 14) { value }
       year: feature(id: 19) { value }
       make: feature(id: 20) { value }
       model: feature(id: 21) { value }
+      transmission: feature(id: 101) { value }
+      fuel: feature(id: 151) { value }
+      phoneModel: feature(id: 590) { value }
+      consoleModel: feature(id: 694) { value }
+      phoneStorage: feature(id: 1265) { value }
+      consoleStorage: feature(id: 2295) { value }
+      phoneBrand: feature(id: 589) { value }
+      phoneRAM: feature(id: 1266) { value }
+      phoneOS: feature(id: 591) { value }
+      laptopBrand: feature(id: 685) { value }
+      laptopCPU: feature(id: 675) { value }
+      laptopCPUModel: feature(id: 2285) { value }
+      laptopRAM: feature(id: 1244) { value }
+      laptopStorage: feature(id: 677) { value }
+      laptopGPU: feature(id: 2283) { value }
+      laptopGPUModel: feature(id: 2284) { value }
+      laptopOS: feature(id: 681) { value }
+      screen: feature(id: 687) { value }
+      laptopResolution: feature(id: 975) { value }
+      tvBrand: feature(id: 723) { value }
+      tvResolution: feature(id: 726) { value }
+      tvPlatform: feature(id: 1807) { value }
+      rooms: feature(id: 241) { value }
+      area: feature(id: 244) { value }
+      floor: feature(id: 248) { value }
+      propertyState: feature(id: 253) { value }
+      buildingType: feature(id: 247) { value }
+      condition: feature(id: 593) { value }
+      subCategory { url title { translated } }
       booster: product(alias: BOOSTER_V2) { enable }
     }
     count
@@ -87,7 +117,8 @@ type advert struct {
 	Price struct {
 		Value json.RawMessage `json:"value"`
 	} `json:"price"`
-	Images struct {
+	OfferType rawFeature `json:"offerType"`
+	Images    struct {
 		Value []string `json:"value"`
 	} `json:"images"`
 	Year struct {
@@ -99,6 +130,38 @@ type advert struct {
 	Model struct {
 		Value choiceValue `json:"value"`
 	} `json:"model"`
+	Transmission     choiceFeature `json:"transmission"`
+	Fuel             choiceFeature `json:"fuel"`
+	PhoneModel       choiceFeature `json:"phoneModel"`
+	ConsoleModel     choiceFeature `json:"consoleModel"`
+	PhoneStorage     choiceFeature `json:"phoneStorage"`
+	ConsoleStorage   choiceFeature `json:"consoleStorage"`
+	PhoneBrand       rawFeature    `json:"phoneBrand"`
+	PhoneRAM         rawFeature    `json:"phoneRAM"`
+	PhoneOS          rawFeature    `json:"phoneOS"`
+	LaptopBrand      rawFeature    `json:"laptopBrand"`
+	LaptopCPU        rawFeature    `json:"laptopCPU"`
+	LaptopCPUModel   rawFeature    `json:"laptopCPUModel"`
+	LaptopRAM        rawFeature    `json:"laptopRAM"`
+	LaptopStorage    rawFeature    `json:"laptopStorage"`
+	LaptopGPU        rawFeature    `json:"laptopGPU"`
+	LaptopGPUModel   rawFeature    `json:"laptopGPUModel"`
+	LaptopOS         rawFeature    `json:"laptopOS"`
+	Screen           rawFeature    `json:"screen"`
+	LaptopResolution rawFeature    `json:"laptopResolution"`
+	TVBrand          rawFeature    `json:"tvBrand"`
+	TVResolution     rawFeature    `json:"tvResolution"`
+	TVPlatform       rawFeature    `json:"tvPlatform"`
+	Rooms            rawFeature    `json:"rooms"`
+	Area             rawFeature    `json:"area"`
+	Floor            rawFeature    `json:"floor"`
+	PropertyState    rawFeature    `json:"propertyState"`
+	BuildingType     rawFeature    `json:"buildingType"`
+	Condition        choiceFeature `json:"condition"`
+	SubCategory      struct {
+		URL   string      `json:"url"`
+		Title choiceValue `json:"title"`
+	} `json:"subCategory"`
 	Booster struct {
 		Enable bool `json:"enable"`
 	} `json:"booster"`
@@ -106,6 +169,14 @@ type advert struct {
 
 type choiceValue struct {
 	Translated string `json:"translated"`
+}
+
+type choiceFeature struct {
+	Value choiceValue `json:"value"`
+}
+
+type rawFeature struct {
+	Value json.RawMessage `json:"value"`
 }
 
 type priceValue struct {
@@ -382,19 +453,100 @@ func (s *Scraper) product(ad advert) model.Product {
 	if len(ad.Images.Value) > 0 {
 		image = "https://i.simpalsmedia.com/999.md/BoardImages/320x240/" + ad.Images.Value[0]
 	}
-	return model.Product{
-		ID:           ad.ID,
-		Title:        strings.TrimSpace(ad.Title),
-		ThumbnailURL: image,
-		Price:        price,
-		PriceString:  label,
-		Currency:     currency,
-		IsBoosted:    ad.Booster.Enable,
-		Year:         ad.Year.Value,
-		Make:         strings.TrimSpace(ad.Make.Value.Translated),
-		Model:        strings.TrimSpace(ad.Model.Value.Translated),
-		URLToProduct: s.baseURL + "/ro/" + ad.ID,
+	deviceModel := ad.PhoneModel.Value.Translated
+	if deviceModel == "" {
+		deviceModel = ad.ConsoleModel.Value.Translated
 	}
+	storage := ad.PhoneStorage.Value.Translated
+	if storage == "" {
+		storage = ad.ConsoleStorage.Value.Translated
+	}
+	if storage == "" {
+		storage = featureText(ad.LaptopStorage.Value)
+	}
+	brand := firstText(featureText(ad.PhoneBrand.Value), featureText(ad.LaptopBrand.Value), featureText(ad.TVBrand.Value))
+	processor := strings.TrimSpace(strings.Join(nonEmpty(featureText(ad.LaptopCPU.Value), featureText(ad.LaptopCPUModel.Value)), " "))
+	gpu := strings.TrimSpace(strings.Join(nonEmpty(featureText(ad.LaptopGPU.Value), featureText(ad.LaptopGPUModel.Value)), " "))
+	resolution := firstText(featureText(ad.LaptopResolution.Value), featureText(ad.TVResolution.Value))
+	os := firstText(featureText(ad.PhoneOS.Value), featureText(ad.LaptopOS.Value), featureText(ad.TVPlatform.Value))
+	return model.Product{
+		ID:            ad.ID,
+		Title:         strings.TrimSpace(ad.Title),
+		ThumbnailURL:  image,
+		Price:         price,
+		PriceString:   label,
+		OfferType:     featureText(ad.OfferType.Value),
+		Currency:      currency,
+		IsBoosted:     ad.Booster.Enable,
+		Year:          ad.Year.Value,
+		Make:          strings.TrimSpace(ad.Make.Value.Translated),
+		Model:         strings.TrimSpace(ad.Model.Value.Translated),
+		Fuel:          strings.TrimSpace(ad.Fuel.Value.Translated),
+		Transmission:  strings.TrimSpace(ad.Transmission.Value.Translated),
+		DeviceModel:   strings.TrimSpace(deviceModel),
+		Storage:       strings.TrimSpace(storage),
+		Brand:         brand,
+		RAM:           firstText(featureText(ad.PhoneRAM.Value), featureText(ad.LaptopRAM.Value)),
+		Processor:     processor,
+		GPU:           gpu,
+		Screen:        featureText(ad.Screen.Value),
+		Resolution:    resolution,
+		OS:            os,
+		Rooms:         featureText(ad.Rooms.Value),
+		Area:          featureText(ad.Area.Value),
+		Floor:         featureText(ad.Floor.Value),
+		PropertyState: featureText(ad.PropertyState.Value),
+		BuildingType:  featureText(ad.BuildingType.Value),
+		Category:      strings.TrimSpace(ad.SubCategory.Title.Translated),
+		Condition:     strings.TrimSpace(ad.Condition.Value.Translated),
+		URLToProduct:  s.baseURL + "/ro/" + ad.ID,
+	}
+}
+
+func featureText(raw json.RawMessage) string {
+	if len(raw) == 0 || string(raw) == "null" {
+		return ""
+	}
+	var value any
+	if json.Unmarshal(raw, &value) != nil {
+		return ""
+	}
+	return strings.TrimSpace(textValue(value))
+}
+
+func textValue(value any) string {
+	switch typed := value.(type) {
+	case string:
+		return typed
+	case float64:
+		return strconv.FormatFloat(typed, 'f', -1, 64)
+	case map[string]any:
+		for _, key := range []string{"translated", "value", "label", "name"} {
+			if text := textValue(typed[key]); text != "" {
+				return text
+			}
+		}
+	}
+	return ""
+}
+
+func firstText(values ...string) string {
+	for _, value := range values {
+		if value = strings.TrimSpace(value); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func nonEmpty(values ...string) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if value = strings.TrimSpace(value); value != "" {
+			result = append(result, value)
+		}
+	}
+	return result
 }
 
 func parsePrice(raw json.RawMessage) (*int, int, string) {
@@ -417,12 +569,15 @@ func parsePrice(raw json.RawMessage) (*int, int, string) {
 
 func Filter(products []model.Product, f model.Filters) []model.Product {
 	queryTokens := words(f.ProductSearchCriteria)
-	if f.Intent == "car" {
-		queryTokens = slices.DeleteFunc(queryTokens, func(word string) bool {
+	queryTokens = slices.DeleteFunc(queryTokens, func(word string) bool {
+		if f.Intent == "car" {
 			year, err := strconv.Atoi(word)
-			return err == nil && year >= 1950 && year <= 2030
-		})
-	}
+			if err == nil && year >= 1950 && year <= 2030 {
+				return true
+			}
+		}
+		return slices.Contains(intentNoise[f.Intent], word)
+	})
 	result := make([]model.Product, 0, len(products))
 	for _, p := range products {
 		titleTokens := words(p.Title)
@@ -462,6 +617,15 @@ func Filter(products []model.Product, f model.Filters) []model.Product {
 		return *result[i].Price < *result[j].Price
 	})
 	return result
+}
+
+var intentNoise = map[string][]string{
+	"iphone":      {"iphone"},
+	"playstation": {"playstation"},
+	"phone":       {"telefon", "smartphone", "телефон", "смартфон"},
+	"laptop":      {"laptop", "laptops", "notebook", "ultrabook", "ноутбук"},
+	"tv":          {"tv", "televizor", "televizoare", "television", "телевизор"},
+	"realEstate":  {"apartament", "apartamente", "apartment", "casa", "house", "teren", "land", "квартира", "дом", "участок"},
 }
 
 var carNoise = map[string]struct{}{

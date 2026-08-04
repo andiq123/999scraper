@@ -1,5 +1,5 @@
-<main class="saved-page">
-  <header><p>Personal library</p><h1>Saved listings</h1><span>Keep promising finds in one quiet place.</span></header>
+<main class="saved-page page-shell">
+  <header class="page-heading"><p>Personal library</p><h1>Saved listings</h1><span>Keep promising finds in one quiet place.</span></header>
   @if (library.saved().length) {
     <div class="grid">
       @for (item of library.saved(); track item.product.id) {
@@ -7,6 +7,6 @@
       }
     </div>
   } @else {
-    <section class="empty"><h2>Nothing saved yet</h2><p>Use the heart on any result to keep it here.</p><a routerLink="/">Start searching</a></section>
+    <section class="empty empty-state"><h2>Nothing saved yet</h2><p>Use the heart on any result to keep it here.</p><a class="ui-button ui-button-primary" routerLink="/">Start searching</a></section>
   }
 </main>

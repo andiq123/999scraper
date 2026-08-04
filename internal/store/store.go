@@ -110,7 +110,7 @@ SELECT id::text, created_at FROM accounts WHERE id=$1`, id))
 func (s *Store) AddSearch(ctx context.Context, accountID, query string) error {
 	_, err := s.db.Exec(ctx, `
 INSERT INTO search_history (id, account_id, query, searched_at)
-VALUES ($1, $2, $3, $4)`, uuid.NewString(), accountID, query, time.Now().UTC())
+SELECT $1, id, $3, $4 FROM accounts WHERE id=$2`, uuid.NewString(), accountID, query, time.Now().UTC())
 	return err
 }
 

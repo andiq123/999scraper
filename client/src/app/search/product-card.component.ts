@@ -16,12 +16,19 @@ export class ProductCardComponent {
   readonly selectedWord = signal('');
   readonly popoverId = computed(() => `exclude-${this.product().id.replace(/[^a-zA-Z0-9_-]/g, '')}`);
   readonly titleWords = computed(() => this.product().title.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) ?? []);
+  readonly metadata = computed(() => {
+    const product = this.product();
+    const property = [product.offerType, product.rooms, product.area && (/^\d+(?:[.,]\d+)?$/.test(product.area) ? `${product.area} m²` : product.area), product.floor && `Floor ${product.floor}`];
+    const technology = [product.ram && `${product.ram} RAM`, product.storage, product.processor, product.screen, product.resolution];
+    return [product.fuel, product.transmission, ...property, ...technology, product.condition]
+      .filter((value): value is string => Boolean(value)).slice(0, 3);
+  });
   @ViewChild('popover') private popover?: ElementRef<HTMLDivElement>;
 
   readonly price = computed(() => {
     const product = this.product();
     if (product.price == null) return product.priceString || 'Price negotiable';
-    return `${product.price} ${['MDL', 'EUR', 'USD'][product.currency] ?? ''}`.trim();
+    return `${product.price.toLocaleString('ro-MD')} ${['MDL', 'EUR', 'USD'][product.currency] ?? ''}`.trim();
   });
 
   chooseWord(word: string): void {

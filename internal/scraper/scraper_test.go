@@ -51,6 +51,18 @@ func TestFilterUsesWordBoundariesAndVehicleMetadata(t *testing.T) {
 	}
 }
 
+func TestFilterIgnoresGenericIntentWords(t *testing.T) {
+	price := 12_000
+	products := []model.Product{
+		{Title: "Lenovo ThinkPad T14", Price: &price, Processor: "Intel Core i7"},
+		{Title: "Dell Latitude laptop", Price: &price, Processor: "Intel Core i5"},
+	}
+	got := Filter(products, model.Filters{ProductSearchCriteria: "lenovo laptop", Intent: "laptop", ExcludeOtherAds: true})
+	if len(got) != 1 || got[0].Title != "Lenovo ThinkPad T14" {
+		t.Fatalf("generic category words should not reject structured results: %#v", got)
+	}
+}
+
 func TestSmartCarCleanupRemovesPartsAndImplausiblePrices(t *testing.T) {
 	one, carPrice := 1, 12_000
 	products := []model.Product{
@@ -203,5 +215,22 @@ func TestParsePrice(t *testing.T) {
 	price, currency, label := parsePrice(json.RawMessage(`{"unit":"UNIT_MDL","value":12500}`))
 	if price == nil || *price != 12500 || currency != 0 || label != "" {
 		t.Fatalf("unexpected price: %v %d %q", price, currency, label)
+	}
+}
+
+func TestProductPreservesSmartFacets(t *testing.T) {
+	price := json.RawMessage(`{"unit":"UNIT_EUR","value":12000}`)
+	ad := advert{ID: "1", Title: "Toyota Corolla"}
+	ad.Price.Value = price
+	ad.Year.Value = 2010
+	ad.Make.Value.Translated = "Toyota"
+	ad.Model.Value.Translated = "Corolla"
+	ad.Fuel.Value.Translated = "Benzină"
+	ad.Transmission.Value.Translated = "Automată"
+	ad.Condition.Value.Translated = "Cu rulaj"
+	ad.OfferType.Value = json.RawMessage(`{"translated":"Vând","value":1}`)
+	product := New("https://999.md", Options{}).product(ad)
+	if product.Year != 2010 || product.Fuel != "Benzină" || product.Transmission != "Automată" || product.Condition != "Cu rulaj" || product.OfferType != "Vând" {
+		t.Fatalf("smart facets were not preserved: %#v", product)
 	}
 }

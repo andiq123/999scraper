@@ -1,4 +1,4 @@
-<article>
+<article class="ui-surface">
   <a class="media" [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'Open ' + product().title + ' on 999.md'">
     @if (product().thumbnailURL) {
       <img [src]="product().thumbnailURL" [alt]="product().title" loading="lazy" decoding="async">
@@ -14,9 +14,10 @@
         <button type="button" [attr.popovertarget]="popoverId()" (click)="chooseWord(word)" [attr.aria-label]="'Exclude ' + word + ' from results'">{{ word }}</button>
       }
     </h2>
+    @if (metadata().length) { <p class="metadata">{{ metadata().join(' · ') }}</p> }
     <div class="footer">
       <div class="prices"><p>{{ price() }}</p>@if (convertedPrice()) { <small>{{ convertedPrice() }}</small> }</div>
-      <a [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer">View <span aria-hidden="true">↗</span></a>
+      <a class="ui-button ui-button-quiet" [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer">View <span aria-hidden="true">↗</span></a>
     </div>
   </div>
 </article>

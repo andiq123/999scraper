@@ -14,7 +14,7 @@ export interface SearchFilters {
   excludeOtherAds: boolean;
   order: SortOrder;
   keysToExclude: string[];
-  intent?: 'car';
+  intent?: 'car' | 'iphone' | 'phone' | 'playstation' | 'laptop' | 'tv' | 'realEstate';
   yearFrom?: number;
   yearTo?: number;
   priceMin?: number;
@@ -29,10 +29,29 @@ export interface Product {
   description: string;
   price?: number | null;
   priceString?: string | null;
+  offerType?: string;
   currency: number;
   isBoosted: boolean;
   year?: number;
   make?: string;
   model?: string;
+  fuel?: string;
+  transmission?: string;
+  deviceModel?: string;
+  storage?: string;
+  brand?: string;
+  ram?: string;
+  processor?: string;
+  gpu?: string;
+  screen?: string;
+  resolution?: string;
+  os?: string;
+  rooms?: string;
+  area?: string;
+  floor?: string;
+  propertyState?: string;
+  buildingType?: string;
+  category?: string;
+  condition?: string;
   urlToProduct: string;
 }

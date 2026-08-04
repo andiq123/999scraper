@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -41,7 +42,7 @@ func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, r
 	mux.HandleFunc("POST /api/account/register", api.register)
 	mux.HandleFunc("POST /api/account/logout", api.logout)
 	mux.HandleFunc("GET /api/rates", api.exchangeRates)
-	mux.Handle("GET /api/account/current", a.Middleware(http.HandlerFunc(api.currentAccount)))
+	mux.Handle("GET /api/account/current", a.OptionalMiddleware(http.HandlerFunc(api.currentAccount)))
 	mux.Handle("POST /api/products/stream", a.OptionalMiddleware(http.HandlerFunc(api.productsStream)))
 	mux.Handle("GET /api/history", a.Middleware(http.HandlerFunc(api.history)))
 	mux.Handle("GET /api/preferences", a.Middleware(http.HandlerFunc(api.preferences)))
@@ -120,9 +121,15 @@ func (a *API) register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) currentAccount(w http.ResponseWriter, r *http.Request) {
-	account, err := a.store.AccountByID(r.Context(), accountID(r))
+	claims := auth.ClaimsFrom(r.Context())
+	if claims == nil {
+		writeJSON(w, http.StatusOK, nil)
+		return
+	}
+	account, err := a.store.AccountByID(r.Context(), claims.Subject)
 	if errors.Is(err, store.ErrNotFound) {
-		writeError(w, http.StatusUnauthorized, "account not found")
+		a.auth.ClearSession(w)
+		writeJSON(w, http.StatusOK, nil)
 		return
 	}
 	if err != nil {
@@ -250,7 +257,7 @@ func (a *API) productsStream(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "search filters are too large")
 		return
 	}
-	if filters.Intent != "" && filters.Intent != "car" {
+	if filters.Intent != "" && !slices.Contains([]string{"car", "iphone", "phone", "playstation", "laptop", "tv", "realEstate"}, filters.Intent) {
 		writeError(w, http.StatusBadRequest, "unsupported search intent")
 		return
 	}
@@ -268,8 +275,7 @@ func (a *API) productsStream(w http.ResponseWriter, r *http.Request) {
 	}
 	if claims := auth.ClaimsFrom(r.Context()); claims != nil {
 		if err := a.store.AddSearch(r.Context(), claims.Subject, filters.ProductSearchCriteria); err != nil {
-			a.internal(w, err)
-			return
+			a.logger.Warn("search history was not saved", "error", err)
 		}
 	}
 	flusher, ok := w.(http.Flusher)

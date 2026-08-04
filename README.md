@@ -8,6 +8,7 @@ A clean, separated search application for 999.md:
 - Redis 8 for normalized search caching
 - SSE for progressive search-result delivery
 - background EUR/USD/MDL normalization from National Bank of Moldova rates
+- query-aware facets for vehicles, phones, laptops, consoles, TVs, and property
 
 ## Start
 
@@ -42,6 +43,8 @@ The scraper protects 999.md with:
 - request cancellation and capped page counts.
 
 Tune these limits through the `SCRAPER_*` values in `.env`.
+
+Smart search separates the product phrase from refinements before scraping. For example, `Corolla 2008-2010 automatic under 10k EUR -piese`, `Lenovo laptop 16GB RAM 512GB 15.6 inch`, `smart TV Samsung 55 inch`, and `apartament de închiriat 2-3 camere 70-100 m2` fetch a broad product set once, then apply detected ranges and verified 999.md metadata instantly in the browser. Property transaction type, device storage/RAM/screen size, vehicle fuel/gearbox, condition, currency-normalized price, and exclusions remain editable as removable filters. Anonymous recent searches stay private on the device, and the complete search workspace survives route navigation and refreshes without repeating a scrape.
 
 ## Direct development
 

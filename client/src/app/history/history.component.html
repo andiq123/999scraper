@@ -1,5 +1,5 @@
-<main class="history">
-  <header>
+<main class="history page-shell">
+  <header class="page-heading">
     <p class="eyebrow">Private activity</p>
     <h1>Search history</h1>
     <p>Your latest 200 searches, newest first.</p>
@@ -8,14 +8,14 @@
   @if (items().length) {
     <ol>
       @for (item of items(); track item.id) {
-        <li><a routerLink="/" [queryParams]="{q: item.query}">{{ item.query }}</a><time [attr.datetime]="item.searchedAt">{{ item.searchedAt | date:'medium' }}</time></li>
+        <li class="ui-surface"><a routerLink="/" [queryParams]="{q: item.query}">{{ item.query }}</a><time [attr.datetime]="item.searchedAt">{{ item.searchedAt | date:'medium' }}</time></li>
       }
     </ol>
   } @else {
-    <div class="empty">
+    <div class="empty empty-state">
       <h2>No searches yet</h2>
       <p>Your searches will appear here.</p>
-      <a class="button" routerLink="/">Start searching</a>
+      <a class="button ui-button ui-button-primary" routerLink="/">Start searching</a>
     </div>
   }
 </main>

@@ -1,4 +1,4 @@
-<main class="auth-card">
+<main class="auth-card ui-surface">
   <h1>Login</h1>
   <p>Enter your six-digit code.</p>
   <form (submit)="submit($event)">
@@ -15,7 +15,7 @@
       [value]="code()"
       (input)="updateCode($event)"
     >
-    <button type="submit" [disabled]="code().length !== 6 || submitting()">
+    <button class="ui-button ui-button-primary" type="submit" [disabled]="code().length !== 6 || submitting()">
       {{ submitting() ? 'Logging in…' : 'Login' }}
     </button>
   </form>

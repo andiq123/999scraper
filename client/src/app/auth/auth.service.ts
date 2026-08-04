@@ -42,8 +42,9 @@ export class AuthService {
 
   private async loadSession(): Promise<boolean> {
     try {
-      this.session.set(await this.request<Session>('current'));
-      return true;
+      const session = await this.request<Session | null>('current');
+      this.session.set(session);
+      return session !== null;
     } catch {
       return false;
     }

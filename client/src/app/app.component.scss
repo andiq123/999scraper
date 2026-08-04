@@ -11,9 +11,9 @@
   border: 1px solid rgb(255 255 255 / 60%);
   border-radius: 16px;
   color: white;
-  background: rgb(22 132 91 / 92%);
+  background: rgb(var(--success-rgb) / 94%);
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(20px) saturate(140%);
 }
 .toast-mark { display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 50%; background: rgb(255 255 255 / 18%); font-weight: 800; }
-.toast.error { background: rgb(201 56 56 / 92%); }
+.toast.error { background: rgb(var(--danger-rgb) / 94%); }
