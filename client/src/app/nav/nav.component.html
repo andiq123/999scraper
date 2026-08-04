@@ -3,11 +3,11 @@
   <div class="actions">
     <a routerLink="/" [routerLinkActiveOptions]="{exact: true}" routerLinkActive="active">Search</a>
   @if (auth.session()) {
-      <a routerLink="/saved" routerLinkActive="active">Saved</a>
-      <a routerLink="/history" routerLinkActive="active">History</a>
-      <button class="logout" type="button" (click)="auth.logout()">Log out</button>
+      <a animate.enter="reveal-enter" animate.leave="reveal-leave" routerLink="/saved" routerLinkActive="active">Saved</a>
+      <a animate.enter="reveal-enter" animate.leave="reveal-leave" routerLink="/history" routerLinkActive="active">History</a>
+      <button animate.enter="reveal-enter" animate.leave="reveal-leave" class="logout" type="button" (click)="auth.logout()">Log out</button>
   } @else {
-      <a routerLink="/login" routerLinkActive="active">Log in</a>
+      <a animate.enter="reveal-enter" animate.leave="reveal-leave" routerLink="/login" routerLinkActive="active">Log in</a>
   }
   </div>
 </nav>

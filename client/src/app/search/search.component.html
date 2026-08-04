@@ -12,7 +12,7 @@
   </form>
 
   @if (hasSmartPrompt()) {
-    <section class="smart-prompt ui-surface" aria-live="polite">
+    <section class="smart-prompt ui-surface" animate.enter="reveal-enter" animate.leave="reveal-leave" aria-live="polite">
       <div class="smart-icon" aria-hidden="true">✦</div>
       <div class="smart-copy">
         <strong>{{ smartTitle() }}</strong>
@@ -40,7 +40,7 @@
             @for (option of transmissionOptions; track option) { <button type="button" [class.active]="transmission() === option" (click)="transmission.set(option)">{{ option }}</button> }
           </div>
         </div>
-        @if (yearRangeInvalid()) { <p class="range-error">The first year must be earlier than the last.</p> }
+        @if (yearRangeInvalid()) { <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">The first year must be earlier than the last.</p> }
       } @else if (isDeviceSearch()) {
         <div class="smart-fields device-ranges">
           <div class="compact-range">
@@ -60,7 +60,7 @@
             @for (tag of deviceTagOptions(); track tag) { <button type="button" [class.active]="deviceTags().includes(tag)" (click)="toggleDeviceTag(tag)">{{ tag === 'disc' ? 'Disc' : (tag[0].toUpperCase() + tag.slice(1)) }}</button> }
           </div>
         </div>
-        @if (generationRangeInvalid() || storageRangeInvalid()) { <p class="range-error">The lower value must come before the upper value.</p> }
+        @if (generationRangeInvalid() || storageRangeInvalid()) { <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">The lower value must come before the upper value.</p> }
       } @else if (isComputerSearch()) {
         <div class="smart-fields device-ranges">
           <div class="compact-range">
@@ -79,7 +79,7 @@
             <label>To <input type="number" inputmode="decimal" min="3" max="100" step="0.1" placeholder="Any" [value]="screenTo() ?? ''" (input)="setScreen('to', $event)"></label>
           </div>
         </div>
-        @if (ramRangeInvalid() || storageRangeInvalid() || screenRangeInvalid()) { <p class="range-error">The lower value must come before the upper value.</p> }
+        @if (ramRangeInvalid() || storageRangeInvalid() || screenRangeInvalid()) { <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">The lower value must come before the upper value.</p> }
       } @else if (isPropertySearch()) {
         <div class="smart-choice">
           <span>Listing type</span>
@@ -101,14 +101,14 @@
             <label>To <input type="number" inputmode="numeric" min="1" max="100000" placeholder="Any" [value]="areaTo() ?? ''" (input)="setArea('to', $event)"></label>
           </div>
         </div>
-        @if (roomsRangeInvalid() || areaRangeInvalid()) { <p class="range-error">The lower value must come before the upper value.</p> }
+        @if (roomsRangeInvalid() || areaRangeInvalid()) { <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">The lower value must come before the upper value.</p> }
       } @else if (isTVSearch()) {
         <div class="smart-fields">
           <label>Screen from <input type="number" inputmode="decimal" min="10" max="150" step="0.1" placeholder="Any" [value]="screenFrom() ?? ''" (input)="setScreen('from', $event)"></label>
           <span>–</span>
           <label>Screen to <input type="number" inputmode="decimal" min="10" max="150" step="0.1" placeholder="Any" [value]="screenTo() ?? ''" (input)="setScreen('to', $event)"></label>
         </div>
-        @if (screenRangeInvalid()) { <p class="range-error">The lower value must come before the upper value.</p> }
+        @if (screenRangeInvalid()) { <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">The lower value must come before the upper value.</p> }
       }
 
       @if (!isPropertySearch()) { <div class="smart-choice condition-choice">
@@ -176,12 +176,12 @@
         @if (excludedWords().length) {
           <div class="tags">
             @for (word of excludedWords(); track word) {
-              <button type="button" (click)="removeExcludedWord(word)" [attr.aria-label]="'Remove ' + word">{{ word }} ×</button>
+              <button type="button" animate.enter="reveal-enter" animate.leave="reveal-leave" (click)="removeExcludedWord(word)" [attr.aria-label]="'Remove ' + word">{{ word }} ×</button>
             }
           </div>
         }
         @if (suggestedExclusions().length) {
-          <div class="suggestions">
+          <div class="suggestions" animate.enter="reveal-enter" animate.leave="reveal-leave">
             <span>Suggested</span>
             <div>
               @for (word of suggestedExclusions(); track word) {
@@ -196,7 +196,7 @@
 
     <section class="result-feed" aria-label="Search results">
       @if (loading()) {
-        <div class="status ui-surface" role="status" aria-live="polite">
+        <div class="status ui-surface" animate.enter="reveal-enter" animate.leave="reveal-leave" role="status" aria-live="polite">
           <div><strong>Page {{ loadedPages() || 1 }} of {{ totalPages() || '?' }}</strong><span>{{ products().length }} matches</span></div>
           <progress [value]="progress()" max="100"></progress>
           <button type="button" (click)="cancel()">Cancel</button>
@@ -204,29 +204,29 @@
       }
 
       @if (activeFilterChips().length) {
-        <div class="active-filters" aria-label="Active filters">
+        <div class="active-filters" animate.enter="reveal-enter" animate.leave="reveal-leave" aria-label="Active filters">
           <div>
             @for (filter of activeFilterChips(); track filter.id) {
-              <button type="button" (click)="removeFilter(filter.id)" [attr.aria-label]="'Remove ' + filter.label">{{ filter.label }} <span aria-hidden="true">×</span></button>
+              <button type="button" animate.enter="reveal-enter" animate.leave="reveal-leave" (click)="removeFilter(filter.id)" [attr.aria-label]="'Remove ' + filter.label">{{ filter.label }} <span aria-hidden="true">×</span></button>
             }
           </div>
-          <button class="clear-filters" type="button" (click)="resetFilters()">Clear all</button>
+          <button class="clear-filters" type="button" (click)="resetFilters()">Clear</button>
         </div>
       }
 
       @if (products().length) {
-        <div class="result-bar">
+        <div class="result-bar" animate.enter="reveal-enter" animate.leave="reveal-leave">
           <p><strong>{{ products().length }}</strong> shown @if (hiddenCount()) { <span>· {{ hiddenCount() }} cleaned</span> }</p>
         </div>
-        <div class="grid">
-          @for (product of products(); track product.id) { <app-product-card [product]="product" [saved]="library.savedIds().has(product.id)" [convertedPrice]="currency.label(product, priceCurrency())" (save)="toggleSaved($event)" (exclude)="addExclusion($event)" /> }
+        <div class="grid" animate.enter="reveal-enter" animate.leave="reveal-leave">
+          @for (product of products(); track product.id) { <app-product-card animate.leave="reveal-leave" [product]="product" [saved]="library.savedIds().has(product.id)" [convertedPrice]="currency.label(product, priceCurrency())" (save)="toggleSaved($event)" (exclude)="addExclusion($event)" /> }
         </div>
       } @else if (searched() && !loading()) {
-        <div class="empty empty-state"><h2>No products found</h2><p>Try a broader search or fewer filters.</p>@if (hasCustomFilters()) { <button class="ui-button ui-button-primary" type="button" (click)="resetFilters()">Show broader results</button> }</div>
+        <div class="empty empty-state" animate.enter="reveal-enter" animate.leave="reveal-leave"><h2>No products found</h2><p>Try a broader search or fewer filters.</p>@if (hasCustomFilters()) { <button class="ui-button ui-button-primary" type="button" (click)="resetFilters()">Show broader results</button> }</div>
       } @else if (loading()) {
-        <div class="spinner" aria-label="Loading"></div>
+        <div class="spinner" animate.enter="reveal-enter" animate.leave="reveal-leave" aria-label="Loading"></div>
       } @else {
-        <div class="welcome">
+        <div class="welcome" animate.enter="reveal-enter" animate.leave="reveal-leave">
           <span aria-hidden="true">⌕</span>
           <h2>Search the marketplace</h2>
           <p>Browse without an account. Log in only when you want to save a listing or keep your cleanup preferences.</p>
