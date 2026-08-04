@@ -25,7 +25,7 @@ Search is public and needs no account. Log in only to save listings, sync exclud
 
 Changes under `cmd/` or `internal/` rebuild and restart the backend through Air. Angular source changes refresh through its independent development server.
 
-Press Ctrl+C to remove the project containers, network, database/cache volumes, dependency/build volumes, and locally built images. Docker Desktop itself stays open.
+Press Ctrl+C to remove the project containers, network, database and dependency/build volumes, and locally built images. The Redis search cache is intentionally ephemeral. Docker Desktop itself stays open.
 
 For non-local use, copy `.env.example` to `.env`, replace every secret, and set `COOKIE_SECURE=true` behind HTTPS.
 
@@ -36,6 +36,8 @@ Search progress is one-way—from the Go API to the browser—so SSE is simpler 
 The scraper protects 999.md with:
 
 - normalized-query Redis caching;
+- bounded concurrent searches plus bounded per-search page workers;
+- an ephemeral LRU Redis cache that cannot grow beyond its memory budget;
 - duplicate-request coalescing;
 - three bounded workers;
 - a shared 350 ms request-start interval;
@@ -44,7 +46,7 @@ The scraper protects 999.md with:
 
 Tune these limits through the `SCRAPER_*` values in `.env`.
 
-Smart search separates the product phrase from refinements before scraping. For example, `Corolla 2008-2010 automatic under 10k EUR -piese`, `Lenovo laptop 16GB RAM 512GB 15.6 inch`, `smart TV Samsung 55 inch`, and `apartament de închiriat 2-3 camere 70-100 m2` fetch a broad product set once, then apply detected ranges and verified 999.md metadata instantly in the browser. Property transaction type, device storage/RAM/screen size, vehicle fuel/gearbox, condition, currency-normalized price, and exclusions remain editable as removable filters. Anonymous recent searches stay private on the device, and the complete search workspace survives route navigation and refreshes without repeating a scrape.
+Smart search separates the product phrase from refinements before scraping. For example, `Corolla 2008-2010 under 120k km 150-250 hp automatic 4x4 under 10k EUR -piese`, `Lenovo laptop 16GB RAM 512GB 15.6 inch`, `smart TV Samsung 55 inch`, and `apartament de închiriat 2-3 camere 70-100 m2` fetch a broad product set once, then apply detected ranges and verified 999.md metadata instantly in the browser. Local autocomplete ranks private recent searches, items, categories and context-aware refinements without sending individual keystrokes over the network. A compact browser covers every useful public 999 marketplace category, while vehicles, devices, computers, TVs and property expose deeper structured facets. The API streams and caches the unfiltered search set, so cleanup, sorting, prices, currencies, photos, conditions, ranges, and exclusions are reversible in-memory operations that never require another search. Anonymous recent searches stay private on the device, and the complete search workspace survives route navigation and refreshes without repeating a scrape.
 
 ## Direct development
 

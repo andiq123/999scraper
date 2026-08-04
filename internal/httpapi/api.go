@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -243,38 +242,26 @@ type searchEvent struct {
 	Message     string          `json:"message,omitempty"`
 }
 
+type productSearchRequest struct {
+	ProductSearchCriteria string `json:"productSearchCriteria"`
+}
+
 func (a *API) productsStream(w http.ResponseWriter, r *http.Request) {
-	var filters model.Filters
-	if !decode(w, r, &filters) {
+	var request productSearchRequest
+	if !decode(w, r, &request) {
 		return
 	}
-	filters.ProductSearchCriteria = strings.TrimSpace(filters.ProductSearchCriteria)
-	if filters.ProductSearchCriteria == "" {
+	query := strings.TrimSpace(request.ProductSearchCriteria)
+	if query == "" {
 		writeError(w, http.StatusBadRequest, "search criteria is required")
 		return
 	}
-	if len(filters.ProductSearchCriteria) > 160 || len(filters.KeysToExclude) > 24 {
-		writeError(w, http.StatusBadRequest, "search filters are too large")
-		return
-	}
-	if filters.Intent != "" && !slices.Contains([]string{"car", "iphone", "phone", "playstation", "laptop", "tv", "realEstate"}, filters.Intent) {
-		writeError(w, http.StatusBadRequest, "unsupported search intent")
-		return
-	}
-	if (filters.YearFrom != 0 && (filters.YearFrom < 1950 || filters.YearFrom > 2030)) ||
-		(filters.YearTo != 0 && (filters.YearTo < 1950 || filters.YearTo > 2030)) ||
-		(filters.YearFrom != 0 && filters.YearTo != 0 && filters.YearFrom > filters.YearTo) {
-		writeError(w, http.StatusBadRequest, "invalid year range")
-		return
-	}
-	if filters.PriceMin < 0 || filters.PriceMax < 0 || filters.PriceMin > 1_000_000_000 || filters.PriceMax > 1_000_000_000 ||
-		(filters.PriceMin != 0 && filters.PriceMax != 0 && filters.PriceMin > filters.PriceMax) ||
-		(filters.Currency != nil && (*filters.Currency < 0 || *filters.Currency > 2)) {
-		writeError(w, http.StatusBadRequest, "invalid price filters")
+	if len(query) > 160 {
+		writeError(w, http.StatusBadRequest, "search criteria is too large")
 		return
 	}
 	if claims := auth.ClaimsFrom(r.Context()); claims != nil {
-		if err := a.store.AddSearch(r.Context(), claims.Subject, filters.ProductSearchCriteria); err != nil {
+		if err := a.store.AddSearch(r.Context(), claims.Subject, query); err != nil {
 			a.logger.Warn("search history was not saved", "error", err)
 		}
 	}
@@ -284,22 +271,22 @@ func (a *API) productsStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if cached, ok := a.cachedSearch(r.Context(), filters); ok {
-		a.streamCached(w, flusher, cached, filters)
+	if cached, ok := a.cachedSearch(r.Context(), query); ok {
+		a.streamCached(w, flusher, cached)
 		return
 	}
-	release, err := a.queries.acquire(r.Context(), filters.ProductSearchCriteria)
+	release, err := a.queries.acquire(r.Context(), query)
 	if err != nil {
 		return
 	}
 	defer release()
-	if cached, ok := a.cachedSearch(r.Context(), filters); ok {
-		a.streamCached(w, flusher, cached, filters)
+	if cached, ok := a.cachedSearch(r.Context(), query); ok {
+		a.streamCached(w, flusher, cached)
 		return
 	}
 	var writer *streamWriter
 	loadedPages := 0
-	products, err := a.scraper.SearchStream(r.Context(), filters.ProductSearchCriteria, func(batch scraper.Batch) error {
+	products, err := a.scraper.SearchStream(r.Context(), query, func(batch scraper.Batch) error {
 		if writer == nil {
 			writer = beginStream(w, flusher)
 			if err := writer.write(searchEvent{Type: "start", TotalPages: batch.TotalPages}); err != nil {
@@ -327,16 +314,21 @@ func (a *API) productsStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	container := model.ProductsContainer{Products: products}
-	a.cache.SetSearch(r.Context(), filters.ProductSearchCriteria, container)
 	_ = writer.write(searchEvent{Type: "done", LoadedPages: loadedPages})
+
+	// Results are already delivered. Finish populating Redis under the query
+	// gate even if this client disconnects, so the next identical search hits
+	// cache instead of scraping again.
+	cacheCtx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 2*time.Second)
+	defer cancel()
+	a.cache.SetSearch(cacheCtx, query, model.ProductsContainer{Products: products})
 }
 
-func (a *API) cachedSearch(ctx context.Context, filters model.Filters) (model.ProductsContainer, bool) {
-	return a.cache.GetQuery(ctx, filters.ProductSearchCriteria)
+func (a *API) cachedSearch(ctx context.Context, query string) (model.ProductsContainer, bool) {
+	return a.cache.GetQuery(ctx, query)
 }
 
-func (a *API) streamCached(w http.ResponseWriter, flusher http.Flusher, cached model.ProductsContainer, filters model.Filters) {
+func (a *API) streamCached(w http.ResponseWriter, flusher http.Flusher, cached model.ProductsContainer) {
 	writer := beginStream(w, flusher)
 	totalPages := max((len(cached.Products)+39)/40, 1)
 	_ = writer.write(searchEvent{Type: "start", TotalPages: totalPages})
@@ -361,7 +353,8 @@ type streamWriter struct {
 
 func beginStream(w http.ResponseWriter, flusher http.Flusher) *streamWriter {
 	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-store, no-transform")
+	w.Header().Set("Cache-Control", "no-cache, no-store, no-transform")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("X-Accel-Buffering", "no")
 	w.WriteHeader(http.StatusOK)
 	flusher.Flush()

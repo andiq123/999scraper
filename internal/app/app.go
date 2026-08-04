@@ -28,6 +28,7 @@ func New(ctx context.Context, logger *slog.Logger) (*http.Server, func(), error)
 	scrape := scraper.New(cfg.ScraperBaseURL, scraper.Options{
 		MaxPages:       cfg.ScraperMaxPage,
 		Concurrency:    cfg.ScraperWorkers,
+		MaxSearches:    cfg.ScraperSearches,
 		MinInterval:    cfg.ScraperDelay,
 		MaxRetries:     cfg.ScraperRetries,
 		RequestTimeout: 20 * time.Second,

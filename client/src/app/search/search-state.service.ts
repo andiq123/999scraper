@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { Product, SortOrder } from '../models';
 
-const storageKey = '999scraper.search.v5';
+const storageKey = '999scraper.search.v6';
 const maxAge = 12 * 60 * 60 * 1000;
 
 export interface SearchState {
@@ -33,6 +33,12 @@ export interface SearchState {
   areaTo: number | null;
   screenFrom: number | null;
   screenTo: number | null;
+  mileageFrom: number | null;
+  mileageTo: number | null;
+  powerFrom: number | null;
+  powerTo: number | null;
+  drivetrain: string | null;
+  bodyType: string | null;
   deviceTags: string[];
   condition: 'new' | 'used' | null;
   listingMode: 'sale' | 'rent' | null;
@@ -55,7 +61,9 @@ export class SearchStateService {
     this.cached.set(state);
     if (this.writeTimer !== undefined) window.clearTimeout(this.writeTimer);
     if (immediately) return this.write(state);
-    this.writeTimer = window.setTimeout(() => this.write(state), 180);
+    // Route navigation uses the in-memory snapshot immediately. Persist the
+    // growing streamed list less often because sessionStorage is synchronous.
+    this.writeTimer = window.setTimeout(() => this.write(state), 900);
   }
 
   private write(state: SearchState): void {
@@ -109,7 +117,8 @@ function isSearchState(value: unknown): value is SearchState {
     && [state.yearFrom, state.yearTo, state.priceMin, state.priceMax, state.priceCurrency, state.generationFrom,
       state.generationTo, state.storageFrom, state.storageTo, state.ramFrom, state.ramTo, state.roomsFrom,
       state.roomsTo, state.areaFrom, state.areaTo, state.screenFrom, state.screenTo].every(isNullableNumber)
-    && [state.fuel, state.transmission].every(isNullableString)
+    && [state.mileageFrom, state.mileageTo, state.powerFrom, state.powerTo].every(isNullableNumber)
+    && [state.fuel, state.transmission, state.drivetrain, state.bodyType].every(isNullableString)
     && (state.condition === null || state.condition === 'new' || state.condition === 'used')
     && (state.listingMode === null || state.listingMode === 'sale' || state.listingMode === 'rent')
     && isStringArray(state.excludedWords)

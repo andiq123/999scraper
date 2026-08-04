@@ -18,7 +18,10 @@ type Cache struct {
 	logger *slog.Logger
 }
 
-const searchTTL = 5 * time.Minute
+const (
+	searchTTL    = 5 * time.Minute
+	maxEntrySize = 4 << 20
+)
 
 func Open(ctx context.Context, rawURL string, logger *slog.Logger) *Cache {
 	options, err := redis.ParseURL(rawURL)
@@ -54,16 +57,21 @@ func (c *Cache) get(ctx context.Context, key string) (model.ProductsContainer, b
 		return model.ProductsContainer{}, false
 	}
 	var result model.ProductsContainer
-	if json.Unmarshal(data, &result) != nil {
+	if err := json.Unmarshal(data, &result); err != nil {
+		_ = c.client.Del(ctx, key).Err()
 		return model.ProductsContainer{}, false
 	}
 	return result, true
 }
 
 func (c *Cache) SetSearch(ctx context.Context, query string, value model.ProductsContainer) {
-	data, _ := json.Marshal(value)
+	data, err := json.Marshal(value)
+	if err != nil {
+		c.logger.Warn("cache encoding failed", "error", err)
+		return
+	}
 	key := queryKey(query)
-	if c.client == nil || key == "" || len(data) == 0 {
+	if c.client == nil || key == "" || len(data) == 0 || len(data) > maxEntrySize {
 		return
 	}
 	if err := c.client.Set(ctx, key, data, searchTTL).Err(); err != nil {
@@ -77,5 +85,5 @@ func queryKey(query string) string {
 		return ""
 	}
 	sum := sha256.Sum256([]byte(query))
-	return fmt.Sprintf("search-query:v4:%x", sum)
+	return fmt.Sprintf("search-query:v5:%x", sum)
 }

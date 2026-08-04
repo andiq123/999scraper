@@ -2,8 +2,8 @@
   <header class="page-heading"><p>Personal library</p><h1>Saved listings</h1><span>Keep promising finds in one quiet place.</span></header>
   @if (library.saved().length) {
     <div class="grid" animate.enter="reveal-enter" animate.leave="reveal-leave">
-      @for (item of library.saved(); track item.product.id) {
-        <app-product-card animate.leave="reveal-leave" [product]="item.product" [saved]="true" (save)="toggle($event)" />
+      @for (item of library.saved(); track item.product.id; let index = $index) {
+        <app-product-card animate.leave="reveal-leave" [product]="item.product" [saved]="true" [eager]="index < 6" [priority]="index === 0" (save)="toggle($event)" />
       }
     </div>
   } @else {

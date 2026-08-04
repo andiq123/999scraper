@@ -1,7 +1,7 @@
 <article class="ui-surface">
   <a class="media" [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'Open ' + product().title + ' on 999.md'">
     @if (product().thumbnailURL) {
-      <img [src]="product().thumbnailURL" [alt]="product().title" loading="lazy" decoding="async">
+      <img [src]="product().thumbnailURL" [alt]="product().title" width="320" height="240" [attr.loading]="eager() ? 'eager' : 'lazy'" [attr.fetchpriority]="priority() ? 'high' : 'auto'" decoding="async">
     } @else {
       <div class="placeholder">No image</div>
     }

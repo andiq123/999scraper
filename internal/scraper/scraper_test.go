@@ -11,84 +11,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-
-	"github.com/andi/999scraper/internal/model"
 )
-
-func TestFilter(t *testing.T) {
-	cheap, expensive := 100, 200
-	products := []model.Product{{Title: "phone case", Price: &cheap}, {Title: "boosted phone", Price: &expensive, IsBoosted: true}, {Title: "other", Price: nil}}
-	got := Filter(products, model.Filters{ProductSearchCriteria: "phone", ExcludeOtherAds: true, ExcludeBoosted: true})
-	if len(got) != 1 || got[0].Title != "phone case" {
-		t.Fatalf("unexpected result: %#v", got)
-	}
-}
-
-func TestFilterUsesWordBoundariesAndVehicleMetadata(t *testing.T) {
-	price := 100
-	products := []model.Product{
-		{Title: "Honda Civic", Price: &price, Year: 2018},
-		{Title: "Honda Civic covorașe", Price: &price},
-		{Title: "Honda Civic Pro", Price: &price, Year: 2022},
-	}
-	got := Filter(products, model.Filters{
-		ProductSearchCriteria: "Civic Honda",
-		ExcludeOtherAds:       true,
-		Intent:                "car",
-		YearFrom:              2015,
-		YearTo:                2020,
-		KeysToExclude:         []string{"pro"},
-	})
-	if len(got) != 1 || got[0].Year != 2018 {
-		t.Fatalf("expected the matching vehicle only, got %#v", got)
-	}
-
-	got = Filter([]model.Product{{Title: "Professional phone", Price: &price}}, model.Filters{
-		ProductSearchCriteria: "phone", ExcludeOtherAds: true, KeysToExclude: []string{"pro"},
-	})
-	if len(got) != 1 {
-		t.Fatalf("short exclusions must not match inside another word")
-	}
-}
-
-func TestFilterIgnoresGenericIntentWords(t *testing.T) {
-	price := 12_000
-	products := []model.Product{
-		{Title: "Lenovo ThinkPad T14", Price: &price, Processor: "Intel Core i7"},
-		{Title: "Dell Latitude laptop", Price: &price, Processor: "Intel Core i5"},
-	}
-	got := Filter(products, model.Filters{ProductSearchCriteria: "lenovo laptop", Intent: "laptop", ExcludeOtherAds: true})
-	if len(got) != 1 || got[0].Title != "Lenovo ThinkPad T14" {
-		t.Fatalf("generic category words should not reject structured results: %#v", got)
-	}
-}
-
-func TestSmartCarCleanupRemovesPartsAndImplausiblePrices(t *testing.T) {
-	one, carPrice := 1, 12_000
-	products := []model.Product{
-		{Title: "Tesla Model 3", Price: &carPrice, Currency: 1, Year: 2021, Make: "Tesla", Model: "Model 3"},
-		{Title: "Piese Tesla Model 3", Price: &one, Currency: 1, Year: 2025, Make: "Tesla", Model: "Model 3"},
-		{Title: "Tesla Model 3", Price: &one, Currency: 1, Year: 2021, Make: "Tesla", Model: "Model 3"},
-	}
-	got := Filter(products, model.Filters{ProductSearchCriteria: "Tesla Model 3", Intent: "car", SmartCleanup: true, ExcludeOtherAds: true})
-	if len(got) != 1 || got[0].Price == nil || *got[0].Price != carPrice {
-		t.Fatalf("expected only the plausible car, got %#v", got)
-	}
-}
-
-func TestPriceAndCurrencyFilters(t *testing.T) {
-	cheap, matching, expensive := 100, 500, 900
-	eur := 1
-	products := []model.Product{
-		{Title: "phone", Price: &cheap, Currency: 1},
-		{Title: "phone", Price: &matching, Currency: 1},
-		{Title: "phone", Price: &expensive, Currency: 2},
-	}
-	got := Filter(products, model.Filters{ProductSearchCriteria: "phone", PriceMin: 200, PriceMax: 700, Currency: &eur})
-	if len(got) != 1 || got[0].Currency != 1 || *got[0].Price != matching {
-		t.Fatalf("unexpected filtered prices: %#v", got)
-	}
-}
 
 func TestSearchStreamsPagesWithBoundedConcurrency(t *testing.T) {
 	var active atomic.Int32
@@ -128,6 +51,36 @@ func TestSearchStreamsPagesWithBoundedConcurrency(t *testing.T) {
 	}
 	if peak.Load() != 2 {
 		t.Fatalf("expected concurrency to be bounded at 2, peak was %d", peak.Load())
+	}
+}
+
+func TestConcurrentSearchesAreBounded(t *testing.T) {
+	var active atomic.Int32
+	var peak atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		current := active.Add(1)
+		defer active.Add(-1)
+		for current > peak.Load() && !peak.CompareAndSwap(peak.Load(), current) {
+		}
+		time.Sleep(20 * time.Millisecond)
+		_, _ = w.Write([]byte(`{"data":{"searchAds":{"ads":[],"count":0}}}`))
+	}))
+	defer server.Close()
+
+	s := New(server.URL, Options{MaxPages: 1, Concurrency: 1, MaxSearches: 1, MinInterval: time.Millisecond, RequestTimeout: time.Second})
+	var wg sync.WaitGroup
+	for index := range 3 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if _, err := s.Search(context.Background(), fmt.Sprintf("query-%d", index)); err != nil {
+				t.Errorf("search failed: %v", err)
+			}
+		}()
+	}
+	wg.Wait()
+	if peak.Load() != 1 {
+		t.Fatalf("expected one concurrent search, peak was %d", peak.Load())
 	}
 }
 
@@ -191,26 +144,6 @@ func TestLiveSearch(t *testing.T) {
 	}
 }
 
-func TestLiveSmartCarSearch(t *testing.T) {
-	if os.Getenv("LIVE_TEST") == "" {
-		t.Skip("set LIVE_TEST=1 to call 999.md")
-	}
-	s := New("https://999.md", Options{MaxPages: 1, Concurrency: 1, MinInterval: 100 * time.Millisecond, MaxRetries: 2})
-	products, err := s.Search(context.Background(), "tesla model 3")
-	if err != nil {
-		t.Fatal(err)
-	}
-	clean := Filter(products, model.Filters{ProductSearchCriteria: "tesla model 3", Intent: "car", SmartCleanup: true, ExcludeBoosted: true, ExcludeOtherAds: true})
-	if len(clean) == 0 {
-		t.Fatal("smart cleanup removed every live car result")
-	}
-	for _, product := range clean {
-		if !isPlausibleCar(product, words(product.Title)) {
-			t.Fatalf("smart cleanup retained an implausible result: %#v", product)
-		}
-	}
-}
-
 func TestParsePrice(t *testing.T) {
 	price, currency, label := parsePrice(json.RawMessage(`{"unit":"UNIT_MDL","value":12500}`))
 	if price == nil || *price != 12500 || currency != 0 || label != "" {
@@ -227,10 +160,14 @@ func TestProductPreservesSmartFacets(t *testing.T) {
 	ad.Model.Value.Translated = "Corolla"
 	ad.Fuel.Value.Translated = "Benzină"
 	ad.Transmission.Value.Translated = "Automată"
+	ad.BodyType.Value = json.RawMessage(`{"translated":"Crossover"}`)
+	ad.Mileage.Value = json.RawMessage(`{"unit":"UNIT_KILOMETER","value":75000}`)
+	ad.Power.Value = json.RawMessage(`{"unit":"UNIT_HORSEPOWER","value":174}`)
+	ad.Drivetrain.Value = json.RawMessage(`{"translated":"4x4"}`)
 	ad.Condition.Value.Translated = "Cu rulaj"
 	ad.OfferType.Value = json.RawMessage(`{"translated":"Vând","value":1}`)
 	product := New("https://999.md", Options{}).product(ad)
-	if product.Year != 2010 || product.Fuel != "Benzină" || product.Transmission != "Automată" || product.Condition != "Cu rulaj" || product.OfferType != "Vând" {
+	if product.Year != 2010 || product.Fuel != "Benzină" || product.Transmission != "Automată" || product.BodyType != "Crossover" || product.Mileage != 75000 || product.Power != 174 || product.Drivetrain != "4x4" || product.Condition != "Cu rulaj" || product.OfferType != "Vând" {
 		t.Fatalf("smart facets were not preserved: %#v", product)
 	}
 }

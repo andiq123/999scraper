@@ -9,13 +9,10 @@ import (
 	"io"
 	"math/rand/v2"
 	"net/http"
-	"slices"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"unicode"
 
 	"github.com/andi/999scraper/internal/model"
 )
@@ -37,6 +34,10 @@ const searchQuery = `query SearchAds($input: Ads_SearchInput!) {
       make: feature(id: 20) { value }
       model: feature(id: 21) { value }
       transmission: feature(id: 101) { value }
+      bodyType: feature(id: 102) { value }
+      mileage: feature(id: 104) { value }
+      power: feature(id: 107) { value }
+      drivetrain: feature(id: 108) { value }
       fuel: feature(id: 151) { value }
       phoneModel: feature(id: 590) { value }
       consoleModel: feature(id: 694) { value }
@@ -74,6 +75,7 @@ const searchQuery = `query SearchAds($input: Ads_SearchInput!) {
 type Options struct {
 	MaxPages       int
 	Concurrency    int
+	MaxSearches    int
 	MinInterval    time.Duration
 	MaxRetries     int
 	RequestTimeout time.Duration
@@ -86,11 +88,12 @@ type Batch struct {
 }
 
 type Scraper struct {
-	baseURL    string
-	options    Options
-	client     *http.Client
-	throttleMu sync.Mutex
-	nextStart  time.Time
+	baseURL     string
+	options     Options
+	client      *http.Client
+	throttleMu  sync.Mutex
+	nextStart   time.Time
+	searchSlots chan struct{}
 }
 
 type graphQLRequest struct {
@@ -131,6 +134,10 @@ type advert struct {
 		Value choiceValue `json:"value"`
 	} `json:"model"`
 	Transmission     choiceFeature `json:"transmission"`
+	BodyType         rawFeature    `json:"bodyType"`
+	Mileage          rawFeature    `json:"mileage"`
+	Power            rawFeature    `json:"power"`
+	Drivetrain       rawFeature    `json:"drivetrain"`
 	Fuel             choiceFeature `json:"fuel"`
 	PhoneModel       choiceFeature `json:"phoneModel"`
 	ConsoleModel     choiceFeature `json:"consoleModel"`
@@ -201,6 +208,9 @@ func New(baseURL string, options Options) *Scraper {
 	if options.Concurrency > options.MaxPages {
 		options.Concurrency = options.MaxPages
 	}
+	if options.MaxSearches < 1 {
+		options.MaxSearches = 2
+	}
 	if options.MinInterval <= 0 {
 		options.MinInterval = 350 * time.Millisecond
 	}
@@ -212,14 +222,16 @@ func New(baseURL string, options Options) *Scraper {
 	}
 
 	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.MaxIdleConns = options.Concurrency * 2
-	transport.MaxIdleConnsPerHost = options.Concurrency
-	transport.MaxConnsPerHost = options.Concurrency
+	connections := options.Concurrency * options.MaxSearches
+	transport.MaxIdleConns = connections * 2
+	transport.MaxIdleConnsPerHost = connections
+	transport.MaxConnsPerHost = connections
 	transport.IdleConnTimeout = 90 * time.Second
 
 	return &Scraper{
-		baseURL: strings.TrimRight(baseURL, "/"),
-		options: options,
+		baseURL:     strings.TrimRight(baseURL, "/"),
+		options:     options,
+		searchSlots: make(chan struct{}, options.MaxSearches),
 		client: &http.Client{
 			Timeout:   options.RequestTimeout,
 			Transport: transport,
@@ -235,6 +247,12 @@ func (s *Scraper) Search(ctx context.Context, query string) ([]model.Product, er
 // remaining pages with bounded concurrency. Request starts are globally spaced
 // across all searches handled by this Scraper instance.
 func (s *Scraper) SearchStream(ctx context.Context, query string, yield func(Batch) error) ([]model.Product, error) {
+	select {
+	case s.searchSlots <- struct{}{}:
+		defer func() { <-s.searchSlots }()
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 	query = strings.TrimSpace(query)
 	first, count, err := s.pageWithRetry(ctx, query, 0, pageSize)
 	if err != nil {
@@ -259,9 +277,11 @@ func (s *Scraper) SearchStream(ctx context.Context, query string, yield func(Bat
 
 	workCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	jobs := make(chan int, totalPages-1)
-	results := make(chan pageResult, totalPages-1)
 	workers := min(s.options.Concurrency, totalPages-1)
+	jobs := make(chan int, totalPages-1)
+	// Let a slow stream consumer push back on page workers instead of buffering
+	// every completed page in memory.
+	results := make(chan pageResult, workers)
 	var wg sync.WaitGroup
 	for worker := 0; worker < workers; worker++ {
 		wg.Add(1)
@@ -483,6 +503,10 @@ func (s *Scraper) product(ad advert) model.Product {
 		Model:         strings.TrimSpace(ad.Model.Value.Translated),
 		Fuel:          strings.TrimSpace(ad.Fuel.Value.Translated),
 		Transmission:  strings.TrimSpace(ad.Transmission.Value.Translated),
+		BodyType:      featureText(ad.BodyType.Value),
+		Mileage:       featureInt(ad.Mileage.Value),
+		Power:         featureInt(ad.Power.Value),
+		Drivetrain:    featureText(ad.Drivetrain.Value),
 		DeviceModel:   strings.TrimSpace(deviceModel),
 		Storage:       strings.TrimSpace(storage),
 		Brand:         brand,
@@ -512,6 +536,11 @@ func featureText(raw json.RawMessage) string {
 		return ""
 	}
 	return strings.TrimSpace(textValue(value))
+}
+
+func featureInt(raw json.RawMessage) int {
+	value, _ := strconv.Atoi(featureText(raw))
+	return value
 }
 
 func textValue(value any) string {
@@ -565,131 +594,4 @@ func parsePrice(raw json.RawMessage) (*int, int, string) {
 		currency = 2
 	}
 	return &value.Value, currency, ""
-}
-
-func Filter(products []model.Product, f model.Filters) []model.Product {
-	queryTokens := words(f.ProductSearchCriteria)
-	queryTokens = slices.DeleteFunc(queryTokens, func(word string) bool {
-		if f.Intent == "car" {
-			year, err := strconv.Atoi(word)
-			if err == nil && year >= 1950 && year <= 2030 {
-				return true
-			}
-		}
-		return slices.Contains(intentNoise[f.Intent], word)
-	})
-	result := make([]model.Product, 0, len(products))
-	for _, p := range products {
-		titleTokens := words(p.Title)
-		if (f.ExcludeOtherAds && !containsAll(titleTokens, queryTokens)) ||
-			(f.ExcludeBoosted && p.IsBoosted) ||
-			(f.ExcludePriceNegotiable && p.Price == nil) ||
-			(f.Intent == "car" && p.Year == 0) ||
-			(f.YearFrom > 0 && p.Year < f.YearFrom) ||
-			(f.YearTo > 0 && p.Year > f.YearTo) ||
-			(f.Currency != nil && p.Currency != *f.Currency) ||
-			(f.PriceMin > 0 && (p.Price == nil || *p.Price < f.PriceMin)) ||
-			(f.PriceMax > 0 && (p.Price == nil || *p.Price > f.PriceMax)) ||
-			(f.SmartCleanup && f.Intent == "car" && !isPlausibleCar(p, titleTokens)) {
-			continue
-		}
-		excluded := false
-		for _, exclusion := range f.KeysToExclude {
-			if containsPhrase(titleTokens, words(exclusion)) {
-				excluded = true
-				break
-			}
-		}
-		if !excluded {
-			result = append(result, p)
-		}
-	}
-	sort.SliceStable(result, func(i, j int) bool {
-		if result[i].Price == nil {
-			return false
-		}
-		if result[j].Price == nil {
-			return true
-		}
-		if f.Order == "priceDesc" {
-			return *result[i].Price > *result[j].Price
-		}
-		return *result[i].Price < *result[j].Price
-	})
-	return result
-}
-
-var intentNoise = map[string][]string{
-	"iphone":      {"iphone"},
-	"playstation": {"playstation"},
-	"phone":       {"telefon", "smartphone", "телефон", "смартфон"},
-	"laptop":      {"laptop", "laptops", "notebook", "ultrabook", "ноутбук"},
-	"tv":          {"tv", "televizor", "televizoare", "television", "телевизор"},
-	"realEstate":  {"apartament", "apartamente", "apartment", "casa", "house", "teren", "land", "квартира", "дом", "участок"},
-}
-
-var carNoise = map[string]struct{}{
-	"accesorii": {}, "acumulator": {}, "anvelope": {}, "capace": {}, "covorașe": {}, "covorase": {},
-	"dezmembrare": {}, "dezmembrări": {}, "faruri": {}, "huse": {}, "piese": {}, "roți": {}, "jante": {},
-	"scut": {}, "sticlă": {}, "sticla": {}, "radiator": {}, "radiatoare": {}, "adaptor": {},
-	"amortizator": {}, "amortizatoare": {}, "închiriere": {}, "inchiriere": {}, "chirie": {},
-	"reparație": {}, "reparatie": {}, "разборка": {}, "запчасти": {}, "детали": {}, "коврики": {},
-	"чехлы": {}, "диски": {}, "шины": {}, "аренда": {}, "ремонт": {},
-}
-
-func isPlausibleCar(product model.Product, titleTokens []string) bool {
-	if product.Make == "" || product.Model == "" || product.Year == 0 || product.Price == nil {
-		return false
-	}
-	for _, word := range titleTokens {
-		if _, noisy := carNoise[word]; noisy {
-			return false
-		}
-	}
-	minimum := 5_000
-	if product.Currency == 1 || product.Currency == 2 {
-		minimum = 300
-	}
-	return *product.Price >= minimum
-}
-
-func words(value string) []string {
-	return strings.FieldsFunc(strings.ToLower(value), func(r rune) bool {
-		return !unicode.IsLetter(r) && !unicode.IsNumber(r)
-	})
-}
-
-func containsAll(haystack, needles []string) bool {
-	for _, needle := range needles {
-		found := false
-		for _, word := range haystack {
-			if word == needle {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-	return len(needles) > 0
-}
-
-func containsPhrase(haystack, phrase []string) bool {
-	if len(phrase) == 0 || len(phrase) > len(haystack) {
-		return false
-	}
-	for start := 0; start <= len(haystack)-len(phrase); start++ {
-		match := true
-		for offset := range phrase {
-			if haystack[start+offset] != phrase[offset] {
-				match = false
-				break
-			}
-		}
-		if match {
-			return true
-		}
-	}
-	return false
 }

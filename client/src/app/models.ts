@@ -6,22 +6,6 @@ export interface SavedListing { product: Product; savedAt: string }
 
 export type SortOrder = 'relevance' | 'priceAsc' | 'priceDesc';
 
-export interface SearchFilters {
-  smartCleanup: boolean;
-  productSearchCriteria: string;
-  excludeBoosted: boolean;
-  excludePriceNegotiable: boolean;
-  excludeOtherAds: boolean;
-  order: SortOrder;
-  keysToExclude: string[];
-  intent?: 'car' | 'iphone' | 'phone' | 'playstation' | 'laptop' | 'tv' | 'realEstate';
-  yearFrom?: number;
-  yearTo?: number;
-  priceMin?: number;
-  priceMax?: number;
-  currency?: number;
-}
-
 export interface Product {
   id: string;
   title: string;
@@ -37,6 +21,10 @@ export interface Product {
   model?: string;
   fuel?: string;
   transmission?: string;
+  bodyType?: string;
+  mileage?: number;
+  power?: number;
+  drivetrain?: string;
   deviceModel?: string;
   storage?: string;
   brand?: string;

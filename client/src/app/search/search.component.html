@@ -1,30 +1,44 @@
 <main class="search-page">
-  <header class="search-heading">
-    <div><p>Market search</p><h1>What are you looking for?</h1></div>
-    @if (products().length) { <span>{{ products().length }} found</span> }
-  </header>
-
   <form class="search-form ui-surface" (submit)="search($event)">
     <label class="sr-only" for="search-query">Search 999.md</label>
-    <input id="search-query" autofocus autocomplete="off" enterkeyhint="search" list="recent-searches" placeholder="Try ‘Corolla automatic under 10k EUR -piese’" [value]="query()" (input)="updateQuery($any($event.target).value)">
-    <datalist id="recent-searches">@for (item of recentSearches.items(); track item) { <option [value]="item"></option> }</datalist>
-    <button class="ui-button ui-button-primary" type="submit" [disabled]="!query().trim() || loading() || yearRangeInvalid() || generationRangeInvalid() || storageRangeInvalid() || ramRangeInvalid() || roomsRangeInvalid() || areaRangeInvalid() || screenRangeInvalid() || priceRangeInvalid()">Search</button>
+    <input id="search-query" autofocus autocomplete="off" enterkeyhint="search" role="combobox" aria-autocomplete="list" aria-controls="search-suggestions" [attr.aria-expanded]="showSearchSuggestions()" [attr.aria-activedescendant]="activeSuggestionId()" placeholder="Try ‘Corolla automatic under 10k EUR -piese’" [value]="query()" (focus)="openSearchSuggestions()" (blur)="closeSearchSuggestions()" (input)="updateQuery($any($event.target).value)" (keydown)="handleSearchKeys($event)">
+    <button class="ui-button ui-button-primary" type="submit" [disabled]="!query().trim() || loading() || (!newSearchPending() && (yearRangeInvalid() || mileageRangeInvalid() || powerRangeInvalid() || generationRangeInvalid() || storageRangeInvalid() || ramRangeInvalid() || roomsRangeInvalid() || areaRangeInvalid() || screenRangeInvalid() || priceRangeInvalid()))">{{ newSearchPending() ? 'Update' : 'Search' }}</button>
+    @if (showSearchSuggestions()) {
+      <ul id="search-suggestions" class="search-suggestions" role="listbox" aria-label="Search suggestions">
+        @for (suggestion of searchSuggestions(); track suggestion.value; let index = $index) {
+          <li [id]="'search-suggestion-' + index" role="option" [attr.aria-selected]="activeSuggestionIndex() === index">
+            <button type="button" [class.active]="activeSuggestionIndex() === index" (pointerdown)="$event.preventDefault()" (mouseenter)="activeSuggestionIndex.set(index)" (click)="chooseSuggestion(suggestion)">
+              <span class="suggestion-icon" aria-hidden="true">{{ suggestion.kind === 'recent' ? '↺' : suggestion.kind === 'refine' ? '＋' : '⌕' }}</span>
+              <strong>{{ suggestion.label }}</strong>
+              <small>{{ suggestion.hint }}</small>
+            </button>
+          </li>
+        }
+      </ul>
+    }
   </form>
 
+  @if (newSearchPending()) {
+    <aside class="search-update" animate.enter="reveal-enter" animate.leave="reveal-leave" role="status">
+      <span aria-hidden="true">↻</span>
+      <p><strong>New search not submitted</strong><small>Results below are still for “{{ activeQuery() }}”. Press Update or Enter.</small></p>
+    </aside>
+  }
+
   @if (hasSmartPrompt()) {
-    <section class="smart-prompt ui-surface" animate.enter="reveal-enter" animate.leave="reveal-leave" aria-live="polite">
-      <div class="smart-icon" aria-hidden="true">✦</div>
-      <div class="smart-copy">
-        <strong>{{ smartTitle() }}</strong>
-        <span>{{ smartSummary() }}</span>
-      </div>
+    <details class="smart-prompt ui-surface" animate.enter="reveal-enter" animate.leave="reveal-leave" aria-live="polite">
+      <summary>
+        <span class="smart-icon" aria-hidden="true">✦</span>
+        <span class="smart-copy"><strong>{{ smartTitle() }}</strong><small>{{ smartSummary() }}</small></span>
+        <span class="refine-label">Refine</span>
+      </summary>
 
       <div class="smart-controls">
       @if (isVehicleSearch()) {
-        <div class="smart-fields year-range">
-          <label>Year from <input type="number" inputmode="numeric" min="1950" max="2030" placeholder="Any" [value]="yearFrom() ?? ''" (input)="setYear('from', $event)"></label>
-          <span>–</span>
-          <label>Year to <input type="number" inputmode="numeric" min="1950" max="2030" placeholder="Any" [value]="yearTo() ?? ''" (input)="setYear('to', $event)"></label>
+        <div class="vehicle-ranges">
+          <app-range-filter label="Year" [min]="1950" [max]="2027" [from]="yearFrom()" [to]="yearTo()" [presets]="yearPresets" (fromChange)="yearFrom.set($event)" (toChange)="yearTo.set($event)" />
+          <app-range-filter label="Mileage" unit="km" [min]="0" [max]="500000" [step]="5000" [from]="mileageFrom()" [to]="mileageTo()" [presets]="mileagePresets" (fromChange)="mileageFrom.set($event)" (toChange)="mileageTo.set($event)" />
+          <app-range-filter label="Power" unit="hp" [min]="0" [max]="1000" [step]="10" [from]="powerFrom()" [to]="powerTo()" [presets]="powerPresets" (fromChange)="powerFrom.set($event)" (toChange)="powerTo.set($event)" />
         </div>
         <div class="smart-choice">
           <span>Fuel</span>
@@ -40,7 +54,21 @@
             @for (option of transmissionOptions; track option) { <button type="button" [class.active]="transmission() === option" (click)="transmission.set(option)">{{ option }}</button> }
           </div>
         </div>
-        @if (yearRangeInvalid()) { <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">The first year must be earlier than the last.</p> }
+        <div class="smart-choice">
+          <span>Drivetrain</span>
+          <div class="choice-chips">
+            <button type="button" [class.active]="drivetrain() === null" (click)="drivetrain.set(null)">Any</button>
+            @for (option of drivetrainOptions; track option) { <button type="button" [class.active]="drivetrain() === option" (click)="drivetrain.set(option)">{{ option }}</button> }
+          </div>
+        </div>
+        <div class="smart-choice">
+          <span>Body</span>
+          <div class="choice-chips">
+            <button type="button" [class.active]="bodyType() === null" (click)="bodyType.set(null)">Any</button>
+            @for (option of bodyTypeOptions; track option) { <button type="button" [class.active]="bodyType() === option" (click)="bodyType.set(option)">{{ option }}</button> }
+          </div>
+        </div>
+        @if (yearRangeInvalid() || mileageRangeInvalid() || powerRangeInvalid()) { <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">The lower value must come before the upper value.</p> }
       } @else if (isDeviceSearch()) {
         <div class="smart-fields device-ranges">
           <div class="compact-range">
@@ -120,7 +148,7 @@
         </div>
       </div> }
       </div>
-    </section>
+    </details>
   }
 
   <div class="workspace">
@@ -164,7 +192,7 @@
         @if (priceRangeInvalid()) { <small>Minimum must be below maximum.</small> }
       </fieldset>
       <div class="quick-filters">
-        <label class="switch"><span><b>Smart cleanup</b><small>Parts, ads and fake prices</small></span><input role="switch" type="checkbox" [checked]="smartCleanup()" (change)="smartCleanup.set($any($event.target).checked)"></label>
+        <label class="switch"><span><b>Smart cleanup</b><small>Instant · parts, ads and fake prices</small></span><input role="switch" type="checkbox" [checked]="smartCleanup()" (change)="smartCleanup.set($any($event.target).checked)"></label>
         <label class="switch"><span>With photos</span><input role="switch" type="checkbox" [checked]="onlyWithPhotos()" (change)="onlyWithPhotos.set($any($event.target).checked)"></label>
         <label class="switch"><span>Fixed price</span><input role="switch" type="checkbox" [checked]="excludeNegotiable()" (change)="excludeNegotiable.set($any($event.target).checked)"></label>
       </div>
@@ -217,16 +245,17 @@
       @if (products().length) {
         <div class="result-bar" animate.enter="reveal-enter" animate.leave="reveal-leave">
           <p><strong>{{ products().length }}</strong> shown @if (hiddenCount()) { <span>· {{ hiddenCount() }} cleaned</span> }</p>
+          @if (visiblePriceSummary()) { <p class="visible-price" aria-label="Visible result price range"><small>Price</small><strong>{{ visiblePriceSummary() }}</strong></p> }
         </div>
-        <div class="grid" animate.enter="reveal-enter" animate.leave="reveal-leave">
-          @for (product of products(); track product.id) { <app-product-card animate.leave="reveal-leave" [product]="product" [saved]="library.savedIds().has(product.id)" [convertedPrice]="currency.label(product, priceCurrency())" (save)="toggleSaved($event)" (exclude)="addExclusion($event)" /> }
+        <div class="grid">
+          @for (product of products(); track product.id; let index = $index) { <app-product-card [product]="product" [saved]="library.savedIds().has(product.id)" [eager]="index < 6" [priority]="index === 0" [convertedPrice]="currency.label(product, priceCurrency())" (save)="toggleSaved($event)" (exclude)="addExclusion($event)" /> }
         </div>
       } @else if (searched() && !loading()) {
         <div class="empty empty-state" animate.enter="reveal-enter" animate.leave="reveal-leave"><h2>No products found</h2><p>Try a broader search or fewer filters.</p>@if (hasCustomFilters()) { <button class="ui-button ui-button-primary" type="button" (click)="resetFilters()">Show broader results</button> }</div>
       } @else if (loading()) {
         <div class="spinner" animate.enter="reveal-enter" animate.leave="reveal-leave" aria-label="Loading"></div>
       } @else {
-        <div class="welcome" animate.enter="reveal-enter" animate.leave="reveal-leave">
+        <div class="welcome">
           <span aria-hidden="true">⌕</span>
           <h2>Search the marketplace</h2>
           <p>Browse without an account. Log in only when you want to save a listing or keep your cleanup preferences.</p>
@@ -237,6 +266,14 @@
               <button class="clear-recent" type="button" (click)="recentSearches.clear()">Clear</button>
             </div>
           }
+          <details class="category-browser">
+            <summary>Browse all 999 categories</summary>
+            <div>
+              @for (category of marketCategories; track category.label) {
+                <button type="button" (click)="runCategory(category.query)">{{ category.label }}</button>
+              }
+            </div>
+          </details>
         </div>
       }
     </section>

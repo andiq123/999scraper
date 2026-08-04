@@ -44,6 +44,10 @@ type Product struct {
 	Model         string `json:"model,omitempty"`
 	Fuel          string `json:"fuel,omitempty"`
 	Transmission  string `json:"transmission,omitempty"`
+	BodyType      string `json:"bodyType,omitempty"`
+	Mileage       int    `json:"mileage,omitempty"`
+	Power         int    `json:"power,omitempty"`
+	Drivetrain    string `json:"drivetrain,omitempty"`
 	DeviceModel   string `json:"deviceModel,omitempty"`
 	Storage       string `json:"storage,omitempty"`
 	Brand         string `json:"brand,omitempty"`
@@ -61,22 +65,6 @@ type Product struct {
 	Category      string `json:"category,omitempty"`
 	Condition     string `json:"condition,omitempty"`
 	URLToProduct  string `json:"urlToProduct"`
-}
-
-type Filters struct {
-	SmartCleanup           bool     `json:"smartCleanup"`
-	ExcludeBoosted         bool     `json:"excludeBoosted"`
-	ExcludePriceNegotiable bool     `json:"excludePriceNegotiable"`
-	ExcludeOtherAds        bool     `json:"excludeOtherAds"`
-	Order                  string   `json:"order"`
-	KeysToExclude          []string `json:"keysToExclude"`
-	ProductSearchCriteria  string   `json:"productSearchCriteria"`
-	Intent                 string   `json:"intent,omitempty"`
-	YearFrom               int      `json:"yearFrom,omitempty"`
-	YearTo                 int      `json:"yearTo,omitempty"`
-	PriceMin               int      `json:"priceMin,omitempty"`
-	PriceMax               int      `json:"priceMax,omitempty"`
-	Currency               *int     `json:"currency,omitempty"`
 }
 
 type ProductsContainer struct {

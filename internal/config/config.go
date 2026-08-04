@@ -8,18 +8,19 @@ import (
 )
 
 type Config struct {
-	Address        string
-	DatabaseURL    string
-	RedisURL       string
-	JWTSecret      string
-	JWTIssuer      string
-	JWTLifetime    time.Duration
-	CookieSecure   bool
-	ScraperBaseURL string
-	ScraperMaxPage int
-	ScraperWorkers int
-	ScraperDelay   time.Duration
-	ScraperRetries int
+	Address         string
+	DatabaseURL     string
+	RedisURL        string
+	JWTSecret       string
+	JWTIssuer       string
+	JWTLifetime     time.Duration
+	CookieSecure    bool
+	ScraperBaseURL  string
+	ScraperMaxPage  int
+	ScraperWorkers  int
+	ScraperSearches int
+	ScraperDelay    time.Duration
+	ScraperRetries  int
 }
 
 // Load reads and validates the API's environment-based runtime configuration.
@@ -31,6 +32,10 @@ func Load() (Config, error) {
 	workers, err := strconv.Atoi(env("SCRAPER_WORKERS", "3"))
 	if err != nil || workers < 1 || workers > 8 {
 		return Config{}, fmt.Errorf("SCRAPER_WORKERS must be between 1 and 8")
+	}
+	searches, err := strconv.Atoi(env("SCRAPER_CONCURRENT_SEARCHES", "2"))
+	if err != nil || searches < 1 || searches > 4 {
+		return Config{}, fmt.Errorf("SCRAPER_CONCURRENT_SEARCHES must be between 1 and 4")
 	}
 	delay, err := time.ParseDuration(env("SCRAPER_REQUEST_DELAY", "350ms"))
 	if err != nil || delay < 100*time.Millisecond {
@@ -45,18 +50,19 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("COOKIE_SECURE must be true or false")
 	}
 	cfg := Config{
-		Address:        env("APP_ADDRESS", ":8080"),
-		DatabaseURL:    env("DATABASE_URL", "postgres://appuser:secret@localhost:5432/999scraper?sslmode=disable"),
-		RedisURL:       env("REDIS_URL", "redis://localhost:6379/0"),
-		JWTSecret:      env("JWT_SECRET", "local-development-key-change-me-please"),
-		JWTIssuer:      env("JWT_ISSUER", "999scraper"),
-		JWTLifetime:    30 * 24 * time.Hour,
-		CookieSecure:   cookieSecure,
-		ScraperBaseURL: env("SCRAPER_BASE_URL", "https://999.md"),
-		ScraperMaxPage: maxPages,
-		ScraperWorkers: workers,
-		ScraperDelay:   delay,
-		ScraperRetries: retries,
+		Address:         env("APP_ADDRESS", ":8080"),
+		DatabaseURL:     env("DATABASE_URL", "postgres://appuser:secret@localhost:5432/999scraper?sslmode=disable"),
+		RedisURL:        env("REDIS_URL", "redis://localhost:6379/0"),
+		JWTSecret:       env("JWT_SECRET", "local-development-key-change-me-please"),
+		JWTIssuer:       env("JWT_ISSUER", "999scraper"),
+		JWTLifetime:     30 * 24 * time.Hour,
+		CookieSecure:    cookieSecure,
+		ScraperBaseURL:  env("SCRAPER_BASE_URL", "https://999.md"),
+		ScraperMaxPage:  maxPages,
+		ScraperWorkers:  workers,
+		ScraperSearches: searches,
+		ScraperDelay:    delay,
+		ScraperRetries:  retries,
 	}
 	if len(cfg.JWTSecret) < 32 {
 		return Config{}, fmt.Errorf("JWT_SECRET must contain at least 32 characters")

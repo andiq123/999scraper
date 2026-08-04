@@ -12,10 +12,14 @@ export interface SearchIntent {
   rooms: NumberRange;
   area: NumberRange;
   screen: NumberRange;
+  mileage: NumberRange;
+  power: NumberRange;
   price: NumberRange;
   currency: number | null;
   fuel: string | null;
   transmission: string | null;
+  drivetrain: string | null;
+  bodyType: string | null;
   condition: 'new' | 'used' | null;
   listingMode: 'sale' | 'rent' | null;
   tags: string[];
@@ -24,6 +28,8 @@ export interface SearchIntent {
 
 export const fuelOptions = ['Benzină', 'Diesel', 'Hybrid', 'Electricitate', 'Gaz'] as const;
 export const transmissionOptions = ['Automată', 'Mecanică', 'Variator', 'Robotizată'] as const;
+export const drivetrainOptions = ['Din față', 'Din spate', '4x4'] as const;
+export const bodyTypeOptions = ['Sedan', 'SUV', 'Crossover', 'Hatchback', 'Universal', 'Coupe', 'Minivan'] as const;
 export const storageOptions = [64, 128, 256, 512, 1024, 2048] as const;
 
 const vehicleMakes = new Set([
@@ -38,6 +44,7 @@ const vehicleModels = new Set([
   'sandero', 'sportage', 'tucson', 'x5', 'x6',
 ]);
 const vehiclePhrases = ['land cruiser', 'model 3', 'model s', 'model x', 'model y', 'range rover'];
+const vehicleWords = new Set(['autoturism', 'autoturisme', 'automobil', 'automobile', 'masina', 'masini', 'vehicle', 'автомобиль', 'автомобили']);
 const laptopWords = new Set(['laptop', 'laptops', 'notebook', 'ultrabook', 'macbook', 'thinkpad', 'ideapad', 'chromebook', 'ноутбук']);
 const phoneWords = new Set(['telefon', 'telefonul', 'smartphone', 'samsung', 'galaxy', 'xiaomi', 'redmi', 'pixel', 'huawei', 'honor', 'oneplus', 'oppo', 'realme', 'телефон', 'смартфон']);
 const tvWords = new Set(['televizor', 'televizoare', 'television', 'smarttv', 'телевизор']);
@@ -60,6 +67,16 @@ const transmissions: ReadonlyArray<[string, readonly string[]]> = [
   ['Variator', ['cvt', 'variator', 'вариатор']],
   ['Robotizată', ['robotized', 'robotizata', 'robotizată', 'робот']],
 ];
+const drivetrains: ReadonlyArray<[string, readonly string[]]> = [
+  ['4x4', ['4x4', 'awd', 'tractiune integrala', 'полный привод']],
+  ['Din față', ['fwd', 'tractiune fata', 'front wheel drive', 'передний привод']],
+  ['Din spate', ['rwd', 'tractiune spate', 'rear wheel drive', 'задний привод']],
+];
+const bodyTypes: ReadonlyArray<[string, readonly string[]]> = [
+  ['Sedan', ['sedan', 'седан']], ['SUV', ['suv', 'внедорожник']], ['Crossover', ['crossover', 'кроссовер']],
+  ['Hatchback', ['hatchback', 'хэтчбек']], ['Universal', ['wagon', 'estate', 'universal', 'универсал']],
+  ['Coupe', ['coupe', 'купе']], ['Minivan', ['minivan', 'минивэн']],
+];
 
 export function parseSearchIntent(input: string): SearchIntent {
   const original = input.trim();
@@ -77,7 +94,7 @@ export function parseSearchIntent(input: string): SearchIntent {
             ? 'phone'
             : words.some((word) => propertyWords.has(word))
               ? 'realEstate'
-      : words.some((word) => vehicleMakes.has(word) || vehicleModels.has(word)) || vehiclePhrases.some((phrase) => plain.includes(phrase))
+      : words.some((word) => vehicleMakes.has(word) || vehicleModels.has(word) || vehicleWords.has(word)) || vehiclePhrases.some((phrase) => plain.includes(phrase))
         ? 'vehicle'
         : 'generic';
 
@@ -98,10 +115,18 @@ export function parseSearchIntent(input: string): SearchIntent {
   const roomsMatch = kind === 'realEstate' ? plain.match(/(?:^|\s)(\d{1,2})(?:\s*(?:-|–|—|to)\s*(\d{1,2}))?\s*(?:camere?|rooms?|комнат\p{L}*)(?=\s|$)/u) : null;
   const areaMatch = kind === 'realEstate' ? plain.match(/(?:^|\s)(\d{1,4})(?:\s*(?:-|–|—|to)\s*(\d{1,4}))?\s*(?:m2|m²|mp|metri patrati|кв\.?\s*м)(?=\s|$)/u) : null;
   const screenMatch = ['laptop', 'phone', 'tv'].includes(kind) ? plain.match(/(?:^|\s)(\d{1,3}(?:[.,]\d)?)(?:\s*(?:-|–|—|to)\s*(\d{1,3}(?:[.,]\d)?))?\s*(?:inch(?:es)?|țoli|toli|дюйм\p{L}*|")(?=\s|$)/u) : null;
-  const price = priceIn(plain);
+  const mileage = kind === 'vehicle' ? unitRangeIn(plain, '(?:km|kilometri?|км)', ['rulaj', 'kilometraj', 'mileage', 'odometer', 'пробег']) : emptyDetectedRange();
+  const power = kind === 'vehicle' ? unitRangeIn(plain, '(?:hp|cp|cai putere|л\\.?с\\.?)', ['putere', 'power', 'мощность']) : emptyDetectedRange();
+  // A bare "under 120k" is a valid price expression, but not when it is
+  // immediately followed by km/hp. Remove detected measurements first so the
+  // same number can never become both a vehicle facet and a budget.
+  const priceSource = [mileage.match, power.match].filter(Boolean).reduce((value, match) => value.replace(match, ' '), plain);
+  const price = priceIn(priceSource);
   const exclusions = exclusionsIn(plain);
   const fuel = kind === 'vehicle' ? detectedChoice(plain, fuels) : null;
   const transmission = kind === 'vehicle' ? detectedChoice(plain, transmissions) : null;
+  const drivetrain = kind === 'vehicle' ? detectedPhraseChoice(plain, drivetrains) : null;
+  const bodyType = kind === 'vehicle' ? detectedPhraseChoice(plain, bodyTypes) : null;
   const listingMode = kind === 'realEstate' ? detectedPhraseChoice(plain, propertyModes) : null;
   const condition = kind === 'realEstate'
     ? null
@@ -124,6 +149,8 @@ export function parseSearchIntent(input: string): SearchIntent {
   if (roomsMatch) sourceQuery = sourceQuery.replace(roomsMatch[0], ' ');
   if (areaMatch) sourceQuery = sourceQuery.replace(areaMatch[0], ' ');
   if (screenMatch) sourceQuery = sourceQuery.replace(screenMatch[0], ' ');
+  if (mileage.match) sourceQuery = sourceQuery.replace(mileage.match, ' ');
+  if (power.match) sourceQuery = sourceQuery.replace(power.match, ' ');
   if (price.match) sourceQuery = sourceQuery.replace(price.match, ' ');
   sourceQuery = sourceQuery.replace(/\b(?:mdl|lei|leu|леи|eur|euro|евро|usd|dolari?|dollars?|доллар(?:ов|а)?)\b|[€$]/g, ' ');
   sourceQuery = sourceQuery.replace(/(?:^|\s)(?:леи|евро|доллар(?:ов|а)?)(?=\s|$)/gu, ' ');
@@ -135,6 +162,7 @@ export function parseSearchIntent(input: string): SearchIntent {
   for (const tag of tags) sourceQuery = removeWord(sourceQuery, tag === 'disc' ? ['disc', 'disk'] : [tag]);
   if (kind === 'vehicle') {
     for (const [, aliases] of [...fuels, ...transmissions]) sourceQuery = removeWord(sourceQuery, aliases);
+    sourceQuery = removePhrase(sourceQuery, [...drivetrains, ...bodyTypes].flatMap(([, aliases]) => aliases));
   }
   if (kind === 'realEstate' && listingMode) {
     sourceQuery = removePhrase(sourceQuery, propertyModes.find(([mode]) => mode === listingMode)?.[1] ?? []);
@@ -152,10 +180,14 @@ export function parseSearchIntent(input: string): SearchIntent {
     rooms: decimalRange(roomsMatch),
     area: decimalRange(areaMatch),
     screen: decimalRange(screenMatch),
+    mileage: mileage.range,
+    power: power.range,
     price: price.range,
     currency: price.currency,
     fuel,
     transmission,
+    drivetrain,
+    bodyType,
     condition,
     listingMode,
     tags,
@@ -182,25 +214,25 @@ export function generationIn(value: string, kind: SearchKind): number | null {
 function matchRange(match: RegExpMatchArray | null): NumberRange {
   if (!match) return { from: null, to: null };
   const from = Number(match[1]);
-  return { from, to: match[2] ? Number(match[2]) : from };
+  return match[2] ? orderedRange(from, Number(match[2])) : { from, to: from };
 }
 
 function storageRange(match: RegExpMatchArray | null): NumberRange {
   if (!match) return { from: null, to: null };
   const from = Number(match[1]) * ((match[2] || match[4]) === 'tb' ? 1024 : 1);
-  return { from, to: match[3] ? Number(match[3]) * (match[4] === 'tb' ? 1024 : 1) : from };
+  return match[3] ? orderedRange(from, Number(match[3]) * (match[4] === 'tb' ? 1024 : 1)) : { from, to: from };
 }
 
 function ramRange(match: RegExpMatchArray | null): NumberRange {
   if (!match) return { from: null, to: null };
   const from = Number(match[1] || match[3]);
-  return { from, to: match[2] ? Number(match[2]) : from };
+  return match[2] ? orderedRange(from, Number(match[2])) : { from, to: from };
 }
 
 function decimalRange(match: RegExpMatchArray | null): NumberRange {
   if (!match) return { from: null, to: null };
   const from = Number(match[1].replace(',', '.'));
-  return { from, to: match[2] ? Number(match[2].replace(',', '.')) : from };
+  return match[2] ? orderedRange(from, Number(match[2].replace(',', '.'))) : { from, to: from };
 }
 
 function detectedChoice(value: string, choices: ReadonlyArray<[string, readonly string[]]>): string | null {
@@ -233,6 +265,21 @@ function priceIn(value: string): { range: NumberRange; currency: number | null; 
   const minimum = value.match(new RegExp(`(?:over|above|from|min(?:imum)?|peste|de la|от)\\s*${amount}(?:\\s*${unit})?(?=\\s|$)`, 'u'));
   if (minimum) return { range: { from: parseAmount(minimum[1]), to: null }, currency: currencyCode(minimum[2]), match: minimum[0] };
   return { range: { from: null, to: null }, currency: currencyCode(value.match(new RegExp(unit, 'u'))?.[1]), match: '' };
+}
+
+function emptyDetectedRange(): { range: NumberRange; match: string } { return { range: { from: null, to: null }, match: '' }; }
+
+function unitRangeIn(value: string, unit: string, labels: readonly string[]): { range: NumberRange; match: string } {
+  const amount = String.raw`([\d.,]+(?:\s*k(?!\p{L}))?)`;
+  const label = labels.map(escapePattern).join('|');
+  const range = value.match(new RegExp(`(?:${label})?\\s*${amount}\\s*(?:-|–|—|to|pana la)\\s*${amount}\\s*${unit}(?=\\s|$)`, 'u'));
+  if (range) return { range: orderedRange(parseAmount(range[1]), parseAmount(range[2])), match: range[0] };
+  const maximum = value.match(new RegExp(`(?:(?:${label})\\s*)?(?:under|below|up to|max(?:imum)?|sub|pana la|до)\\s*${amount}\\s*${unit}(?=\\s|$)`, 'u'));
+  if (maximum) return { range: { from: null, to: parseAmount(maximum[1]) }, match: maximum[0] };
+  const minimum = value.match(new RegExp(`(?:(?:${label})\\s*)?(?:over|above|from|min(?:imum)?|peste|de la|от)\\s*${amount}\\s*${unit}(?=\\s|$)`, 'u'));
+  if (minimum) return { range: { from: parseAmount(minimum[1]), to: null }, match: minimum[0] };
+  const exact = value.match(new RegExp(`(?:(?:${label})\\s*)?${amount}\\s*${unit}(?=\\s|$)`, 'u'));
+  return exact ? { range: { from: parseAmount(exact[1]), to: parseAmount(exact[1]) }, match: exact[0] } : emptyDetectedRange();
 }
 
 function exclusionsIn(value: string): string[] {

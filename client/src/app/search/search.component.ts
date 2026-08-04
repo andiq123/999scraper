@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, HostListener, OnDestroy, afterNextRender, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
-import { Product, SearchFilters, SortOrder } from '../models';
+import { Product, SortOrder } from '../models';
 import { ToastService } from '../toast.service';
 import { ProductCardComponent } from './product-card.component';
 import { SearchEvent, SearchService } from './search.service';
@@ -9,7 +9,9 @@ import { SearchState, SearchStateService } from './search-state.service';
 import { RecentSearchesService } from './recent-searches.service';
 import { UserDataService } from '../user-data.service';
 import { CurrencyService } from '../currency.service';
-import { SearchIntent, SearchKind, fold, fuelOptions, generationIn, parseSearchIntent, storageIn, storageOptions, transmissionOptions } from './search-intent';
+import { SearchIntent, SearchKind, bodyTypeOptions, drivetrainOptions, fold, fuelOptions, generationIn, parseSearchIntent, storageIn, storageOptions, transmissionOptions } from './search-intent';
+import { SearchSuggestion, marketCategories, suggestionsFor } from './search-suggestions';
+import { RangeFilterComponent, type RangePreset } from './range-filter.component';
 const carNoise = new Set([
   'accesorii', 'acumulator', 'anvelope', 'capace', 'covorașe', 'covorase', 'dezmembrare', 'dezmembrări',
   'faruri', 'huse', 'jante', 'piese', 'roți', 'scut', 'sticlă', 'sticla', 'radiator', 'radiatoare', 'adaptor',
@@ -31,7 +33,7 @@ interface FilterChip { id: string; label: string }
 @Component({
   selector: 'app-search',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ProductCardComponent],
+  imports: [ProductCardComponent, RangeFilterComponent],
   templateUrl: './search.component.html',
   styleUrl: './search.component.scss',
 })
@@ -51,6 +53,8 @@ export class SearchComponent implements OnDestroy {
   private draftHadPrice = false;
 
   readonly query = signal('');
+  readonly suggestionsOpen = signal(false);
+  readonly activeSuggestionIndex = signal(-1);
   readonly activeQuery = signal('');
   readonly order = signal<SortOrder>('relevance');
   readonly smartCleanup = signal(true);
@@ -78,13 +82,28 @@ export class SearchComponent implements OnDestroy {
   readonly areaTo = signal<number | null>(null);
   readonly screenFrom = signal<number | null>(null);
   readonly screenTo = signal<number | null>(null);
+  readonly mileageFrom = signal<number | null>(null);
+  readonly mileageTo = signal<number | null>(null);
+  readonly powerFrom = signal<number | null>(null);
+  readonly powerTo = signal<number | null>(null);
+  readonly drivetrain = signal<string | null>(null);
+  readonly bodyType = signal<string | null>(null);
   readonly deviceTags = signal<string[]>([]);
   readonly condition = signal<'new' | 'used' | null>(null);
   readonly listingMode = signal<'sale' | 'rent' | null>(null);
   readonly activeIntent = signal<SearchIntent>(parseSearchIntent(''));
   readonly fuelOptions = fuelOptions;
   readonly transmissionOptions = transmissionOptions;
+  readonly drivetrainOptions = drivetrainOptions;
+  readonly bodyTypeOptions = bodyTypeOptions;
   readonly storageOptions = storageOptions;
+  readonly yearPresets: readonly RangePreset[] = [{ label: 'Any', from: null, to: null }, { label: '2010+', from: 2010, to: null }, { label: '2015+', from: 2015, to: null }, { label: '2020+', from: 2020, to: null }];
+  readonly mileagePresets: readonly RangePreset[] = [{ label: 'Any', from: null, to: null }, { label: '≤ 50k', from: null, to: 50_000 }, { label: '≤ 100k', from: null, to: 100_000 }, { label: '≤ 200k', from: null, to: 200_000 }];
+  readonly powerPresets: readonly RangePreset[] = [{ label: 'Any', from: null, to: null }, { label: '≤ 150', from: null, to: 150 }, { label: '150–250', from: 150, to: 250 }, { label: '250+', from: 250, to: null }];
+  readonly marketCategories = marketCategories;
+  readonly searchSuggestions = computed(() => suggestionsFor(this.query(), this.recentSearches.items()));
+  readonly showSearchSuggestions = computed(() => this.suggestionsOpen() && this.query().trim().length > 0 && this.searchSuggestions().length > 0);
+  readonly activeSuggestionId = computed(() => this.activeSuggestionIndex() >= 0 ? `search-suggestion-${this.activeSuggestionIndex()}` : null);
   readonly deviceTagOptions = computed(() => this.searchIntent().kind === 'iphone' ? ['pro', 'max', 'plus', 'mini'] : ['slim', 'pro', 'digital', 'disc']);
 
   readonly rawProducts = signal<Product[]>([]);
@@ -94,12 +113,14 @@ export class SearchComponent implements OnDestroy {
   readonly totalPages = signal(0);
   readonly progress = computed(() => this.totalPages() ? Math.round(this.loadedPages() / this.totalPages() * 100) : 0);
   readonly searchIntent = computed(() => parseSearchIntent(this.query()));
-  readonly isVehicleSearch = computed(() => this.searchIntent().kind === 'vehicle');
-  readonly isDeviceSearch = computed(() => this.searchIntent().kind === 'iphone' || this.searchIntent().kind === 'playstation');
-  readonly isComputerSearch = computed(() => this.searchIntent().kind === 'laptop' || this.searchIntent().kind === 'phone');
-  readonly isPropertySearch = computed(() => this.searchIntent().kind === 'realEstate');
-  readonly isTVSearch = computed(() => this.searchIntent().kind === 'tv');
-  readonly hasSmartPrompt = computed(() => this.searchIntent().kind !== 'generic');
+  readonly newSearchPending = computed(() => this.searched() && searchKey(this.searchIntent().sourceQuery) !== searchKey(this.activeQuery()));
+  readonly filterIntent = computed(() => this.newSearchPending() ? this.activeIntent() : this.searchIntent());
+  readonly isVehicleSearch = computed(() => this.filterIntent().kind === 'vehicle');
+  readonly isDeviceSearch = computed(() => this.filterIntent().kind === 'iphone' || this.filterIntent().kind === 'playstation');
+  readonly isComputerSearch = computed(() => this.filterIntent().kind === 'laptop' || this.filterIntent().kind === 'phone');
+  readonly isPropertySearch = computed(() => this.filterIntent().kind === 'realEstate');
+  readonly isTVSearch = computed(() => this.filterIntent().kind === 'tv');
+  readonly hasSmartPrompt = computed(() => this.searchIntent().kind !== 'generic' && !this.newSearchPending());
   readonly activeVehicleSearch = computed(() => this.activeIntent().kind === 'vehicle');
   readonly smartTitle = computed(() => ({
     vehicle: 'Vehicle details detected', iphone: 'iPhone search detected', phone: 'Phone search detected',
@@ -108,7 +129,7 @@ export class SearchComponent implements OnDestroy {
   })[this.searchIntent().kind]);
   readonly smartSummary = computed(() => {
     const intent = this.searchIntent();
-    if (intent.kind === 'vehicle') return rangeSummary('Model years', this.yearFrom(), this.yearTo());
+    if (intent.kind === 'vehicle') return this.mileageFrom() !== null || this.mileageTo() !== null ? rangeSummary('Mileage', this.mileageFrom(), this.mileageTo()).replace(/(\d+)/g, '$1 km') : rangeSummary('Model years', this.yearFrom(), this.yearTo());
     if (intent.kind === 'iphone' || intent.kind === 'playstation') return rangeSummary(intent.kind === 'iphone' ? 'iPhone generations' : 'PlayStation generations', this.generationFrom(), this.generationTo());
     if (intent.kind === 'realEstate') return rangeSummary('Rooms', this.roomsFrom(), this.roomsTo());
     if (intent.kind === 'tv') return rangeSummary('Screen size', this.screenFrom(), this.screenTo());
@@ -121,13 +142,33 @@ export class SearchComponent implements OnDestroy {
   readonly roomsRangeInvalid = computed(() => this.roomsFrom() !== null && this.roomsTo() !== null && this.roomsFrom()! > this.roomsTo()!);
   readonly areaRangeInvalid = computed(() => this.areaFrom() !== null && this.areaTo() !== null && this.areaFrom()! > this.areaTo()!);
   readonly screenRangeInvalid = computed(() => this.screenFrom() !== null && this.screenTo() !== null && this.screenFrom()! > this.screenTo()!);
+  readonly mileageRangeInvalid = computed(() => this.mileageFrom() !== null && this.mileageTo() !== null && this.mileageFrom()! > this.mileageTo()!);
+  readonly powerRangeInvalid = computed(() => this.powerFrom() !== null && this.powerTo() !== null && this.powerFrom()! > this.powerTo()!);
   readonly priceRangeInvalid = computed(() => this.priceMin() !== null && this.priceMax() !== null && this.priceMin()! > this.priceMax()!);
   readonly products = computed(() => this.filterAndSort(this.rawProducts()));
   readonly hiddenCount = computed(() => this.rawProducts().length - this.products().length);
-  readonly hasCustomFilters = computed(() => this.order() !== 'relevance' || !this.smartCleanup() || this.excludeNegotiable() || this.onlyWithPhotos() || this.excludedWords().length > 0 || this.queryExclusions().length > 0 || this.yearFrom() !== null || this.yearTo() !== null || this.priceMin() !== null || this.priceMax() !== null || this.fuel() !== null || this.transmission() !== null || this.generationFrom() !== null || this.generationTo() !== null || this.storageFrom() !== null || this.storageTo() !== null || this.ramFrom() !== null || this.ramTo() !== null || this.roomsFrom() !== null || this.roomsTo() !== null || this.areaFrom() !== null || this.areaTo() !== null || this.screenFrom() !== null || this.screenTo() !== null || this.deviceTags().length > 0 || this.condition() !== null || this.listingMode() !== null);
-  readonly priceCeiling = computed(() => priceCap(this.searchIntent(), this.priceCurrency()));
+  readonly visiblePriceSummary = computed(() => {
+    const target = this.priceCurrency() ?? defaultPriceCurrency(this.filterIntent());
+    let lowest = Number.POSITIVE_INFINITY;
+    let highest = Number.NEGATIVE_INFINITY;
+    let converted = false;
+    for (const product of this.products()) {
+      const value = this.currency.convert(product, target);
+      if (value === null) continue;
+      lowest = Math.min(lowest, value);
+      highest = Math.max(highest, value);
+      converted ||= product.currency !== target;
+    }
+    if (!Number.isFinite(lowest)) return '';
+    const minimum = formatNumber(Math.round(lowest));
+    const maximum = formatNumber(Math.round(highest));
+    const range = minimum === maximum ? minimum : `${minimum}–${maximum}`;
+    return `${converted ? '≈ ' : ''}${range} ${['MDL', 'EUR', 'USD'][target]}`;
+  });
+  readonly hasCustomFilters = computed(() => this.order() !== 'relevance' || !this.smartCleanup() || this.excludeNegotiable() || this.onlyWithPhotos() || this.excludedWords().length > 0 || this.queryExclusions().length > 0 || this.yearFrom() !== null || this.yearTo() !== null || this.priceMin() !== null || this.priceMax() !== null || this.fuel() !== null || this.transmission() !== null || this.mileageFrom() !== null || this.mileageTo() !== null || this.powerFrom() !== null || this.powerTo() !== null || this.drivetrain() !== null || this.bodyType() !== null || this.generationFrom() !== null || this.generationTo() !== null || this.storageFrom() !== null || this.storageTo() !== null || this.ramFrom() !== null || this.ramTo() !== null || this.roomsFrom() !== null || this.roomsTo() !== null || this.areaFrom() !== null || this.areaTo() !== null || this.screenFrom() !== null || this.screenTo() !== null || this.deviceTags().length > 0 || this.condition() !== null || this.listingMode() !== null);
+  readonly priceCeiling = computed(() => priceCap(this.filterIntent(), this.priceCurrency()));
   readonly priceStep = computed(() => priceSliderStep(this.priceCeiling()));
-  readonly pricePresets = computed(() => budgetPresets(this.searchIntent(), this.priceCurrency()));
+  readonly pricePresets = computed(() => budgetPresets(this.filterIntent(), this.priceCurrency()));
   readonly priceCurrencyLabel = computed(() => ['MDL', 'EUR', 'USD'][this.priceCurrency() ?? -1] ?? 'listing currency');
   readonly priceCeilingLabel = computed(() => formatNumber(this.priceCeiling()));
   readonly priceMinPercent = computed(() => percentage(this.priceMin() ?? 0, this.priceCeiling()));
@@ -156,6 +197,10 @@ export class SearchComponent implements OnDestroy {
     if (this.priceMin() !== null || this.priceMax() !== null) chips.push({ id: 'price', label: `${this.priceRangeLabel()} ${this.priceCurrencyLabel()}` });
     if (this.fuel()) chips.push({ id: 'fuel', label: this.fuel()! });
     if (this.transmission()) chips.push({ id: 'transmission', label: this.transmission()! });
+    if (this.mileageFrom() !== null || this.mileageTo() !== null) chips.push({ id: 'mileage', label: rangeSummary('Mileage', this.mileageFrom(), this.mileageTo()).replace(/(\d+)/g, '$1 km') });
+    if (this.powerFrom() !== null || this.powerTo() !== null) chips.push({ id: 'power', label: rangeSummary('Power', this.powerFrom(), this.powerTo()).replace(/(\d+)/g, '$1 hp') });
+    if (this.drivetrain()) chips.push({ id: 'drivetrain', label: this.drivetrain()! });
+    if (this.bodyType()) chips.push({ id: 'body-type', label: this.bodyType()! });
     if (this.condition()) chips.push({ id: 'condition', label: this.condition() === 'new' ? 'New' : 'Used' });
     if (this.listingMode()) chips.push({ id: 'listing-mode', label: this.listingMode() === 'rent' ? 'For rent' : 'For sale' });
     for (const tag of this.deviceTags()) chips.push({ id: `tag:${tag}`, label: tag });
@@ -204,9 +249,11 @@ export class SearchComponent implements OnDestroy {
   async search(event?: SubmitEvent): Promise<void> {
     event?.preventDefault();
     const query = this.query().trim();
-    if (!query || this.loading() || this.yearRangeInvalid() || this.generationRangeInvalid() || this.storageRangeInvalid() || this.ramRangeInvalid() || this.roomsRangeInvalid() || this.areaRangeInvalid() || this.screenRangeInvalid() || this.priceRangeInvalid()) return;
+    if (!query || this.loading()) return;
 
     const intent = parseSearchIntent(query);
+    if (this.newSearchPending()) this.applyIntentFilters(intent, true, true);
+    if (this.yearRangeInvalid() || this.mileageRangeInvalid() || this.powerRangeInvalid() || this.generationRangeInvalid() || this.storageRangeInvalid() || this.ramRangeInvalid() || this.roomsRangeInvalid() || this.areaRangeInvalid() || this.screenRangeInvalid() || this.priceRangeInvalid()) return;
     this.recentSearches.add(query);
 
     this.controller?.abort();
@@ -220,25 +267,10 @@ export class SearchComponent implements OnDestroy {
     this.searched.set(true);
     void this.router.navigate([], { relativeTo: this.route, queryParams: { q: intent.sourceQuery }, replaceUrl: true });
 
-    const filters: SearchFilters = {
-      smartCleanup: this.smartCleanup(),
-      productSearchCriteria: intent.sourceQuery,
-      excludeBoosted: this.smartCleanup(),
-      excludePriceNegotiable: this.excludeNegotiable(),
-      excludeOtherAds: this.smartCleanup(),
-      order: this.order(),
-      keysToExclude: [...new Set([...this.excludedWords(), ...this.queryExclusions()])],
-      intent: intent.kind === 'generic' ? undefined : intent.kind === 'vehicle' ? 'car' : intent.kind,
-      yearFrom: this.yearFrom() ?? undefined,
-      yearTo: this.yearTo() ?? undefined,
-      priceMin: this.priceMin() ?? undefined,
-      priceMax: this.priceMax() ?? undefined,
-      currency: this.priceCurrency() ?? undefined,
-    };
     const controller = new AbortController();
     this.controller = controller;
     try {
-      await this.searchService.stream(filters, controller.signal, (streamEvent) => this.receive(streamEvent));
+      await this.searchService.stream(intent.sourceQuery, controller.signal, (streamEvent) => this.receive(streamEvent));
     } catch (error) {
       if (!controller.signal.aborted) this.toast.error(error instanceof Error ? error.message : 'Search failed.');
     } finally {
@@ -252,6 +284,7 @@ export class SearchComponent implements OnDestroy {
   }
 
   updateQuery(value: string): void {
+    this.activeSuggestionIndex.set(-1);
     const previousKind = this.draftKind;
     this.query.set(value);
     const intent = parseSearchIntent(value);
@@ -260,8 +293,51 @@ export class SearchComponent implements OnDestroy {
     const hasParsedPrice = intent.price.from !== null || intent.price.to !== null;
     if (value.trim()) this.draftKind = intent.kind;
     this.draftHadPrice = hasParsedPrice;
-    if (kindChanged) this.adaptFiltersTo(intent);
-    if (value.trim() && (kindChanged || this.priceCurrency() === null)) this.priceCurrency.set(defaultPriceCurrency(intent));
+    if (this.newSearchPending()) {
+      if (this.loading()) {
+        this.controller?.abort();
+        this.loading.set(false);
+      }
+      return;
+    }
+    this.applyIntentFilters(intent, kindChanged, kindChanged || hadParsedPrice || hasParsedPrice);
+  }
+
+  openSearchSuggestions(): void { this.suggestionsOpen.set(true); }
+
+  closeSearchSuggestions(): void {
+    this.suggestionsOpen.set(false);
+    this.activeSuggestionIndex.set(-1);
+  }
+
+  handleSearchKeys(event: KeyboardEvent): void {
+    const suggestions = this.searchSuggestions();
+    if (event.key === 'Escape') return this.closeSearchSuggestions();
+    if (event.key === 'Tab') return this.closeSearchSuggestions();
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      if (!suggestions.length) return;
+      event.preventDefault();
+      this.suggestionsOpen.set(true);
+      const direction = event.key === 'ArrowDown' ? 1 : -1;
+      const current = this.activeSuggestionIndex();
+      this.activeSuggestionIndex.set(current < 0 ? (direction > 0 ? 0 : suggestions.length - 1) : (current + direction + suggestions.length) % suggestions.length);
+      return;
+    }
+    if (event.key === 'Enter' && this.showSearchSuggestions() && this.activeSuggestionIndex() >= 0) {
+      event.preventDefault();
+      this.chooseSuggestion(suggestions[this.activeSuggestionIndex()]);
+    }
+  }
+
+  chooseSuggestion(suggestion: SearchSuggestion): void {
+    this.updateQuery(suggestion.value);
+    this.closeSearchSuggestions();
+    void this.search();
+  }
+
+  private applyIntentFilters(intent: SearchIntent, adapt: boolean, resetPrice: boolean): void {
+    if (adapt) this.adaptFiltersTo(intent);
+    if (this.query().trim() && (adapt || this.priceCurrency() === null)) this.priceCurrency.set(defaultPriceCurrency(intent));
     this.yearFrom.set(intent.year.from);
     this.yearTo.set(intent.year.to);
     this.generationFrom.set(intent.generation.from);
@@ -276,21 +352,32 @@ export class SearchComponent implements OnDestroy {
     this.areaTo.set(intent.area.to);
     this.screenFrom.set(intent.screen.from);
     this.screenTo.set(intent.screen.to);
+    this.mileageFrom.set(intent.mileage.from);
+    this.mileageTo.set(intent.mileage.to);
+    this.powerFrom.set(intent.power.from);
+    this.powerTo.set(intent.power.to);
     this.fuel.set(intent.fuel);
     this.transmission.set(intent.transmission);
+    this.drivetrain.set(intent.drivetrain);
+    this.bodyType.set(intent.bodyType);
     this.deviceTags.set(intent.tags);
     this.condition.set(intent.condition);
     this.listingMode.set(intent.listingMode);
     this.queryExclusions.set(intent.exclusions);
-    if (kindChanged || hadParsedPrice || hasParsedPrice) {
+    if (resetPrice) {
       this.priceMin.set(intent.price.from);
       this.priceMax.set(intent.price.to);
     }
     if (intent.currency !== null) this.priceCurrency.set(intent.currency);
-    else if (hadParsedPrice && !hasParsedPrice) this.priceCurrency.set(defaultPriceCurrency(intent));
+    else if (resetPrice) this.priceCurrency.set(defaultPriceCurrency(intent));
   }
 
   runRecent(query: string): void {
+    this.updateQuery(query);
+    void this.search();
+  }
+
+  runCategory(query: string): void {
     this.updateQuery(query);
     void this.search();
   }
@@ -310,6 +397,10 @@ export class SearchComponent implements OnDestroy {
     else if (id === 'price') { this.priceMin.set(null); this.priceMax.set(null); }
     else if (id === 'fuel') this.fuel.set(null);
     else if (id === 'transmission') this.transmission.set(null);
+    else if (id === 'mileage') { this.mileageFrom.set(null); this.mileageTo.set(null); }
+    else if (id === 'power') { this.powerFrom.set(null); this.powerTo.set(null); }
+    else if (id === 'drivetrain') this.drivetrain.set(null);
+    else if (id === 'body-type') this.bodyType.set(null);
     else if (id === 'condition') this.condition.set(null);
     else if (id === 'listing-mode') this.listingMode.set(null);
     else if (id.startsWith('tag:')) this.toggleDeviceTag(id.slice(4));
@@ -350,16 +441,6 @@ export class SearchComponent implements OnDestroy {
     }
   }
 
-  setYear(bound: 'from' | 'to', event: Event): void {
-    const value = (event.target as HTMLInputElement).valueAsNumber;
-    (bound === 'from' ? this.yearFrom : this.yearTo).set(Number.isFinite(value) ? value : null);
-  }
-
-  setYearPreset(year: number | null): void {
-    this.yearFrom.set(year);
-    this.yearTo.set(null);
-  }
-
   setGeneration(bound: 'from' | 'to', event: Event): void {
     this.setNumberRange(bound === 'from' ? this.generationFrom : this.generationTo, event);
   }
@@ -373,7 +454,6 @@ export class SearchComponent implements OnDestroy {
   setRooms(bound: 'from' | 'to', event: Event): void { this.setNumberRange(bound === 'from' ? this.roomsFrom : this.roomsTo, event); }
   setArea(bound: 'from' | 'to', event: Event): void { this.setNumberRange(bound === 'from' ? this.areaFrom : this.areaTo, event); }
   setScreen(bound: 'from' | 'to', event: Event): void { this.setNumberRange(bound === 'from' ? this.screenFrom : this.screenTo, event); }
-
   toggleDeviceTag(tag: string): void {
     this.deviceTags.update((tags) => tags.includes(tag) ? tags.filter((item) => item !== tag) : [...tags, tag]);
   }
@@ -415,9 +495,15 @@ export class SearchComponent implements OnDestroy {
     this.yearTo.set(null);
     this.priceMin.set(null);
     this.priceMax.set(null);
-    this.priceCurrency.set(defaultPriceCurrency(this.searchIntent()));
+    this.priceCurrency.set(defaultPriceCurrency(this.filterIntent()));
     this.fuel.set(null);
     this.transmission.set(null);
+    this.mileageFrom.set(null);
+    this.mileageTo.set(null);
+    this.powerFrom.set(null);
+    this.powerTo.set(null);
+    this.drivetrain.set(null);
+    this.bodyType.set(null);
     this.generationFrom.set(null);
     this.generationTo.set(null);
     this.storageFrom.set(null);
@@ -450,6 +536,12 @@ export class SearchComponent implements OnDestroy {
       this.yearTo.set(null);
       this.fuel.set(null);
       this.transmission.set(null);
+      this.mileageFrom.set(null);
+      this.mileageTo.set(null);
+      this.powerFrom.set(null);
+      this.powerTo.set(null);
+      this.drivetrain.set(null);
+      this.bodyType.set(null);
     }
     if (intent.kind !== 'iphone' && intent.kind !== 'playstation') {
       this.generationFrom.set(null);
@@ -471,6 +563,10 @@ export class SearchComponent implements OnDestroy {
   private receive(event: SearchEvent): void {
     if (event.loadedPages != null) this.loadedPages.set(event.loadedPages);
     if (event.totalPages != null) this.totalPages.set(event.totalPages);
+	if (event.type === 'done') {
+		this.loading.set(false);
+		return;
+	}
     if (event.type === 'error') {
       this.loading.set(false);
       this.toast.error(event.message || 'Search ended early.');
@@ -518,6 +614,12 @@ export class SearchComponent implements OnDestroy {
     this.areaTo.set(state.areaTo);
     this.screenFrom.set(state.screenFrom);
     this.screenTo.set(state.screenTo);
+    this.mileageFrom.set(state.mileageFrom);
+    this.mileageTo.set(state.mileageTo);
+    this.powerFrom.set(state.powerFrom);
+    this.powerTo.set(state.powerTo);
+    this.drivetrain.set(state.drivetrain);
+    this.bodyType.set(state.bodyType);
     this.deviceTags.set(state.deviceTags);
     this.condition.set(state.condition);
     this.listingMode.set(state.listingMode);
@@ -545,6 +647,8 @@ export class SearchComponent implements OnDestroy {
       generationFrom: this.generationFrom(), generationTo: this.generationTo(), storageFrom: this.storageFrom(),
       storageTo: this.storageTo(), ramFrom: this.ramFrom(), ramTo: this.ramTo(), roomsFrom: this.roomsFrom(), roomsTo: this.roomsTo(),
       areaFrom: this.areaFrom(), areaTo: this.areaTo(), screenFrom: this.screenFrom(), screenTo: this.screenTo(),
+      mileageFrom: this.mileageFrom(), mileageTo: this.mileageTo(), powerFrom: this.powerFrom(), powerTo: this.powerTo(),
+      drivetrain: this.drivetrain(), bodyType: this.bodyType(),
       deviceTags: this.deviceTags(), condition: this.condition(), listingMode: this.listingMode(), products: this.rawProducts(),
       searched: this.searched(), loadedPages: this.loadedPages(), totalPages: this.totalPages(), scrollY,
       updatedAt: Date.now(),
@@ -571,6 +675,10 @@ export class SearchComponent implements OnDestroy {
       if ((from !== null && (product.year ?? 0) < from) || (to !== null && (product.year ?? 0) > to)) return false;
       if (this.fuel() && !choiceMatches(product.fuel, this.fuel()!)) return false;
       if (this.transmission() && !choiceMatches(product.transmission, this.transmission()!)) return false;
+      if (!inRange(product.mileage ?? null, this.mileageFrom(), this.mileageTo())) return false;
+      if (!inRange(product.power ?? null, this.powerFrom(), this.powerTo())) return false;
+      if (this.drivetrain() && !choiceMatches(product.drivetrain, this.drivetrain()!)) return false;
+      if (this.bodyType() && !choiceMatches(product.bodyType, this.bodyType()!)) return false;
       if (isDeviceIntent(intent) && !matchesDeviceFilters(product, intent, this.generationFrom(), this.generationTo(), this.storageFrom(), this.storageTo(), this.deviceTags())) return false;
       if (isStorageIntent(intent) && !inRange(storageValue(product), this.storageFrom(), this.storageTo())) return false;
       if ((intent.kind === 'laptop' || intent.kind === 'phone') && !inRange(ramValue(product), this.ramFrom(), this.ramTo())) return false;
@@ -604,6 +712,7 @@ export class SearchComponent implements OnDestroy {
 }
 
 function tokens(value: string): string[] { return value.toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []; }
+function searchKey(value: string): string { return fold(value).replace(/\s+/g, ' ').trim(); }
 function percentage(value: number, ceiling: number): number { return ceiling > 0 ? Math.min(100, Math.max(0, value / ceiling * 100)) : 0; }
 function formatNumber(value: number): string { return new Intl.NumberFormat('ro-MD', { maximumFractionDigits: 0 }).format(value); }
 function containsAll(words: string[], required: string[]): boolean { return required.every((word) => words.includes(word)); }
@@ -705,6 +814,7 @@ function choiceMatches(value: string | undefined, expected: string): boolean {
 }
 function requiredQueryWords(value: string, intent: SearchIntent): string[] {
   const ignoredByKind: Partial<Record<SearchKind, string[]>> = {
+    vehicle: ['autoturism', 'autoturisme', 'automobil', 'automobile', 'masina', 'masini', 'vehicle', 'автомобиль', 'автомобили'],
     iphone: ['iphone'], playstation: ['playstation'], laptop: ['laptop', 'laptops', 'notebook', 'ultrabook', 'ноутбук'],
     phone: ['telefon', 'smartphone', 'телефон', 'смартфон'], tv: ['tv', 'televizor', 'televizoare', 'television', 'телевизор'],
     realEstate: ['apartament', 'apartamente', 'apartment', 'casa', 'house', 'teren', 'land', 'квартира', 'дом', 'участок'],

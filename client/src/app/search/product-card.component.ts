@@ -10,6 +10,8 @@ import { Product } from '../models';
 export class ProductCardComponent {
   readonly product = input.required<Product>();
   readonly saved = input(false);
+  readonly eager = input(false);
+  readonly priority = input(false);
   readonly convertedPrice = input('');
   readonly exclude = output<string>();
   readonly save = output<Product>();
@@ -18,9 +20,10 @@ export class ProductCardComponent {
   readonly titleWords = computed(() => this.product().title.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) ?? []);
   readonly metadata = computed(() => {
     const product = this.product();
+    const vehicle = [product.mileage && `${product.mileage.toLocaleString('ro-MD')} km`, product.fuel, product.transmission, product.drivetrain, product.bodyType, product.power && `${product.power} hp`];
     const property = [product.offerType, product.rooms, product.area && (/^\d+(?:[.,]\d+)?$/.test(product.area) ? `${product.area} m²` : product.area), product.floor && `Floor ${product.floor}`];
     const technology = [product.ram && `${product.ram} RAM`, product.storage, product.processor, product.screen, product.resolution];
-    return [product.fuel, product.transmission, ...property, ...technology, product.condition]
+    return [...vehicle, ...property, ...technology, product.condition]
       .filter((value): value is string => Boolean(value)).slice(0, 3);
   });
   @ViewChild('popover') private popover?: ElementRef<HTMLDivElement>;
