@@ -172,6 +172,8 @@ export class SearchComponent implements OnDestroy {
   readonly mileageRangeInvalid = computed(() => this.mileageFrom() !== null && this.mileageTo() !== null && this.mileageFrom()! > this.mileageTo()!);
   readonly powerRangeInvalid = computed(() => this.powerFrom() !== null && this.powerTo() !== null && this.powerFrom()! > this.powerTo()!);
   readonly priceRangeInvalid = computed(() => this.priceMin() !== null && this.priceMax() !== null && this.priceMin()! > this.priceMax()!);
+  private readonly productsBeforePrice = computed(() => this.filterAndSort(this.rawProducts(), true));
+  private readonly observedPriceRange = computed(() => priceBounds(this.productsBeforePrice(), this.currency, this.priceCurrency() ?? defaultPriceCurrency(this.filterIntent())));
   readonly products = computed(() => this.filterAndSort(this.rawProducts()));
   readonly hiddenCount = computed(() => this.rawProducts().length - this.products().length);
   readonly visiblePriceSummary = computed(() => {
@@ -193,13 +195,19 @@ export class SearchComponent implements OnDestroy {
     return `${converted ? '≈ ' : ''}${range} ${['MDL', 'EUR', 'USD'][target]}`;
   });
   readonly hasCustomFilters = computed(() => this.order() !== 'relevance' || !this.smartCleanup() || this.excludeNegotiable() || this.onlyWithPhotos() || this.excludedWords().length > 0 || this.queryExclusions().length > 0 || this.yearFrom() !== null || this.yearTo() !== null || this.priceMin() !== null || this.priceMax() !== null || this.fuel() !== null || this.transmission() !== null || this.mileageFrom() !== null || this.mileageTo() !== null || this.powerFrom() !== null || this.powerTo() !== null || this.drivetrain() !== null || this.bodyType() !== null || this.registration() !== null || this.generationFrom() !== null || this.generationTo() !== null || this.storageFrom() !== null || this.storageTo() !== null || this.ramFrom() !== null || this.ramTo() !== null || this.roomsFrom() !== null || this.roomsTo() !== null || this.areaFrom() !== null || this.areaTo() !== null || this.floorFrom() !== null || this.floorTo() !== null || this.propertySector().trim() !== '' || this.propertyState() !== null || this.housingStock() !== null || this.listingAuthor() !== null || this.buildingType() !== null || this.screenFrom() !== null || this.screenTo() !== null || this.deviceTags().length > 0 || this.condition() !== null || this.listingMode() !== null);
-  readonly priceCeiling = computed(() => priceCap(this.filterIntent(), this.priceCurrency(), this.listingMode()));
-  readonly priceStep = computed(() => priceSliderStep(this.priceCeiling()));
-  readonly pricePresets = computed(() => budgetPresets(this.filterIntent(), this.priceCurrency(), this.listingMode()));
+  readonly priceFloor = computed(() => this.observedPriceRange()?.min ?? 0);
+  readonly priceCeiling = computed(() => {
+    const observed = this.observedPriceRange();
+    if (!observed) return priceCap(this.filterIntent(), this.priceCurrency(), this.listingMode());
+    return observed.max > observed.min ? observed.max : observed.min + Math.max(1, Math.round(observed.min * .1));
+  });
+  readonly priceStep = computed(() => priceSliderStep(this.priceCeiling() - this.priceFloor()));
+  readonly pricePresets = computed(() => budgetPresets(this.filterIntent(), this.priceCurrency(), this.listingMode()).filter((value) => value > this.priceFloor() && value < this.priceCeiling()));
   readonly priceCurrencyLabel = computed(() => ['MDL', 'EUR', 'USD'][this.priceCurrency() ?? -1] ?? 'listing currency');
+  readonly priceFloorLabel = computed(() => formatNumber(this.priceFloor()));
   readonly priceCeilingLabel = computed(() => formatNumber(this.priceCeiling()));
-  readonly priceMinPercent = computed(() => percentage(this.priceMin() ?? 0, this.priceCeiling()));
-  readonly priceMaxPercent = computed(() => percentage(this.priceMax() ?? this.priceCeiling(), this.priceCeiling()));
+  readonly priceMinPercent = computed(() => percentage((this.priceMin() ?? this.priceFloor()) - this.priceFloor(), this.priceCeiling() - this.priceFloor()));
+  readonly priceMaxPercent = computed(() => percentage((this.priceMax() ?? this.priceCeiling()) - this.priceFloor(), this.priceCeiling() - this.priceFloor()));
   readonly priceRangeLabel = computed(() => {
     const min = this.priceMin();
     const max = this.priceMax();
@@ -565,10 +573,10 @@ export class SearchComponent implements OnDestroy {
   setPriceSlider(bound: 'min' | 'max', event: Event): void {
     const value = (event.target as HTMLInputElement).valueAsNumber;
     if (bound === 'min') {
-      this.priceMin.set(value <= 0 ? null : Math.min(value, this.priceMax() ?? this.priceCeiling()));
+      this.priceMin.set(value <= this.priceFloor() ? null : Math.min(value, this.priceMax() ?? this.priceCeiling()));
       return;
     }
-    this.priceMax.set(value >= this.priceCeiling() ? null : Math.max(value, this.priceMin() ?? 0));
+    this.priceMax.set(value >= this.priceCeiling() ? null : Math.max(value, this.priceMin() ?? this.priceFloor()));
   }
 
   setCurrency(event: Event): void {
@@ -811,7 +819,7 @@ export class SearchComponent implements OnDestroy {
     };
   }
 
-  private filterAndSort(source: Product[]): Product[] {
+  private filterAndSort(source: Product[], ignorePrice = false): Product[] {
     const intent = this.activeIntent();
     const queryWords = requiredQueryWords(this.activeQuery(), intent);
     const excluded = [...this.excludedWords(), ...this.queryExclusions()].map(tokens);
@@ -853,8 +861,8 @@ export class SearchComponent implements OnDestroy {
       if (this.excludeNegotiable() && product.price == null) return false;
       if (this.onlyWithPhotos() && !product.thumbnailURL) return false;
       const comparablePrice = this.currency.convert(product, this.priceCurrency());
-      if (this.priceMin() !== null && (comparablePrice === null || comparablePrice < this.priceMin()!)) return false;
-      if (this.priceMax() !== null && (comparablePrice === null || comparablePrice > this.priceMax()!)) return false;
+      if (!ignorePrice && this.priceMin() !== null && (comparablePrice === null || comparablePrice < this.priceMin()!)) return false;
+      if (!ignorePrice && this.priceMax() !== null && (comparablePrice === null || comparablePrice > this.priceMax()!)) return false;
       if (excluded.some((phrase) => containsPhrase(titleWords, phrase))) return false;
       if (this.smartCleanup()) signatures.add(signature);
       return true;
@@ -879,6 +887,17 @@ function tokens(value: string): string[] { return value.toLocaleLowerCase().matc
 function searchKey(value: string): string { return fold(value).replace(/\s+/g, ' ').trim(); }
 function percentage(value: number, ceiling: number): number { return ceiling > 0 ? Math.min(100, Math.max(0, value / ceiling * 100)) : 0; }
 function formatNumber(value: number): string { return new Intl.NumberFormat('ro-MD', { maximumFractionDigits: 0 }).format(value); }
+function priceBounds(products: readonly Product[], currencyService: CurrencyService, target: number): { min: number; max: number } | null {
+  let min = Number.POSITIVE_INFINITY;
+  let max = Number.NEGATIVE_INFINITY;
+  for (const product of products) {
+    const value = currencyService.convert(product, target);
+    if (value === null || value <= 0) continue;
+    min = Math.min(min, value);
+    max = Math.max(max, value);
+  }
+  return Number.isFinite(min) ? { min: Math.floor(min), max: Math.ceil(max) } : null;
+}
 function containsAll(words: string[], required: string[]): boolean { return required.every((word) => words.includes(word)); }
 function containsPhrase(words: string[], phrase: string[]): boolean { return words.some((_, index) => phrase.every((word, offset) => words[index + offset] === word)); }
 function plausibleCar(product: Product, titleWords: string[]): boolean {
@@ -1043,7 +1062,7 @@ function budgetPresets(intent: SearchIntent, currency: number | null, listingMod
 }
 function isTechIntent(intent: SearchIntent): boolean { return ['iphone', 'phone', 'playstation', 'laptop', 'tv'].includes(intent.kind); }
 function priceSliderStep(cap: number): number {
-  if (cap <= 5_000) return 50;
+  if (cap <= 10_000) return 10;
   if (cap <= 50_000) return 500;
   if (cap <= 100_000) return 1_000;
   return 5_000;

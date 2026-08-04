@@ -132,9 +132,13 @@
             <button type="button" [class.active]="listingMode() === 'daily'" (click)="setPropertyListingMode('daily')">Daily rent</button>
           </div>
         </div>
-        <label class="property-sector">Sector
-          <input type="search" list="property-sector-options" autocomplete="off" placeholder="Botanica, Buiucani…" [value]="propertySector()" (input)="propertySector.set($any($event.target).value)">
-          <datalist id="property-sector-options">@for (sector of propertySectorOptions(); track sector) { <option [value]="sector"></option> }</datalist>
+        <label class="property-sector"><span>Sector</span>
+          <span class="sector-select">
+            <select [value]="propertySector()" (change)="propertySector.set($any($event.target).value)" aria-label="Property sector">
+              <option value="">Any sector</option>
+              @for (sector of propertySectorOptions(); track sector) { <option [value]="sector">{{ sector }}</option> }
+            </select>
+          </span>
         </label>
         <div class="property-ranges">
           <app-range-filter label="Rooms" [min]="1" [max]="20" [from]="roomsFrom()" [to]="roomsTo()" [presets]="roomPresets" (fromChange)="roomsFrom.set($event)" (toChange)="roomsTo.set($event)" />
@@ -207,18 +211,18 @@
           <option value="2">USD</option>
         </select>
         <div class="budget-presets" aria-label="Quick maximum price">
-          @for (value of pricePresets(); track value) { <button type="button" [class.active]="priceMax() === value" (click)="setPricePreset(value)">{{ value >= 1000000 ? value / 1000000 + 'm' : value / 1000 + 'k' }}</button> }
+          @for (value of pricePresets(); track value) { <button type="button" [class.active]="priceMax() === value" (click)="setPricePreset(value)">{{ value < 1000 ? value : value >= 1000000 ? value / 1000000 + 'm' : value / 1000 + 'k' }}</button> }
         </div>
         <div class="dual-range" [style.--from.%]="priceMinPercent()" [style.--to.%]="priceMaxPercent()">
-          <input type="range" min="0" [max]="priceCeiling()" [step]="priceStep()" [value]="priceMin() ?? 0" (input)="setPriceSlider('min', $event)" aria-label="Minimum price slider">
-          <input type="range" min="0" [max]="priceCeiling()" [step]="priceStep()" [value]="priceMax() ?? priceCeiling()" (input)="setPriceSlider('max', $event)" aria-label="Maximum price slider">
+          <input type="range" [min]="priceFloor()" [max]="priceCeiling()" [step]="priceStep()" [value]="priceMin() ?? priceFloor()" (input)="setPriceSlider('min', $event)" aria-label="Minimum price slider">
+          <input type="range" [min]="priceFloor()" [max]="priceCeiling()" [step]="priceStep()" [value]="priceMax() ?? priceCeiling()" (input)="setPriceSlider('max', $event)" aria-label="Maximum price slider">
         </div>
         <div class="price-inputs">
           <input type="number" inputmode="numeric" min="0" placeholder="Min" aria-label="Minimum price" [value]="priceMin() ?? ''" (input)="setPrice('min', $event)">
           <span>–</span>
           <input type="number" inputmode="numeric" min="0" placeholder="Max" aria-label="Maximum price" [value]="priceMax() ?? ''" (input)="setPrice('max', $event)">
         </div>
-        <p class="price-help">Slider up to {{ priceCeilingLabel() }} {{ priceCurrencyLabel() }} · type any amount</p>
+        <p class="price-help">Results {{ priceFloorLabel() }}–{{ priceCeilingLabel() }} {{ priceCurrencyLabel() }} · type any amount</p>
         @if (priceRangeInvalid()) { <small>Minimum must be below maximum.</small> }
       </fieldset>
       <div class="quick-filters">

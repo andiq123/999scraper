@@ -111,6 +111,10 @@ summary:focus-visible { outline: 0; border-radius: var(--radius-xs); box-shadow:
 .search-page .restart-search { min-height: 30px; padding: .26rem .45rem; border: 0; border-radius: 999px; color: var(--muted); background: transparent; font-size: .66rem; font-weight: 680; cursor: pointer; }
 .search-page .restart-search span { color: inherit; }
 .search-page .empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem; margin-top: 1rem; }
+.search-page .sector-select { position: relative; display: block; }
+.search-page .sector-select::after { position: absolute; top: 50%; right: .72rem; width: 7px; height: 7px; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); content: ''; transform: translateY(-70%) rotate(45deg); pointer-events: none; }
+.search-page .sector-select select { width: 100%; min-height: 42px; padding: .45rem 2rem .45rem .62rem; border: 1px solid var(--line); border-radius: 12px; outline: none; appearance: none; color: var(--text); background: rgb(255 255 255 / 76%); font: inherit; font-size: .76rem; cursor: pointer; }
+.search-page .sector-select select:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 3px var(--focus); }
 
 .sr-only {
   position: absolute;
