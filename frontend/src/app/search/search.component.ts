@@ -173,7 +173,8 @@ export class SearchComponent implements OnDestroy {
   readonly powerRangeInvalid = computed(() => this.powerFrom() !== null && this.powerTo() !== null && this.powerFrom()! > this.powerTo()!);
   readonly priceRangeInvalid = computed(() => this.priceMin() !== null && this.priceMax() !== null && this.priceMin()! > this.priceMax()!);
   private readonly productsBeforePrice = computed(() => this.filterAndSort(this.rawProducts(), true));
-  private readonly observedPriceRange = computed(() => priceBounds(this.productsBeforePrice(), this.currency, this.priceCurrency() ?? defaultPriceCurrency(this.filterIntent())));
+  private readonly availablePrices = computed(() => convertedPrices(this.productsBeforePrice(), this.currency, this.priceCurrency() ?? defaultPriceCurrency(this.filterIntent())));
+  private readonly observedPriceRange = computed(() => priceBounds(this.availablePrices()));
   readonly products = computed(() => this.filterAndSort(this.rawProducts()));
   readonly hiddenCount = computed(() => this.rawProducts().length - this.products().length);
   readonly visiblePriceSummary = computed(() => {
@@ -202,7 +203,7 @@ export class SearchComponent implements OnDestroy {
     return observed.max > observed.min ? observed.max : observed.min + Math.max(1, Math.round(observed.min * .1));
   });
   readonly priceStep = computed(() => priceSliderStep(this.priceCeiling() - this.priceFloor()));
-  readonly pricePresets = computed(() => budgetPresets(this.filterIntent(), this.priceCurrency(), this.listingMode()).filter((value) => value > this.priceFloor() && value < this.priceCeiling()));
+  readonly pricePresets = computed(() => adaptivePricePresets(this.availablePrices(), budgetPresets(this.filterIntent(), this.priceCurrency(), this.listingMode())));
   readonly priceCurrencyLabel = computed(() => ['MDL', 'EUR', 'USD'][this.priceCurrency() ?? -1] ?? 'listing currency');
   readonly priceFloorLabel = computed(() => formatNumber(this.priceFloor()));
   readonly priceCeilingLabel = computed(() => formatNumber(this.priceCeiling()));
@@ -887,16 +888,28 @@ function tokens(value: string): string[] { return value.toLocaleLowerCase().matc
 function searchKey(value: string): string { return fold(value).replace(/\s+/g, ' ').trim(); }
 function percentage(value: number, ceiling: number): number { return ceiling > 0 ? Math.min(100, Math.max(0, value / ceiling * 100)) : 0; }
 function formatNumber(value: number): string { return new Intl.NumberFormat('ro-MD', { maximumFractionDigits: 0 }).format(value); }
-function priceBounds(products: readonly Product[], currencyService: CurrencyService, target: number): { min: number; max: number } | null {
-  let min = Number.POSITIVE_INFINITY;
-  let max = Number.NEGATIVE_INFINITY;
+function convertedPrices(products: readonly Product[], currencyService: CurrencyService, target: number): number[] {
+  const prices: number[] = [];
   for (const product of products) {
     const value = currencyService.convert(product, target);
     if (value === null || value <= 0) continue;
-    min = Math.min(min, value);
-    max = Math.max(max, value);
+    prices.push(value);
   }
-  return Number.isFinite(min) ? { min: Math.floor(min), max: Math.ceil(max) } : null;
+  return prices.sort((a, b) => a - b);
+}
+function priceBounds(prices: readonly number[]): { min: number; max: number } | null {
+  return prices.length ? { min: Math.floor(prices[0]), max: Math.ceil(prices[prices.length - 1]) } : null;
+}
+function adaptivePricePresets(prices: readonly number[], fallback: readonly number[]): number[] {
+  if (prices.length < 4) return fallback.filter((value) => value > (prices[0] ?? 0) && value < (prices.at(-1) ?? Number.POSITIVE_INFINITY));
+  const values = [.25, .5, .75]
+    .map((position) => niceBudget(prices[Math.floor((prices.length - 1) * position)]))
+    .filter((value, index, all) => value > prices[0] && value < prices[prices.length - 1] && all.indexOf(value) === index);
+  return values.length >= 2 ? values : fallback.filter((value) => value > prices[0] && value < prices[prices.length - 1]);
+}
+function niceBudget(value: number): number {
+  const step = value < 100 ? 10 : value < 1_000 ? 50 : value < 10_000 ? 100 : value < 100_000 ? 1_000 : value < 1_000_000 ? 10_000 : 100_000;
+  return Math.max(step, Math.round(value / step) * step);
 }
 function containsAll(words: string[], required: string[]): boolean { return required.every((word) => words.includes(word)); }
 function containsPhrase(words: string[], phrase: string[]): boolean { return words.some((_, index) => phrase.every((word, offset) => words[index + offset] === word)); }
@@ -938,7 +951,12 @@ function categoryMatches(product: Product, intent: SearchIntent): boolean {
   if (intent.kind === 'laptop') return category.includes('laptop') || Boolean(product.processor || product.gpu || (product.ram && product.screen)) || Boolean(product.condition && /\b(laptop|notebook|macbook|thinkpad|ideapad|legion)\b/.test(title));
   if (intent.kind === 'phone') return category.includes('telefon') || Boolean(product.deviceModel || (product.brand && product.condition)) || Boolean(product.condition && /\b(telefon|smartphone|galaxy|redmi|pixel)\b/.test(title));
   if (intent.kind === 'tv') return category.includes('televiz') || /(?:android tv|webos|vidaa)/.test(fold(product.os ?? '')) || Boolean(product.condition && /\b(televizor|television|smart tv)\b/.test(title));
-  return /(apart|case|casa|teren|imobil|garaj|spati)/.test(category) || Boolean(product.rooms || product.area || product.buildingType) || /\b(apartament|casa|teren|imobil)\b/.test(title);
+  const propertyCategory = /(apart|case|casa|teren|imobil|garaj|spati)/.test(category);
+  const propertyDetails = Boolean(product.rooms || product.area || product.buildingType || product.sector);
+  return (propertyCategory || propertyDetails) && isPropertyOffer(product.offerType);
+}
+function isPropertyOffer(value: string | undefined): boolean {
+  return /(vand|vanzare|cumpar|inchiri|chirie|rent|sale|schimb|аренд|сда|прод|куп)/u.test(fold(value ?? ''));
 }
 function plausibleDevice(product: Product, titleWords: string[], intent: SearchIntent): boolean {
   const model = fold(product.deviceModel ?? '');
