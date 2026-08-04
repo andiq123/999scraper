@@ -255,9 +255,10 @@ export class SearchComponent implements OnDestroy {
     if (this.registration()) chips.push({ id: 'registration', label: this.registration() === 'moldova' ? 'Registered in Moldova' : 'Other registration' });
     if (this.condition()) chips.push({ id: 'condition', label: this.condition() === 'new' ? 'New' : 'Used' });
     if (this.listingMode()) chips.push({ id: 'listing-mode', label: this.listingMode() === 'monthly' ? 'Monthly rent' : this.listingMode() === 'daily' ? 'Daily rent' : 'For sale' });
-    for (const tag of this.deviceTags()) chips.push({ id: `tag:${tag}`, label: tag });
+    for (const tag of this.deviceTags()) chips.push({ id: `tag:${tag}`, label: tag[0].toUpperCase() + tag.slice(1) });
     for (const word of this.queryExclusions()) chips.push({ id: `query-exclude:${word}`, label: `Without ${word}` });
-    for (const word of this.excludedWords()) chips.push({ id: `exclude:${word}`, label: `Hide ${word}` });
+    const queryExcluded = new Set(this.queryExclusions().map(fold));
+    for (const word of this.excludedWords()) if (!queryExcluded.has(fold(word))) chips.push({ id: `exclude:${word}`, label: `Hide ${word}` });
     return chips;
   });
   readonly suggestedExclusions = computed(() => {

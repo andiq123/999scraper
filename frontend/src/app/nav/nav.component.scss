@@ -69,6 +69,14 @@ a.active {
   a:active .tab-icon { transform: scale(.88); }
 }
 
+@media (max-width: 699px) {
+  :host { padding: .3rem max(.45rem, env(safe-area-inset-right)) max(.35rem, env(safe-area-inset-bottom)) max(.45rem, env(safe-area-inset-left)); }
+  nav { min-height: 56px; padding: .22rem; border-radius: 20px; }
+  a { grid-template-rows: 24px auto; min-height: 48px; border-radius: 15px; font-size: .56rem; }
+  .tab-icon { width: 23px; height: 23px; }
+  .heart-icon { font-size: 1.65rem; line-height: 21px; }
+}
+
 @media (min-width: 700px) {
   :host { padding-bottom: max(.65rem, env(safe-area-inset-bottom)); }
   nav { width: min(420px, calc(100% - 2rem)); }

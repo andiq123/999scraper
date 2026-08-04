@@ -63,6 +63,25 @@ button, a, input, select, summary { touch-action: manipulation; -webkit-tap-high
 button { min-height: 44px; user-select: none; }
 input, select { min-height: 46px; }
 @media (max-width: 699px) { input, select { font-size: 16px !important; } }
+@media (max-width: 699px) {
+  .search-page { width: calc(100% - .75rem); }
+  .search-page .device-ranges { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
+  .search-page .device-ranges > .compact-range { width: 100%; }
+  .search-page .smart-controls { gap: .65rem; padding: .65rem; }
+  .search-page .active-filters { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .15rem; }
+  .search-page .active-filters > div { padding-right: .25rem; }
+  .search-page .active-filters .clear-filters { position: relative; z-index: 1; min-height: 32px; padding-inline: .5rem; background: var(--canvas); }
+  .search-page .result-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .2rem .4rem; margin-top: .25rem; }
+  .search-page .result-bar > p:first-child { margin: 0; }
+  .search-page .visible-price { grid-column: 1 / -1; grid-row: 2; justify-self: start; max-width: 100%; }
+  .search-page .visible-price strong { max-width: 65vw; }
+  .search-page .restart-search { grid-column: 2; grid-row: 1; }
+  .search-page .grid { gap: .4rem; }
+}
+@media (max-width: 359px) {
+  .search-page .refine-label { display: none; }
+  .search-page .smart-prompt > summary { grid-template-columns: auto minmax(0, 1fr) auto; }
+}
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
