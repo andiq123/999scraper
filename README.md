@@ -17,7 +17,7 @@ frontend/          Angular application and Vercel build
 backend/           Go API, migrations, and backend container
 docker-compose.yml Local service orchestration
 start.sh           One-command local launcher and cleanup
-vercel.json        Root Vercel project configuration
+frontend/vercel.json Vercel project configuration
 .env               Frontend launcher configuration (ignored by Git)
 backend/.env       Backend secret configuration (ignored by Git)
 ```
@@ -109,7 +109,7 @@ One bounded `go-redis` client is created and verified at startup, reused for eve
 
 ## Vercel frontend + home backend
 
-Import the repository into Vercel with the repository root as its Root Directory. The root [vercel.json](vercel.json) explicitly installs and builds only `frontend/`, publishes `frontend/dist/frontend`, and preserves client-side routes. Vercel therefore cannot mistake the Go backend for the web application. Add one Vercel environment variable for Production (and Preview only when you want previews to reach the home API):
+Import the repository into Vercel and set **Root Directory** to `frontend`. Its [vercel.json](frontend/vercel.json) runs `npm ci` beside the committed lockfile, builds Angular, publishes `dist/frontend`, and preserves client-side routes. Clear any Install Command, Build Command, or Output Directory overrides left in the Vercel dashboard so this checked-in configuration remains the single source of truth. Add one Vercel environment variable for Production (and Preview only when you want previews to reach the home API):
 
 ```text
 API_URL=https://api.example.com/api/
