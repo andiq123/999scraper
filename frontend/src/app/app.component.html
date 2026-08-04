@@ -10,8 +10,8 @@
 @if (pwa.updateReady()) {
   <aside class="update-card" role="status" aria-live="polite">
     <span class="update-mark" aria-hidden="true">↑</span>
-    <div><strong>Update ready</strong><small>A fresh version is available.</small></div>
-    <button class="ui-button ui-button-primary" type="button" (click)="pwa.activateUpdate()">Update</button>
+    <div><strong>Update ready</strong><small>Installing in {{ pwa.updateCountdown() }}s</small></div>
+    <button class="ui-button ui-button-primary" type="button" (click)="pwa.activateUpdate()">Update now</button>
   </aside>
 }
 <app-nav />
