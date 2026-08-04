@@ -9,8 +9,8 @@ time { color: var(--muted); font-size: .72rem; }
 .empty h2 { margin-bottom: .3rem; letter-spacing: -.025em; }
 .empty p { color: var(--muted); }
 .button { margin-top: 1rem; }
-@media (hover: hover) { li:hover { border-color: rgb(var(--accent-rgb) / 18%); box-shadow: var(--shadow-md); transform: translateY(-1px); } }
-@media (prefers-reduced-motion: no-preference) { li { animation: item-enter .32s var(--ease) both; } }
+@media (hover: hover) { li:hover { border-color: rgb(var(--accent-rgb) / 18%); box-shadow: var(--shadow-md); } }
+@media (prefers-reduced-motion: no-preference) { li { animation: item-enter .32s var(--ease) both; transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease; } }
 @media (min-width: 600px) {
   .history { width: min(760px, calc(100% - 2rem)); margin-top: 2rem; }
   header { margin-bottom: 1.25rem; }

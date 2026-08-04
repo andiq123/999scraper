@@ -5,5 +5,4 @@
 .auth-card button { font-weight: 720; }.auth-card button:disabled { cursor: wait; opacity: .55; box-shadow: none; }
 .auth-card code { display: grid; place-items: center; overflow-wrap: anywhere; border: 1px solid var(--line); color: var(--text); background: var(--surface-soft); font-size: 1.65rem; font-weight: 780; letter-spacing: .24em; font-variant-numeric: tabular-nums; user-select: all; }.auth-card a { display: grid; place-items: center; color: var(--accent); font-weight: 700; text-decoration: none; }
 .auth-alternative { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .55rem; margin-top: .15rem; padding-top: .8rem; border-top: 1px solid var(--line); }.auth-alternative span { color: var(--muted); font-size: .72rem; }.auth-alternative a { min-height: 42px; padding: .55rem .7rem; color: var(--text); font-size: .74rem; }
-@media (hover: hover) { .auth-card button:not(:disabled):hover { transform: translateY(-1px); } }
 @media (min-width: 600px) { .auth-card { gap: .95rem; margin-top: clamp(2rem, 8vh, 5rem); padding: 1.75rem; border-radius: var(--radius-lg); }.auth-card h1 { font-size: 2.25rem; } }
