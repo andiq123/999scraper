@@ -78,7 +78,7 @@ input, select { min-height: 46px; }
   .search-page .result-feed .visible-price { grid-column: 1 / -1; grid-row: 2; justify-self: start; max-width: 100%; }
   .search-page .result-feed .visible-price strong { max-width: 65vw; }
   .search-page .result-feed .restart-search { grid-column: 2; grid-row: 1; }
-  .search-page .result-feed .grid { gap: .4rem; }
+  .search-page .result-feed .grid { grid-template-columns: minmax(0, 1fr); gap: .42rem; }
 }
 @media (max-width: 359px) {
   .search-page .smart-prompt .refine-label { display: none; }

@@ -9,4 +9,18 @@ article { position: relative; height: 100%; overflow: hidden; border-radius: var
 .popover-mark { display: grid; place-items: center; width: 38px; height: 38px; margin: 0 auto .75rem; border-radius: 12px; color: var(--danger); background: rgb(201 56 56 / 10%); font-size: 1.3rem; font-weight: 700; }.exclude-popover h3 { font-size: 1.2rem; letter-spacing: -.025em; }.exclude-popover > p { margin: .4rem auto 1rem; max-width: 32ch; color: var(--muted); font-size: .84rem; }.exclude-popover > div { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }.exclude-popover button { min-height: 48px; border: 0; border-radius: 13px; color: var(--muted); background: var(--surface-soft); font-weight: 700; cursor: pointer; }.exclude-popover .exclude { color: white; background: var(--danger); }
 @media (hover: hover) { article:hover { border-color: rgb(var(--accent-rgb) / 18%); box-shadow: var(--shadow-md); }.save:not(.saved):hover { color: var(--accent); background: var(--surface-solid); }.save.saved:hover { color: var(--danger); background: rgb(var(--danger-rgb) / 7%); }h2 button:hover { color: var(--danger); background: rgb(var(--danger-rgb) / 7%); }.footer a:hover { color: var(--text); background: var(--surface-solid); } }
 @media (prefers-reduced-motion: no-preference) { article { transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease; }.save.saved { animation: soft-pop .2s var(--ease); } }
-@media (min-width: 600px) { article { border-radius: var(--radius-md); }.copy { gap: .5rem; min-height: 132px; padding: .82rem; }h2 { height: 2.8em; font-size: .9rem; line-height: 1.4; }.footer { gap: .5rem; }.footer p { font-size: 1rem; line-height: 1.25; }.footer a { min-height: 32px; padding: .3rem .5rem; font-size: .7rem; }.exclude-popover { inset: 0; width: min(360px, calc(100vw - 2rem)); margin: auto; padding: 1.25rem; border-radius: 22px; } }
+@media (max-width: 699px) {
+  article { display: grid; grid-template-columns: 104px minmax(0, 1fr); min-height: 116px; border-radius: 14px; contain-intrinsic-size: auto 116px; }
+  .media { grid-column: 1; min-height: 116px; border-right: 1px solid var(--line); }
+  img, .placeholder { width: 104px; height: 100%; min-height: 116px; aspect-ratio: auto; }
+  .year { right: .35rem; bottom: .35rem; padding: .12rem .32rem; border-radius: 6px; font-size: .56rem; }
+  .save { top: .42rem; right: .42rem; width: 32px; height: 32px; min-height: 32px; border-radius: 10px; font-size: 1.05rem; }
+  .copy { grid-column: 2; gap: .25rem; min-height: 116px; padding: .55rem 2.65rem .5rem .62rem; }
+  h2 { height: 2.65em; gap: 0 .22em; font-size: .76rem; line-height: 1.32; }
+  .metadata { margin-top: 0; font-size: .61rem; }
+  .footer { gap: .25rem; }
+  .footer p { font-size: .82rem; }
+  .prices small { max-width: 22ch; font-size: .57rem; }
+  .footer a { min-width: 32px; min-height: 30px; padding: .24rem .4rem; font-size: .61rem; }
+}
+@media (min-width: 700px) { article { border-radius: var(--radius-md); }.copy { gap: .5rem; min-height: 132px; padding: .82rem; }h2 { height: 2.8em; font-size: .9rem; line-height: 1.4; }.footer { gap: .5rem; }.footer p { font-size: 1rem; line-height: 1.25; }.footer a { min-height: 32px; padding: .3rem .5rem; font-size: .7rem; }.exclude-popover { inset: 0; width: min(360px, calc(100vw - 2rem)); margin: auto; padding: 1.25rem; border-radius: 22px; } }

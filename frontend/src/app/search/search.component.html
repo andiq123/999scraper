@@ -283,7 +283,7 @@
           <button class="restart-search" type="button" (click)="startOver()" aria-label="Clear this search and start over"><span aria-hidden="true">×</span> Start over</button>
         </div>
         <div class="grid">
-          @for (product of products(); track product.id; let index = $index) { <app-product-card [product]="product" [saved]="library.savedIds().has(product.id)" [eager]="index < 6" [priority]="index === 0" [convertedPrice]="currency.label(product, priceCurrency())" (save)="toggleSaved($event)" (exclude)="addExclusion($event)" /> }
+          @for (product of products(); track product.id; let index = $index) { <app-product-card animate.enter="reveal-enter" [product]="product" [saved]="library.savedIds().has(product.id)" [eager]="index < 6" [priority]="index === 0" [convertedPrice]="currency.label(product, priceCurrency())" (save)="toggleSaved($event)" (exclude)="addExclusion($event)" /> }
         </div>
       } @else if (searched() && !loading()) {
         <div class="empty empty-state" animate.enter="reveal-enter" animate.leave="reveal-leave"><h2>No products found</h2><p>Try a broader search or fewer filters.</p><div class="empty-actions">@if (hasCustomFilters()) { <button class="ui-button ui-button-primary" type="button" (click)="resetFilters()">Show broader results</button> }<button class="ui-button ui-button-quiet" type="button" (click)="startOver()">Start over</button></div></div>
