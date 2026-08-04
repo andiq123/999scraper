@@ -1,13 +1,14 @@
 <article class="ui-surface">
-  <a class="media" [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'Open ' + product().title + ' on 999.md'">
+  <a class="row-link" [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'Open ' + product().title + ' on 999.md'"></a>
+  <div class="media" aria-hidden="true">
     @if (product().thumbnailURL) {
       <img [src]="product().thumbnailURL" [alt]="product().title" width="320" height="240" [attr.loading]="eager() ? 'eager' : 'lazy'" [attr.fetchpriority]="priority() ? 'high' : 'auto'" decoding="async">
     } @else {
       <div class="placeholder">No image</div>
     }
     @if (product().year) { <span class="year">{{ product().year }}</span> }
-  </a>
-  <button class="save" type="button" [class.saved]="saved()" (click)="save.emit(product())" [attr.aria-label]="saved() ? 'Remove from saved listings' : 'Save listing'" [attr.aria-pressed]="saved()">{{ saved() ? '♥' : '♡' }}</button>
+  </div>
+  <button class="save" type="button" [class.saved]="saved()" (click)="save.emit(product())" [attr.aria-label]="saved() ? 'Remove from saved listings' : 'Save listing'" [attr.aria-pressed]="saved()"><span aria-hidden="true">{{ saved() ? '♥' : '♡' }}</span></button>
   <div class="copy">
     <h2 [title]="product().title">
       @for (word of titleWords(); track $index) {

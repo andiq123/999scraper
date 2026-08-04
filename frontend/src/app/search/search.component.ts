@@ -9,7 +9,7 @@ import { SearchState, SearchStateService } from './search-state.service';
 import { RecentSearchesService } from './recent-searches.service';
 import { UserDataService } from '../user-data.service';
 import { CurrencyService } from '../currency.service';
-import { SearchIntent, SearchKind, type PropertyListingMode, bodyTypeOptions, drivetrainOptions, fold, fuelOptions, generationIn, parseSearchIntent, storageIn, storageOptions, transmissionOptions } from './search-intent';
+import { SearchIntent, SearchKind, type PropertyListingMode, type VehicleOrigin, bodyTypeOptions, drivetrainOptions, fold, fuelOptions, generationIn, originCountryOptions, parseSearchIntent, storageIn, storageOptions, transmissionOptions } from './search-intent';
 import { SearchSuggestion, completeSearchInput, marketCategories, suggestionsFor } from './search-suggestions';
 import { RangeFilterComponent, type RangePreset } from './range-filter.component';
 import { type CollapsiblePanel, UiPreferencesService } from '../ui-preferences.service';
@@ -103,6 +103,7 @@ export class SearchComponent implements OnDestroy {
   readonly drivetrain = signal<string | null>(null);
   readonly bodyType = signal<string | null>(null);
   readonly registration = signal<'moldova' | 'other' | null>(null);
+  readonly originCountry = signal<VehicleOrigin | null>(null);
   readonly deviceTags = signal<string[]>([]);
   readonly condition = signal<'new' | 'used' | null>(null);
   readonly listingMode = signal<PropertyListingMode | null>(null);
@@ -111,6 +112,7 @@ export class SearchComponent implements OnDestroy {
   readonly transmissionOptions = transmissionOptions;
   readonly drivetrainOptions = drivetrainOptions;
   readonly bodyTypeOptions = bodyTypeOptions;
+  readonly originCountryOptions = originCountryOptions;
   readonly storageOptions = storageOptions;
   readonly yearPresets: readonly RangePreset[] = [{ label: 'Any', from: null, to: null }, { label: '2010+', from: 2010, to: null }, { label: '2015+', from: 2015, to: null }, { label: '2020+', from: 2020, to: null }];
   readonly mileagePresets: readonly RangePreset[] = [{ label: 'Any', from: null, to: null }, { label: '≤ 50k', from: null, to: 50_000 }, { label: '≤ 100k', from: null, to: 100_000 }, { label: '≤ 200k', from: null, to: 200_000 }];
@@ -154,7 +156,8 @@ export class SearchComponent implements OnDestroy {
     const intent = this.searchIntent();
     if (intent.kind === 'vehicle') {
       const range = this.mileageFrom() !== null || this.mileageTo() !== null ? rangeSummary('Mileage', this.mileageFrom(), this.mileageTo()).replace(/(\d+)/g, '$1 km') : rangeSummary('Model years', this.yearFrom(), this.yearTo());
-      return this.registration() ? `${range} · ${this.registration() === 'moldova' ? 'Moldova registration' : 'Other registration'}` : range;
+      const detail = this.originCountry() ? `Origin: ${this.originCountry()}` : this.registration() ? (this.registration() === 'moldova' ? 'Moldova registration' : 'Other registration') : '';
+      return detail ? `${range} · ${detail}` : range;
     }
     if (intent.kind === 'iphone' || intent.kind === 'playstation') return rangeSummary(intent.kind === 'iphone' ? 'iPhone generations' : 'PlayStation generations', this.generationFrom(), this.generationTo());
     if (intent.kind === 'realEstate') return this.propertySector().trim() || (this.listingMode() === 'monthly' ? 'Monthly rentals' : this.listingMode() === 'daily' ? 'Daily rentals' : rangeSummary('Rooms', this.roomsFrom(), this.roomsTo()));
@@ -204,7 +207,7 @@ export class SearchComponent implements OnDestroy {
     const range = minimum === maximum ? minimum : `${minimum}–${maximum}`;
     return `${converted ? '≈ ' : ''}${range} ${['MDL', 'EUR', 'USD'][target]}`;
   });
-  readonly hasCustomFilters = computed(() => this.order() !== 'relevance' || !this.smartCleanup() || this.excludeNegotiable() || this.onlyWithPhotos() || this.excludedWords().length > 0 || this.queryExclusions().length > 0 || this.yearFrom() !== null || this.yearTo() !== null || this.priceMin() !== null || this.priceMax() !== null || this.fuel() !== null || this.transmission() !== null || this.mileageFrom() !== null || this.mileageTo() !== null || this.powerFrom() !== null || this.powerTo() !== null || this.drivetrain() !== null || this.bodyType() !== null || this.registration() !== null || this.generationFrom() !== null || this.generationTo() !== null || this.storageFrom() !== null || this.storageTo() !== null || this.ramFrom() !== null || this.ramTo() !== null || this.roomsFrom() !== null || this.roomsTo() !== null || this.areaFrom() !== null || this.areaTo() !== null || this.floorFrom() !== null || this.floorTo() !== null || this.propertySector().trim() !== '' || this.propertyState() !== null || this.housingStock() !== null || this.listingAuthor() !== null || this.buildingType() !== null || this.screenFrom() !== null || this.screenTo() !== null || this.deviceTags().length > 0 || this.condition() !== null || this.listingMode() !== null);
+  readonly hasCustomFilters = computed(() => this.order() !== 'relevance' || !this.smartCleanup() || this.excludeNegotiable() || this.onlyWithPhotos() || this.excludedWords().length > 0 || this.queryExclusions().length > 0 || this.yearFrom() !== null || this.yearTo() !== null || this.priceMin() !== null || this.priceMax() !== null || this.fuel() !== null || this.transmission() !== null || this.mileageFrom() !== null || this.mileageTo() !== null || this.powerFrom() !== null || this.powerTo() !== null || this.drivetrain() !== null || this.bodyType() !== null || this.registration() !== null || this.originCountry() !== null || this.generationFrom() !== null || this.generationTo() !== null || this.storageFrom() !== null || this.storageTo() !== null || this.ramFrom() !== null || this.ramTo() !== null || this.roomsFrom() !== null || this.roomsTo() !== null || this.areaFrom() !== null || this.areaTo() !== null || this.floorFrom() !== null || this.floorTo() !== null || this.propertySector().trim() !== '' || this.propertyState() !== null || this.housingStock() !== null || this.listingAuthor() !== null || this.buildingType() !== null || this.screenFrom() !== null || this.screenTo() !== null || this.deviceTags().length > 0 || this.condition() !== null || this.listingMode() !== null);
   readonly priceFloor = computed(() => this.observedPriceRange()?.min ?? 0);
   readonly priceCeiling = computed(() => {
     const observed = this.observedPriceRange();
@@ -253,6 +256,7 @@ export class SearchComponent implements OnDestroy {
     if (this.drivetrain()) chips.push({ id: 'drivetrain', label: this.drivetrain()! });
     if (this.bodyType()) chips.push({ id: 'body-type', label: this.bodyType()! });
     if (this.registration()) chips.push({ id: 'registration', label: this.registration() === 'moldova' ? 'Registered in Moldova' : 'Other registration' });
+    if (this.originCountry()) chips.push({ id: 'origin-country', label: `Origin: ${this.originCountry()}` });
     if (this.condition()) chips.push({ id: 'condition', label: this.condition() === 'new' ? 'New' : 'Used' });
     if (this.listingMode()) chips.push({ id: 'listing-mode', label: this.listingMode() === 'monthly' ? 'Monthly rent' : this.listingMode() === 'daily' ? 'Daily rent' : 'For sale' });
     for (const tag of this.deviceTags()) chips.push({ id: `tag:${tag}`, label: tag[0].toUpperCase() + tag.slice(1) });
@@ -454,6 +458,7 @@ export class SearchComponent implements OnDestroy {
     this.drivetrain.set(intent.drivetrain);
     this.bodyType.set(intent.bodyType);
     this.registration.set(intent.registration);
+    this.originCountry.set(intent.originCountry);
     this.deviceTags.set(intent.tags);
     this.condition.set(intent.condition);
     this.setPropertyListingMode(intent.listingMode);
@@ -519,6 +524,7 @@ export class SearchComponent implements OnDestroy {
     else if (id === 'drivetrain') this.drivetrain.set(null);
     else if (id === 'body-type') this.bodyType.set(null);
     else if (id === 'registration') this.registration.set(null);
+    else if (id === 'origin-country') this.originCountry.set(null);
     else if (id === 'condition') this.condition.set(null);
     else if (id === 'listing-mode') this.setPropertyListingMode(null);
     else if (id.startsWith('tag:')) this.toggleDeviceTag(id.slice(4));
@@ -589,6 +595,15 @@ export class SearchComponent implements OnDestroy {
     }
   }
 
+  setOriginCountry(value: VehicleOrigin | null): void {
+    this.originCountry.set(value);
+    // Old session snapshots predate this facet. Refresh only once when the
+    // user actually requests origin filtering; normal toggles stay in-memory.
+    if (value && this.rawProducts().length > 0 && this.rawProducts().every((product) => product.originCountry === undefined)) {
+      void this.search();
+    }
+  }
+
   setPrice(bound: 'min' | 'max', event: Event): void {
     const value = (event.target as HTMLInputElement).valueAsNumber;
     (bound === 'min' ? this.priceMin : this.priceMax).set(Number.isFinite(value) && value >= 0 ? value : null);
@@ -645,6 +660,7 @@ export class SearchComponent implements OnDestroy {
     this.drivetrain.set(null);
     this.bodyType.set(null);
     this.registration.set(null);
+    this.originCountry.set(null);
     this.generationFrom.set(null);
     this.generationTo.set(null);
     this.storageFrom.set(null);
@@ -717,6 +733,7 @@ export class SearchComponent implements OnDestroy {
       this.drivetrain.set(null);
       this.bodyType.set(null);
       this.registration.set(null);
+      this.originCountry.set(null);
     }
     if (intent.kind !== 'iphone' && intent.kind !== 'playstation') {
       this.generationFrom.set(null);
@@ -806,6 +823,7 @@ export class SearchComponent implements OnDestroy {
     this.drivetrain.set(state.drivetrain);
     this.bodyType.set(state.bodyType);
     this.registration.set(state.registration);
+    this.originCountry.set(state.originCountry);
     this.deviceTags.set(state.deviceTags);
     this.condition.set(state.condition);
     this.listingMode.set(state.listingMode);
@@ -836,7 +854,7 @@ export class SearchComponent implements OnDestroy {
       propertySector: this.propertySector(), propertyState: this.propertyState(), housingStock: this.housingStock(),
       listingAuthor: this.listingAuthor(), buildingType: this.buildingType(), screenFrom: this.screenFrom(), screenTo: this.screenTo(),
       mileageFrom: this.mileageFrom(), mileageTo: this.mileageTo(), powerFrom: this.powerFrom(), powerTo: this.powerTo(),
-      drivetrain: this.drivetrain(), bodyType: this.bodyType(), registration: this.registration(),
+      drivetrain: this.drivetrain(), bodyType: this.bodyType(), registration: this.registration(), originCountry: this.originCountry(),
       deviceTags: this.deviceTags(), condition: this.condition(), listingMode: this.listingMode(), products: this.rawProducts(),
       searched: this.searched(), loadedPages: this.loadedPages(), totalPages: this.totalPages(), scrollY,
       updatedAt: Date.now(),
@@ -870,6 +888,7 @@ export class SearchComponent implements OnDestroy {
       if (this.drivetrain() && !choiceMatches(product.drivetrain, this.drivetrain()!)) return false;
       if (this.bodyType() && !choiceMatches(product.bodyType, this.bodyType()!)) return false;
       if (this.registration() && !registrationMatches(product.registration, this.registration()!)) return false;
+      if (this.originCountry() && !facetMatches(product.originCountry, this.originCountry()!)) return false;
       if (isDeviceIntent(intent) && !matchesDeviceFilters(product, intent, this.generationFrom(), this.generationTo(), this.storageFrom(), this.storageTo(), this.deviceTags())) return false;
       if (isStorageIntent(intent) && !inRange(storageValue(product), this.storageFrom(), this.storageTo())) return false;
       if ((intent.kind === 'laptop' || intent.kind === 'phone') && !inRange(ramValue(product), this.ramFrom(), this.ramTo())) return false;

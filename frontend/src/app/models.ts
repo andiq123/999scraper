@@ -26,6 +26,7 @@ export interface Product {
   power?: number;
   drivetrain?: string;
   registration?: string;
+  originCountry?: string;
   deviceModel?: string;
   storage?: string;
   brand?: string;

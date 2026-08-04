@@ -50,6 +50,7 @@ type Product struct {
 	Power         int    `json:"power,omitempty"`
 	Drivetrain    string `json:"drivetrain,omitempty"`
 	Registration  string `json:"registration,omitempty"`
+	OriginCountry string `json:"originCountry,omitempty"`
 	DeviceModel   string `json:"deviceModel,omitempty"`
 	Storage       string `json:"storage,omitempty"`
 	Brand         string `json:"brand,omitempty"`

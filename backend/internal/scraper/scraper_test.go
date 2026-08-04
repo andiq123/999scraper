@@ -165,10 +165,11 @@ func TestProductPreservesSmartFacets(t *testing.T) {
 	ad.Power.Value = json.RawMessage(`{"unit":"UNIT_HORSEPOWER","value":174}`)
 	ad.Drivetrain.Value = json.RawMessage(`{"translated":"4x4"}`)
 	ad.Registration.Value.Translated = "Republica Moldova"
+	ad.OriginCountry.Value.Translated = "Japonia"
 	ad.Condition.Value.Translated = "Cu rulaj"
 	ad.OfferType.Value = json.RawMessage(`{"translated":"Vând","value":1}`)
 	product := New("https://999.md", Options{}).product(ad)
-	if product.Year != 2010 || product.Fuel != "Benzină" || product.Transmission != "Automată" || product.BodyType != "Crossover" || product.Mileage != 75000 || product.Power != 174 || product.Drivetrain != "4x4" || product.Registration != "Republica Moldova" || product.Condition != "Cu rulaj" || product.OfferType != "Vând" {
+	if product.Year != 2010 || product.Fuel != "Benzină" || product.Transmission != "Automată" || product.BodyType != "Crossover" || product.Mileage != 75000 || product.Power != 174 || product.Drivetrain != "4x4" || product.Registration != "Republica Moldova" || product.OriginCountry != "Japonia" || product.Condition != "Cu rulaj" || product.OfferType != "Vând" {
 		t.Fatalf("smart facets were not preserved: %#v", product)
 	}
 }

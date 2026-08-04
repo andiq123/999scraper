@@ -20,7 +20,7 @@ export class ProductCardComponent {
   readonly titleWords = computed(() => this.product().title.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) ?? []);
   readonly metadata = computed(() => {
     const product = this.product();
-    const vehicle = [product.mileage && `${product.mileage.toLocaleString('ro-MD')} km`, product.fuel, product.transmission, product.drivetrain, product.bodyType, product.power && `${product.power} hp`];
+    const vehicle = [product.mileage && `${product.mileage.toLocaleString('ro-MD')} km`, product.originCountry, product.fuel, product.transmission, product.drivetrain, product.bodyType, product.power && `${product.power} hp`];
     const property = [product.sector, product.offerType, product.rooms, product.area && (/^\d+(?:[.,]\d+)?$/.test(product.area) ? `${product.area} m²` : product.area), product.floor && `Floor ${product.floor}`];
     const technology = [product.ram && `${product.ram} RAM`, product.storage, product.processor, product.screen, product.resolution];
     return [...vehicle, ...property, ...technology, product.condition]

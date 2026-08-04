@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { Product, SortOrder } from '../models';
-import { PropertyListingMode } from './search-intent';
+import { PropertyListingMode, VehicleOrigin } from './search-intent';
 
 const storageKey = '999scraper.search.v6';
 const lastStorageKey = '999scraper.search.last.v1';
@@ -49,6 +49,7 @@ export interface SearchState {
   drivetrain: string | null;
   bodyType: string | null;
   registration: 'moldova' | 'other' | null;
+  originCountry: VehicleOrigin | null;
   deviceTags: string[];
   condition: 'new' | 'used' | null;
   listingMode: PropertyListingMode | null;
@@ -127,6 +128,7 @@ function readStoredState(key: string): SearchState | null {
     return {
       ...value,
       registration: value.registration ?? null,
+      originCountry: value.originCountry ?? null,
       listingMode: (value as unknown as { listingMode?: string }).listingMode === 'rent' ? 'monthly' : value.listingMode,
       floorFrom: value.floorFrom ?? null,
       floorTo: value.floorTo ?? null,
@@ -176,8 +178,9 @@ function isSearchState(value: unknown): value is SearchState {
       state.generationTo, state.storageFrom, state.storageTo, state.ramFrom, state.ramTo, state.roomsFrom,
       state.roomsTo, state.areaFrom, state.areaTo, state.floorFrom ?? null, state.floorTo ?? null, state.screenFrom, state.screenTo].every(isNullableNumber)
     && [state.mileageFrom, state.mileageTo, state.powerFrom, state.powerTo].every(isNullableNumber)
-    && [state.fuel, state.transmission, state.drivetrain, state.bodyType, state.registration ?? null].every(isNullableString)
+    && [state.fuel, state.transmission, state.drivetrain, state.bodyType, state.registration ?? null, state.originCountry ?? null].every(isNullableString)
     && (state.registration === undefined || state.registration === null || state.registration === 'moldova' || state.registration === 'other')
+    && (state.originCountry === undefined || state.originCountry === null || ['China', 'Coreea', 'Japonia', 'SUA', 'Zona Euro', 'Altă'].includes(state.originCountry))
     && (state.condition === null || state.condition === 'new' || state.condition === 'used')
     && (state.listingMode === null || state.listingMode === 'sale' || (state as unknown as { listingMode?: string }).listingMode === 'rent' || state.listingMode === 'monthly' || state.listingMode === 'daily')
     && (state.propertySector === undefined || typeof state.propertySector === 'string')

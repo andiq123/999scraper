@@ -82,6 +82,13 @@
             <button type="button" [class.active]="registration() === 'other'" (click)="setRegistration('other')">Altă</button>
           </div>
         </div>
+        <div class="smart-choice">
+          <span>Țara de origine</span>
+          <div class="choice-chips" aria-label="Țara de origine">
+            <button type="button" [class.active]="originCountry() === null" (click)="setOriginCountry(null)">Any</button>
+            @for (option of originCountryOptions; track option) { <button type="button" [class.active]="originCountry() === option" (click)="setOriginCountry(option)">{{ option }}</button> }
+          </div>
+        </div>
         @if (yearRangeInvalid() || mileageRangeInvalid() || powerRangeInvalid()) { <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">The lower value must come before the upper value.</p> }
       } @else if (isDeviceSearch()) {
         <div class="smart-fields device-ranges">

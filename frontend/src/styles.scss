@@ -64,6 +64,9 @@ button { min-height: 44px; user-select: none; }
 input, select { min-height: 46px; }
 @media (max-width: 699px) { input, select { font-size: 16px !important; } }
 @media (max-width: 699px) {
+  html, body { scrollbar-width: none; }
+  html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; height: 0; }
+  .search-page .search-form { position: sticky; top: max(.4rem, env(safe-area-inset-top)); background: var(--surface-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
   .search-page.search-page.search-page { width: calc(100% - .75rem); }
   .search-page .smart-prompt .smart-controls { gap: .65rem; padding: .65rem; }
   .search-page .smart-fields.device-ranges { grid-template-columns: minmax(0, 1fr); align-items: stretch; }

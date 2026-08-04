@@ -40,6 +40,7 @@ const searchQuery = `query SearchAds($input: Ads_SearchInput!) {
       drivetrain: feature(id: 108) { value }
       fuel: feature(id: 151) { value }
       registration: feature(id: 775) { value }
+      originCountry: feature(id: 1763) { value }
       phoneModel: feature(id: 590) { value }
       consoleModel: feature(id: 694) { value }
       phoneStorage: feature(id: 1265) { value }
@@ -144,6 +145,7 @@ type advert struct {
 	Drivetrain       rawFeature    `json:"drivetrain"`
 	Fuel             choiceFeature `json:"fuel"`
 	Registration     choiceFeature `json:"registration"`
+	OriginCountry    choiceFeature `json:"originCountry"`
 	PhoneModel       choiceFeature `json:"phoneModel"`
 	ConsoleModel     choiceFeature `json:"consoleModel"`
 	PhoneStorage     choiceFeature `json:"phoneStorage"`
@@ -516,6 +518,7 @@ func (s *Scraper) product(ad advert) model.Product {
 		Power:         featureInt(ad.Power.Value),
 		Drivetrain:    featureText(ad.Drivetrain.Value),
 		Registration:  strings.TrimSpace(ad.Registration.Value.Translated),
+		OriginCountry: strings.TrimSpace(ad.OriginCountry.Value.Translated),
 		DeviceModel:   strings.TrimSpace(deviceModel),
 		Storage:       strings.TrimSpace(storage),
 		Brand:         brand,

@@ -41,10 +41,6 @@
 .category-browser { width: min(100%, 560px); margin-top: .7rem; border-top: 1px solid var(--line); text-align: left; }.category-browser > summary { min-height: 40px; padding: .7rem .1rem; color: var(--muted); font-size: .72rem; font-weight: 700; cursor: pointer; }.category-browser > div { display: flex; flex-wrap: wrap; gap: .3rem; padding-bottom: .7rem; }.category-browser button { min-height: 32px; padding: .3rem .62rem; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: var(--surface-raised); font-size: .68rem; font-weight: 650; cursor: pointer; }
 .spinner { width: 2rem; height: 2rem; margin: 5rem auto; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }@keyframes spin { to { transform: rotate(1turn); } }
 
-@media (max-width: 699px) {
-  .search-form { position: sticky; top: max(.4rem, env(safe-area-inset-top)); }
-}
-
 @media (min-width: 700px) {
   .search-page { width: min(100% - 2rem, var(--page-width)); margin-top: .6rem; }
   .search-form { gap: .35rem; padding: .35rem; border-radius: var(--radius-md); }.search-form input { min-height: 46px; padding: .62rem .7rem; font-size: .96rem; }.search-form button { min-height: 46px; padding: .58rem .9rem; border-radius: 12px; }

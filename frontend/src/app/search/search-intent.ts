@@ -4,6 +4,7 @@ export type SearchKind = 'generic' | 'vehicle' | 'iphone' | 'phone' | 'playstati
 
 export interface NumberRange { from: number | null; to: number | null }
 export type PropertyListingMode = 'sale' | 'monthly' | 'daily';
+export type VehicleOrigin = 'China' | 'Coreea' | 'Japonia' | 'SUA' | 'Zona Euro' | 'Altă';
 
 export interface SearchIntent {
   kind: SearchKind;
@@ -24,6 +25,7 @@ export interface SearchIntent {
   drivetrain: string | null;
   bodyType: string | null;
   registration: 'moldova' | 'other' | null;
+  originCountry: VehicleOrigin | null;
   condition: 'new' | 'used' | null;
   listingMode: PropertyListingMode | null;
   propertySector: string | null;
@@ -35,6 +37,7 @@ export const fuelOptions = ['Benzină', 'Diesel', 'Hybrid', 'Electricitate', 'Ga
 export const transmissionOptions = ['Automată', 'Mecanică', 'Variator', 'Robotizată'] as const;
 export const drivetrainOptions = ['Din față', 'Din spate', '4x4'] as const;
 export const bodyTypeOptions = ['Sedan', 'SUV', 'Crossover', 'Hatchback', 'Universal', 'Coupe', 'Minivan'] as const;
+export const originCountryOptions: readonly VehicleOrigin[] = ['China', 'Coreea', 'Japonia', 'SUA', 'Zona Euro', 'Altă'];
 export const storageOptions = [64, 128, 256, 512, 1024, 2048] as const;
 
 const vehicleWords = new Set(['autoturism', 'autoturisme', 'automobil', 'automobile', 'masina', 'masini', 'vehicle', 'inmatriculare', 'inmatriculat', 'inmatriculata', 'автомобиль', 'автомобили']);
@@ -85,6 +88,14 @@ const bodyTypes: ReadonlyArray<[string, readonly string[]]> = [
 const registrations: ReadonlyArray<['moldova' | 'other', readonly string[]]> = [
   ['other', ['alta inmatriculare', 'inmatriculare straina', 'numere straine', 'foreign registration', 'foreign plates', 'иностранная регистрация', 'иностранные номера']],
   ['moldova', ['inmatriculata in republica moldova', 'inmatriculat in republica moldova', 'inmatriculare republica moldova', 'inmatriculata in moldova', 'inmatriculat in moldova', 'inmatriculare moldova', 'numere moldovenesti', 'moldova registration', 'registered in moldova', 'moldovan plates', 'молдавская регистрация', 'молдавские номера', 'inmatriculata', 'inmatriculat', 'inmatriculare']],
+];
+const originCountries: ReadonlyArray<[VehicleOrigin, readonly string[]]> = [
+  ['China', ['tara de origine china', 'origine china', 'made in china', 'din china', 'from china', 'china', 'chinezesc', 'chinezeasca', 'китай']],
+  ['Coreea', ['tara de origine coreea', 'origine coreea', 'made in korea', 'din coreea', 'from korea', 'coreea', 'korea', 'coreean', 'coreeana', 'корея']],
+  ['Japonia', ['tara de origine japonia', 'origine japonia', 'made in japan', 'din japonia', 'from japan', 'japonia', 'japan', 'japonez', 'japoneza', 'япония']],
+  ['SUA', ['tara de origine sua', 'origine sua', 'made in usa', 'din sua', 'from usa', 'sua', 'usa', 'statele unite', 'american', 'americana', 'сша']],
+  ['Zona Euro', ['tara de origine zona euro', 'origine zona euro', 'din zona euro', 'from eurozone', 'zona euro', 'eurozone', 'origine europeana', 'european origin', 'еврозона']],
+  ['Altă', ['alta origine', 'alta tara de origine', 'other origin', 'другая страна']],
 ];
 
 export function parseSearchIntent(input: string): SearchIntent {
@@ -138,6 +149,7 @@ export function parseSearchIntent(input: string): SearchIntent {
   const drivetrain = kind === 'vehicle' ? detectedPhraseChoice(plain, drivetrains) : null;
   const bodyType = kind === 'vehicle' ? detectedPhraseChoice(plain, bodyTypes) : null;
   const registration = kind === 'vehicle' ? detectedPhraseChoice(plain, registrations) : null;
+  const originCountry = kind === 'vehicle' ? detectedPhraseChoice(plain, originCountries) : null;
   const listingMode = kind === 'realEstate' ? detectedPhraseChoice(plain, propertyModes) : null;
   const propertySector = kind === 'realEstate' ? detectedPhraseChoice(plain, propertySectors) : null;
   const condition = kind === 'realEstate'
@@ -164,6 +176,9 @@ export function parseSearchIntent(input: string): SearchIntent {
   if (mileage.match) sourceQuery = sourceQuery.replace(mileage.match, ' ');
   if (power.match) sourceQuery = sourceQuery.replace(power.match, ' ');
   if (price.match) sourceQuery = sourceQuery.replace(price.match, ' ');
+  // Consume the complete facet before currency cleanup; otherwise
+  // "Zona Euro" would leave a stray "zona" in the marketplace query.
+  if (originCountry) sourceQuery = removePhrase(sourceQuery, originCountries.find(([value]) => value === originCountry)?.[1] ?? []);
   sourceQuery = sourceQuery.replace(/\b(?:mdl|lei|leu|леи|eur|euro|евро|usd|dolari?|dollars?|доллар(?:ов|а)?)\b|[€$]/g, ' ');
   sourceQuery = sourceQuery.replace(/(?:^|\s)(?:леи|евро|доллар(?:ов|а)?)(?=\s|$)/gu, ' ');
   for (const exclusion of exclusions) {
@@ -202,6 +217,7 @@ export function parseSearchIntent(input: string): SearchIntent {
     drivetrain,
     bodyType,
     registration,
+    originCountry,
     condition,
     listingMode,
     propertySector,
