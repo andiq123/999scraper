@@ -19,10 +19,17 @@ var (
 )
 
 const queryTimeout = 5 * time.Second
+const healthTimeout = 2 * time.Second
 
 type Store struct{ db *pgxpool.Pool }
 
 func New(db *pgxpool.Pool) *Store { return &Store{db: db} }
+
+func (s *Store) Healthy(ctx context.Context) bool {
+	ctx, cancel := context.WithTimeout(ctx, healthTimeout)
+	defer cancel()
+	return s.db.Ping(ctx) == nil
+}
 
 func (s *Store) Migrate(ctx context.Context) error {
 	const schema = `

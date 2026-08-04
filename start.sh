@@ -90,7 +90,7 @@ cleanup() {
 main() {
   [ "$#" -eq 0 ] || die "This launcher takes no arguments; run ./start.sh and use Ctrl+C to stop it."
   [ -f "$ENV_FILE" ] || die "Missing .env. Copy .env.example to .env and review the local values."
-  [ -f "$BACKEND_ENV_FILE" ] || die "Missing backend/.env. Copy backend/.env.example to backend/.env and review the local secret."
+  [ -f "$BACKEND_ENV_FILE" ] || die "Missing backend/.env. Copy backend/.env.example to backend/.env and review the local values."
   cd "$ROOT"
   ensure_docker
 

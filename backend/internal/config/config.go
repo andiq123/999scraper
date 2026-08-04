@@ -74,20 +74,21 @@ func Load() (Config, error) {
 	if err != nil || retries < 0 || retries > 8 {
 		return Config{}, fmt.Errorf("SCRAPER_RETRIES must be between 0 and 8")
 	}
-	cookieSecure, err := strconv.ParseBool(env("COOKIE_SECURE", "false"))
+	allowedOrigins, frontendURL, err := loadAllowedOrigins()
+	if err != nil {
+		return Config{}, err
+	}
+	secureDefault, sameSiteDefault := cookieDefaults(frontendURL)
+	cookieSecure, err := strconv.ParseBool(env("COOKIE_SECURE", secureDefault))
 	if err != nil {
 		return Config{}, fmt.Errorf("COOKIE_SECURE must be true or false")
 	}
-	cookieSameSite, err := sameSite(env("COOKIE_SAME_SITE", "lax"))
+	cookieSameSite, err := sameSite(env("COOKIE_SAME_SITE", sameSiteDefault))
 	if err != nil {
 		return Config{}, err
 	}
 	if cookieSameSite == http.SameSiteNoneMode && !cookieSecure {
 		return Config{}, fmt.Errorf("COOKIE_SECURE must be true when COOKIE_SAME_SITE is none")
-	}
-	allowedOrigins, err := origins(env("CORS_ALLOWED_ORIGINS", "http://localhost:4200,https://localhost:4200"))
-	if err != nil {
-		return Config{}, err
 	}
 	cfg := Config{
 		Address:         address,
@@ -110,6 +111,36 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("JWT_SECRET must contain at least 32 characters")
 	}
 	return cfg, nil
+}
+
+func loadAllowedOrigins() ([]string, string, error) {
+	frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
+	if frontendURL == "" {
+		if strings.TrimSpace(os.Getenv("PORT")) != "" {
+			return nil, "", fmt.Errorf("FRONTEND_URL is required when the app is deployed")
+		}
+		frontendURL = "http://localhost:4200"
+	}
+	primary, err := origins(frontendURL)
+	if err != nil || len(primary) != 1 {
+		return nil, "", fmt.Errorf("FRONTEND_URL must be one HTTP(S) origin without a path")
+	}
+	values := primary
+	if extras := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS")); extras != "" {
+		additional, err := origins(extras)
+		if err != nil {
+			return nil, "", err
+		}
+		values = append(values, additional...)
+	}
+	return unique(values), primary[0], nil
+}
+
+func cookieDefaults(frontendURL string) (secure, sameSite string) {
+	if strings.HasPrefix(frontendURL, "https://") {
+		return "true", "none"
+	}
+	return "false", "lax"
 }
 
 // listenAddress honors an explicit address locally and otherwise binds the
@@ -199,7 +230,6 @@ func sameSite(value string) (http.SameSite, error) {
 }
 
 func origins(value string) ([]string, error) {
-	seen := make(map[string]struct{})
 	result := make([]string, 0)
 	for _, candidate := range strings.Split(value, ",") {
 		candidate = strings.TrimSpace(candidate)
@@ -211,13 +241,22 @@ func origins(value string) ([]string, error) {
 			return nil, fmt.Errorf("CORS_ALLOWED_ORIGINS must contain only HTTP(S) origins without paths")
 		}
 		origin := parsed.Scheme + "://" + parsed.Host
-		if _, exists := seen[origin]; exists {
-			continue
-		}
-		seen[origin] = struct{}{}
 		result = append(result, origin)
 	}
-	return result, nil
+	return unique(result), nil
+}
+
+func unique(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	return result
 }
 
 // LoadDatabase accepts the platform's preferred DATABASE_URL and falls back to

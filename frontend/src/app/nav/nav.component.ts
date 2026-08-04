@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
+import { PwaService } from '../pwa.service';
 import { SearchStateService } from '../search/search-state.service';
 
 @Component({
@@ -12,6 +13,7 @@ import { SearchStateService } from '../search/search-state.service';
 })
 export class NavComponent {
   readonly auth = inject(AuthService);
+  readonly pwa = inject(PwaService);
   private readonly router = inject(Router);
   private readonly searchState = inject(SearchStateService);
 

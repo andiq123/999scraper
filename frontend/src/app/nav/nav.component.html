@@ -2,6 +2,10 @@
   <a class="brand" href="/?fresh=1" (click)="freshHome($event)" aria-label="Start a fresh search"><span>999</span><strong>Scraper</strong></a>
   <div class="actions">
     <a routerLink="/" [routerLinkActiveOptions]="{exact: true}" routerLinkActive="active">Search</a>
+    <a routerLink="/settings" routerLinkActive="active">Settings</a>
+  @if (pwa.installAvailable()) {
+      <button animate.enter="reveal-enter" animate.leave="reveal-leave" class="install" type="button" (click)="pwa.install()" aria-label="Install 999 Search"><span aria-hidden="true">↓</span><b>Install</b></button>
+  }
   @if (auth.session()) {
       <a animate.enter="reveal-enter" animate.leave="reveal-leave" routerLink="/saved" routerLinkActive="active">Saved</a>
       <a animate.enter="reveal-enter" animate.leave="reveal-leave" routerLink="/history" routerLinkActive="active">History</a>

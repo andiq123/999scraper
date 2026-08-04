@@ -54,6 +54,15 @@ func (c *Cache) Close() {
 	}
 }
 
+func (c *Cache) Healthy(ctx context.Context) bool {
+	if c.client == nil {
+		return false
+	}
+	operationCtx, cancel := context.WithTimeout(ctx, operationTimeout)
+	defer cancel()
+	return c.client.Ping(operationCtx).Err() == nil
+}
+
 func (c *Cache) GetQuery(ctx context.Context, query string) (model.ProductsContainer, bool) {
 	return c.get(ctx, queryKey(query))
 }

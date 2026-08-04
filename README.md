@@ -4,6 +4,7 @@ A clean, separated search application for 999.md:
 
 - Go 1.26 API with Air live reload
 - Angular 22 standalone, zoneless frontend with signal-based state
+- installable PWA shell with iOS home-screen metadata and safe background updates
 - PostgreSQL 18 for code-only accounts, saved listings, preferences, and search history
 - Redis 8 for normalized search caching
 - SSE for progressive search-result delivery
@@ -19,7 +20,7 @@ docker-compose.yml Local service orchestration
 start.sh           One-command local launcher and cleanup
 frontend/vercel.json Vercel project configuration
 .env               Frontend launcher configuration (ignored by Git)
-backend/.env       Backend secret configuration (ignored by Git)
+backend/.env       Backend runtime configuration (ignored by Git)
 ```
 
 ## Start
@@ -32,7 +33,7 @@ cp backend/.env.example backend/.env # only when backend/.env does not exist
 ./start.sh
 ```
 
-Configuration is split by ownership and both files are ignored by Git. Root `.env` contains only `FRONTEND_PORT` and the browser-safe `API_URL`; `backend/.env` contains only `JWT_SECRET`. `./start.sh` validates both, passes the root file explicitly to Docker Compose, and Angular compiles `API_URL` into the browser bundle. PostgreSQL and Redis local addresses are supplied automatically by Docker Compose.
+Configuration is split by ownership and both files are ignored by Git. Root `.env` contains only `FRONTEND_PORT` and the browser-safe `API_URL`; `backend/.env` contains `JWT_SECRET` and the exact `FRONTEND_URL` allowed by CORS. `./start.sh` validates both, passes the root file explicitly to Docker Compose, and Angular compiles `API_URL` into the browser bundle. PostgreSQL and Redis local addresses are supplied automatically by Docker Compose.
 
 - Frontend: <http://localhost:4200>
 - Backend health: <http://localhost:8081/api/health>
@@ -87,7 +88,7 @@ The API reads its secret from [backend/.env.example](backend/.env.example) durin
 
 The public API is limited to health, exchange rates, registration, login, and progressive search. History, preferences, saved listings, and the current session require the private code session.
 
-In production the Go server automatically binds the hosting platform's injected `PORT`; no port variable needs to be configured manually. `APP_ADDRESS` remains available as an explicit local/container override. Deployment health checks may use the lightweight `/health` endpoint, while `/api/health` remains available for the frontend-facing API path.
+In production the Go server automatically binds the hosting platform's injected `PORT`; no port variable needs to be configured manually. `APP_ADDRESS` remains available as an explicit local/container override. Deployment health checks may use `/health`, while `/api/health` powers the public Settings status page. Both return only backend, PostgreSQL, and Redis availability flags plus a timestamp; infrastructure addresses and errors remain private.
 
 ## PostgreSQL deployment
 
@@ -119,12 +120,10 @@ API_URL=https://api.example.com/api/
 
 `API_URL` is public build configuration, not a secret. Vercel must redeploy after it changes. The build rejects a missing value or a non-HTTPS production URL instead of publishing a broken frontend.
 
-Expose the Raspberry Pi API through a public HTTPS hostname using a secure reverse proxy or tunnel; do not point the HTTPS frontend at a private address or plain HTTP port. For the most reliable login flow, use sibling custom domains such as `app.example.com` on Vercel and `api.example.com` on the Pi. Configure the Go app with the exact frontend origin:
+Expose the Raspberry Pi API through a public HTTPS hostname using a secure reverse proxy or tunnel; do not point the HTTPS frontend at a private address or plain HTTP port. For the most reliable login flow, use sibling custom domains such as `app.example.com` on Vercel and `api.example.com` on the Pi. Configure the Go app with the exact frontend origin; this is the only CORS setting required for the normal production deployment:
 
 ```text
-CORS_ALLOWED_ORIGINS=https://app.example.com
-COOKIE_SECURE=true
-COOKIE_SAME_SITE=lax
+FRONTEND_URL=https://999scraper.vercel.app
 ```
 
-Use comma-separated exact origins when a specific preview deployment also needs access. Wildcard Vercel origins are deliberately unsupported because authenticated cross-origin requests use cookies. If the frontend stays on `your-project.vercel.app` while the API uses another site, set `COOKIE_SAME_SITE=none` with `COOKIE_SECURE=true`; browser third-party-cookie policies may still limit login, so sibling custom domains are preferred. Anonymous search is unaffected.
+An HTTPS `FRONTEND_URL` automatically enables secure `SameSite=None` cookies so code login can cross from Vercel to a Cloudflare tunnel. `COOKIE_SECURE` and `COOKIE_SAME_SITE` remain optional explicit overrides. Use comma-separated exact origins in `CORS_ALLOWED_ORIGINS` only when a specific preview deployment also needs access. Wildcards are deliberately unsupported because authenticated cross-origin requests use cookies. Browser third-party-cookie policies may still limit login across unrelated sites, so sibling custom domains remain the most reliable production setup. Anonymous search is unaffected.

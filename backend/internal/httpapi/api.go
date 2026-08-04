@@ -39,11 +39,8 @@ func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, r
 	}
 	api := &API{store: s, auth: a, scraper: sc, cache: c, rates: rates, origins: origins, logger: logger, queries: newQueryGate(), logins: newLoginLimiter()}
 	mux := http.NewServeMux()
-	health := func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-	}
-	mux.HandleFunc("GET /health", health)
-	mux.HandleFunc("GET /api/health", health)
+	mux.HandleFunc("GET /health", api.health)
+	mux.HandleFunc("GET /api/health", api.health)
 	mux.HandleFunc("POST /api/account/login", api.login)
 	mux.HandleFunc("POST /api/account/register", api.register)
 	mux.HandleFunc("POST /api/account/logout", api.logout)
@@ -57,6 +54,39 @@ func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, r
 	mux.Handle("PUT /api/saved/{id}", a.Middleware(http.HandlerFunc(api.saveListing)))
 	mux.Handle("DELETE /api/saved/{id}", a.Middleware(http.HandlerFunc(api.deleteListing)))
 	return api.recover(api.cors(api.log(mux)))
+}
+
+func (a *API) health(w http.ResponseWriter, r *http.Request) {
+	type services struct {
+		Backend  bool `json:"backend"`
+		Database bool `json:"database"`
+		Redis    bool `json:"redis"`
+	}
+
+	checks := services{Backend: true}
+	var wait sync.WaitGroup
+	wait.Add(2)
+	go func() {
+		defer wait.Done()
+		checks.Database = a.store.Healthy(r.Context())
+	}()
+	go func() {
+		defer wait.Done()
+		checks.Redis = a.cache.Healthy(r.Context())
+	}()
+	wait.Wait()
+
+	status := http.StatusOK
+	state := "ok"
+	if !checks.Database || !checks.Redis {
+		status = http.StatusServiceUnavailable
+		state = "degraded"
+	}
+	writeJSON(w, status, struct {
+		Status    string    `json:"status"`
+		Services  services  `json:"services"`
+		CheckedAt time.Time `json:"checkedAt"`
+	}{Status: state, Services: checks, CheckedAt: time.Now().UTC()})
 }
 
 func (a *API) exchangeRates(w http.ResponseWriter, r *http.Request) {

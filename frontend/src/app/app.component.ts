@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AuthService } from './auth/auth.service';
 import { NavComponent } from './nav/nav.component';
+import { PwaService } from './pwa.service';
 import { ToastService } from './toast.service';
 
 @Component({
@@ -13,8 +14,9 @@ import { ToastService } from './toast.service';
 })
 export class AppComponent {
   readonly toast = inject(ToastService).message;
+  readonly pwa = inject(PwaService);
 
   constructor() {
-		void inject(AuthService).restore();
+    void inject(AuthService).restore();
   }
 }
