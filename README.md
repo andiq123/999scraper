@@ -10,23 +10,36 @@ A clean, separated search application for 999.md:
 - background EUR/USD/MDL normalization from National Bank of Moldova rates
 - query-aware facets for vehicles, phones, laptops, consoles, TVs, and property
 
+## Repository layout
+
+```text
+frontend/          Angular application and Vercel build
+backend/           Go API, migrations, and backend container
+docker-compose.yml Local service orchestration
+start.sh           One-command local launcher and cleanup
+vercel.json        Root Vercel project configuration
+.env               Frontend launcher configuration (ignored by Git)
+backend/.env       Backend secret configuration (ignored by Git)
+```
+
 ## Start
 
 Docker Desktop is the only local requirement on macOS. The launcher starts Docker when needed and brings up every service:
 
 ```sh
 cp .env.example .env # only when .env does not already exist
+cp backend/.env.example backend/.env # only when backend/.env does not exist
 ./start.sh
 ```
 
-The ignored root `.env` is the single local configuration source. `./start.sh` passes it explicitly to Docker Compose, and the Angular development server compiles its `API_URL` value into the browser bundle.
+Configuration is split by ownership and both files are ignored by Git. Root `.env` contains only `FRONTEND_PORT` and the browser-safe `API_URL`; `backend/.env` contains only `JWT_SECRET`. `./start.sh` validates both, passes the root file explicitly to Docker Compose, and Angular compiles `API_URL` into the browser bundle. PostgreSQL and Redis local addresses are supplied automatically by Docker Compose.
 
 - Frontend: <http://localhost:4200>
 - Backend health: <http://localhost:8081/api/health>
 
 Search is public and needs no account. Log in only to save listings, sync excluded-word preferences, and retain search history. There are no usernames, passwords, roles, or admins: press **Register** once, save the generated six-digit code, then use it to log in. The code is shown once and only its keyed cryptographic fingerprint is stored. Login attempts are rate-limited, and a successful login creates an HttpOnly, SameSite session cookie; browser JavaScript never handles the JWT.
 
-Changes under `cmd/` or `internal/` rebuild and restart the backend through Air. Angular source changes refresh through its independent development server.
+Changes under `backend/cmd/` or `backend/internal/` rebuild and restart the backend through Air. Changes under `frontend/src/` refresh through the independent Angular development server.
 
 Press Ctrl+C to remove the project containers, network, database and dependency/build volumes, and locally built images. The Redis search cache is intentionally ephemeral. Docker Desktop itself stays open.
 
@@ -57,15 +70,15 @@ The Docker workflow is recommended because it supplies PostgreSQL and Redis. To 
 
 ```sh
 export DATABASE_URL='postgres://...'
-go run ./cmd/migrate
-air -c .air.toml
+set -a; . backend/.env; set +a
+(cd backend && go run ./cmd/migrate)
+(cd backend && air -c .air.toml)
 
-cd client
-npm ci
-npm start
+(cd frontend && npm ci)
+(cd frontend && npm start)
 ```
 
-The API reads the injected environment configuration listed in [.env.example](.env.example). `./start.sh` runs the schema migration as a separate one-shot service before starting the API:
+The API reads its secret from [backend/.env.example](backend/.env.example) during local development and uses platform-injected configuration in production. `./start.sh` runs the schema migration as a separate one-shot service before starting the API:
 
 - `accounts`: anonymous account ID, login-code fingerprint, creation time
 - `search_history`: the latest searches belonging to that account
@@ -88,9 +101,15 @@ Run migrations as a controlled deployment step before replacing the running app:
 
 The production image contains both `/app/server` and `/app/migrate`; its normal entrypoint remains the server. Database operations have bounded request timeouts, and migrations are additive and idempotent.
 
+## Redis deployment
+
+Link the `cache` Redis service to the Go app so it injects scoped runtime variables. `REDIS_URL` is preferred; when it is unavailable, the backend safely constructs the connection from `REDIS_HOST`, `REDIS_PORT`, `REDIS_USERNAME`, `REDIS_PASSWORD`, `REDIS_DB`, and `REDIS_TLS`. Credentials and complete connection URLs are never logged.
+
+One bounded `go-redis` client is created and verified at startup, reused for every search, and closed during graceful shutdown. Cache operations have short context deadlines, the pool is capped at five connections for a small host, keys use the `999scraper:search:` namespace, and every search entry expires automatically. The cache never scans with `KEYS`, and an invalid or unreachable linked Redis service fails startup instead of silently disabling caching.
+
 ## Vercel frontend + home backend
 
-Import the repository into Vercel. The root [vercel.json](vercel.json) installs and builds only the Angular client and preserves client-side routes. Add one Vercel environment variable for Production (and Preview only when you want previews to reach the home API):
+Import the repository into Vercel with the repository root as its Root Directory. The root [vercel.json](vercel.json) explicitly installs and builds only `frontend/`, publishes `frontend/dist/frontend`, and preserves client-side routes. Vercel therefore cannot mistake the Go backend for the web application. Add one Vercel environment variable for Production (and Preview only when you want previews to reach the home API):
 
 ```text
 API_URL=https://api.example.com/api/

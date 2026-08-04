@@ -2,11 +2,10 @@
 .env
 
 # Dependencies and generated output
-client/node_modules/
-client/.angular/
-client/dist/
-web/
-.air-tmp/
+frontend/node_modules/
+frontend/.angular/
+frontend/dist/
+backend/.air-tmp/
 bin/
 coverage/
 

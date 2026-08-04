@@ -26,7 +26,11 @@ func New(ctx context.Context, logger *slog.Logger) (*http.Server, func(), error)
 		return nil, nil, err
 	}
 	db := store.New(dbPool)
-	redisCache := cache.Open(ctx, cfg.RedisURL, logger)
+	redisCache, err := cache.Open(ctx, cfg.Redis.URL, logger)
+	if err != nil {
+		dbPool.Close()
+		return nil, nil, err
+	}
 	scrape := scraper.New(cfg.ScraperBaseURL, scraper.Options{
 		MaxPages:       cfg.ScraperMaxPage,
 		Concurrency:    cfg.ScraperWorkers,

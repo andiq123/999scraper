@@ -1,9 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "angular",
-  "installCommand": "npm --prefix client ci",
-  "buildCommand": "npm --prefix client run build",
-  "outputDirectory": "client/dist/client",
+  "installCommand": "npm --prefix frontend ci",
+  "buildCommand": "npm --prefix frontend run build",
+  "outputDirectory": "frontend/dist/frontend",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]

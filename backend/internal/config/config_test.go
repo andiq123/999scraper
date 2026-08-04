@@ -78,9 +78,58 @@ func TestLoadDatabaseRequiresLinkedConfiguration(t *testing.T) {
 	}
 }
 
+func TestLoadRedisPrefersURL(t *testing.T) {
+	clearRedisEnvironment(t)
+	t.Setenv("REDIS_URL", "rediss://linked:secret@cache.internal:6380/2")
+	settings, err := LoadRedis()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if settings.URL != "rediss://linked:secret@cache.internal:6380/2" {
+		t.Fatalf("unexpected Redis settings: %#v", settings)
+	}
+}
+
+func TestLoadRedisBuildsURLFromInjectedParts(t *testing.T) {
+	clearRedisEnvironment(t)
+	t.Setenv("REDIS_HOST", "cache.internal")
+	t.Setenv("REDIS_PORT", "6380")
+	t.Setenv("REDIS_USERNAME", "app user")
+	t.Setenv("REDIS_PASSWORD", "p@ss:/word")
+	t.Setenv("REDIS_DB", "3")
+	t.Setenv("REDIS_TLS", "true")
+	settings, err := LoadRedis()
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := url.Parse(settings.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	password, _ := parsed.User.Password()
+	if parsed.Scheme != "rediss" || parsed.Host != "cache.internal:6380" || parsed.Path != "/3" || parsed.User.Username() != "app user" || password != "p@ss:/word" {
+		t.Fatal("injected Redis values were not preserved safely")
+	}
+}
+
+func TestLoadRedisRejectsInvalidConfiguration(t *testing.T) {
+	clearRedisEnvironment(t)
+	t.Setenv("REDIS_TLS", "sometimes")
+	if _, err := LoadRedis(); err == nil {
+		t.Fatal("expected invalid Redis TLS configuration to fail")
+	}
+}
+
 func clearDatabaseEnvironment(t *testing.T) {
 	t.Helper()
 	for _, key := range []string{"DATABASE_URL", "DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD", "DB_SSLMODE", "POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD", "DB_MAX_CONNS", "DB_MIN_CONNS", "DB_CONNECT_TIMEOUT"} {
+		t.Setenv(key, "")
+	}
+}
+
+func clearRedisEnvironment(t *testing.T) {
+	t.Helper()
+	for _, key := range []string{"REDIS_URL", "REDIS_HOST", "REDIS_PORT", "REDIS_USERNAME", "REDIS_PASSWORD", "REDIS_DB", "REDIS_TLS"} {
 		t.Setenv(key, "")
 	}
 }

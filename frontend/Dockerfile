@@ -14,5 +14,5 @@ RUN npm run build
 
 FROM nginx:1.29-alpine AS production
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/dist/client/ /usr/share/nginx/html/
+COPY --from=builder /app/dist/frontend/ /usr/share/nginx/html/
 EXPOSE 80

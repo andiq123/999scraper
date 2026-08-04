@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -19,23 +20,32 @@ type Cache struct {
 }
 
 const (
-	searchTTL    = 5 * time.Minute
-	maxEntrySize = 4 << 20
+	searchTTL        = 5 * time.Minute
+	maxEntrySize     = 4 << 20
+	connectTimeout   = 3 * time.Second
+	operationTimeout = 2 * time.Second
 )
 
-func Open(ctx context.Context, rawURL string, logger *slog.Logger) *Cache {
+func Open(ctx context.Context, rawURL string, logger *slog.Logger) (*Cache, error) {
 	options, err := redis.ParseURL(rawURL)
 	if err != nil {
-		logger.Warn("redis disabled", "error", err)
-		return &Cache{logger: logger}
+		return nil, errors.New("parse Redis configuration")
 	}
+	options.PoolSize = 5
+	options.MinIdleConns = 0
+	options.MaxRetries = 2
+	options.DialTimeout = connectTimeout
+	options.ReadTimeout = operationTimeout
+	options.WriteTimeout = operationTimeout
+	options.PoolTimeout = operationTimeout
 	client := redis.NewClient(options)
-	if err := client.Ping(ctx).Err(); err != nil {
-		logger.Warn("redis unavailable; continuing without cache", "error", err)
+	pingCtx, cancel := context.WithTimeout(ctx, connectTimeout)
+	defer cancel()
+	if err := client.Ping(pingCtx).Err(); err != nil {
 		_ = client.Close()
-		return &Cache{logger: logger}
+		return nil, fmt.Errorf("connect Redis cache: %w", err)
 	}
-	return &Cache{client: client, logger: logger}
+	return &Cache{client: client, logger: logger}, nil
 }
 
 func (c *Cache) Close() {
@@ -52,13 +62,15 @@ func (c *Cache) get(ctx context.Context, key string) (model.ProductsContainer, b
 	if c.client == nil || key == "" {
 		return model.ProductsContainer{}, false
 	}
-	data, err := c.client.Get(ctx, key).Bytes()
+	operationCtx, cancel := context.WithTimeout(ctx, operationTimeout)
+	defer cancel()
+	data, err := c.client.Get(operationCtx, key).Bytes()
 	if err != nil {
 		return model.ProductsContainer{}, false
 	}
 	var result model.ProductsContainer
 	if err := json.Unmarshal(data, &result); err != nil {
-		_ = c.client.Del(ctx, key).Err()
+		_ = c.client.Del(operationCtx, key).Err()
 		return model.ProductsContainer{}, false
 	}
 	return result, true
@@ -74,7 +86,9 @@ func (c *Cache) SetSearch(ctx context.Context, query string, value model.Product
 	if c.client == nil || key == "" || len(data) == 0 || len(data) > maxEntrySize {
 		return
 	}
-	if err := c.client.Set(ctx, key, data, searchTTL).Err(); err != nil {
+	operationCtx, cancel := context.WithTimeout(ctx, operationTimeout)
+	defer cancel()
+	if err := c.client.Set(operationCtx, key, data, searchTTL).Err(); err != nil {
 		c.logger.Warn("cache write failed", "error", err)
 	}
 }
@@ -85,5 +99,5 @@ func queryKey(query string) string {
 		return ""
 	}
 	sum := sha256.Sum256([]byte(query))
-	return fmt.Sprintf("search-query:v6:%x", sum)
+	return fmt.Sprintf("999scraper:search:v6:%x", sum)
 }

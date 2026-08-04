@@ -6,6 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 COMPOSE_FILE="$ROOT/docker-compose.yml"
 ENV_FILE="$ROOT/.env"
+BACKEND_ENV_FILE="$ROOT/backend/.env"
 export COMPOSE_PROJECT_NAME="999scraper"
 export COMPOSE_MENU=false
 
@@ -89,6 +90,7 @@ cleanup() {
 main() {
   [ "$#" -eq 0 ] || die "This launcher takes no arguments; run ./start.sh and use Ctrl+C to stop it."
   [ -f "$ENV_FILE" ] || die "Missing .env. Copy .env.example to .env and review the local values."
+  [ -f "$BACKEND_ENV_FILE" ] || die "Missing backend/.env. Copy backend/.env.example to backend/.env and review the local secret."
   cd "$ROOT"
   ensure_docker
 
@@ -97,7 +99,7 @@ main() {
   trap 'exit 143' TERM
 
   log "docker" "starting data services, Air backend, and Angular frontend"
-  printf "${BOLD}Config:${RESET}   .env (API_URL is injected into Angular)\n"
+  printf "${BOLD}Config:${RESET}   .env for Angular, backend/.env for Go\n"
   printf "${BOLD}Frontend:${RESET} http://localhost:4200 (live reload)\n"
   printf "${BOLD}Backend:${RESET}  http://localhost:8081/api/health (Air live reload)\n"
   printf "${BOLD}Account:${RESET}  press Register once, then save the generated login code\n"

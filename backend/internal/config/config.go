@@ -18,10 +18,14 @@ type DatabaseConfig struct {
 	ConnectTimeout time.Duration
 }
 
+type RedisConfig struct {
+	URL string
+}
+
 type Config struct {
 	Address         string
 	Database        DatabaseConfig
-	RedisURL        string
+	Redis           RedisConfig
 	JWTSecret       string
 	JWTIssuer       string
 	JWTLifetime     time.Duration
@@ -39,6 +43,10 @@ type Config struct {
 // Load reads and validates the API's environment-based runtime configuration.
 func Load() (Config, error) {
 	database, err := LoadDatabase()
+	if err != nil {
+		return Config{}, err
+	}
+	redisConfig, err := LoadRedis()
 	if err != nil {
 		return Config{}, err
 	}
@@ -80,8 +88,8 @@ func Load() (Config, error) {
 	cfg := Config{
 		Address:         env("APP_ADDRESS", ":8080"),
 		Database:        database,
-		RedisURL:        env("REDIS_URL", "redis://localhost:6379/0"),
-		JWTSecret:       env("JWT_SECRET", "local-development-key-change-me-please"),
+		Redis:           redisConfig,
+		JWTSecret:       strings.TrimSpace(os.Getenv("JWT_SECRET")),
 		JWTIssuer:       env("JWT_ISSUER", "999scraper"),
 		JWTLifetime:     30 * 24 * time.Hour,
 		CookieSecure:    cookieSecure,
@@ -98,6 +106,59 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("JWT_SECRET must contain at least 32 characters")
 	}
 	return cfg, nil
+}
+
+// LoadRedis accepts the linked service's REDIS_URL and otherwise constructs an
+// equivalent URL from its scoped REDIS_* variables. The resulting URL is kept
+// in memory and is never logged.
+func LoadRedis() (RedisConfig, error) {
+	rawURL := strings.TrimSpace(os.Getenv("REDIS_URL"))
+	if rawURL == "" {
+		var err error
+		rawURL, err = redisURLFromParts()
+		if err != nil {
+			return RedisConfig{}, err
+		}
+	}
+	parsed, err := url.Parse(rawURL)
+	if err != nil || (parsed.Scheme != "redis" && parsed.Scheme != "rediss") || parsed.Host == "" || parsed.Fragment != "" {
+		return RedisConfig{}, fmt.Errorf("REDIS_URL must be a valid redis:// or rediss:// connection URL")
+	}
+	return RedisConfig{URL: rawURL}, nil
+}
+
+func redisURLFromParts() (string, error) {
+	host := env("REDIS_HOST", "localhost")
+	port := env("REDIS_PORT", "6379")
+	portNumber, err := strconv.ParseUint(port, 10, 16)
+	if err != nil || portNumber == 0 {
+		return "", fmt.Errorf("REDIS_PORT must be a valid port")
+	}
+	database, err := nonNegativeInt("REDIS_DB", 0, 255)
+	if err != nil {
+		return "", err
+	}
+	tlsEnabled, err := strconv.ParseBool(env("REDIS_TLS", "false"))
+	if err != nil {
+		return "", fmt.Errorf("REDIS_TLS must be true or false")
+	}
+	connection := &url.URL{
+		Scheme: "redis",
+		Host:   net.JoinHostPort(host, port),
+		Path:   "/" + strconv.Itoa(database),
+	}
+	if tlsEnabled {
+		connection.Scheme = "rediss"
+	}
+	username := strings.TrimSpace(os.Getenv("REDIS_USERNAME"))
+	password := os.Getenv("REDIS_PASSWORD")
+	if username != "" || password != "" {
+		if username == "" {
+			username = "default"
+		}
+		connection.User = url.UserPassword(username, password)
+	}
+	return connection.String(), nil
 }
 
 func sameSite(value string) (http.SameSite, error) {

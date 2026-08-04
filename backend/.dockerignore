@@ -2,6 +2,4 @@
 .env
 .DS_Store
 .air-tmp
-client
-web
 *.log
