@@ -1,8 +1,6 @@
 <main class="settings-page page-shell">
   <header class="page-heading">
-    <p>App settings</p>
-    <h1>System status</h1>
-    <span>Live, privacy-safe checks for this app and its connected services.</span>
+    <h1>Production checks</h1>
   </header>
 
   <section class="summary ui-surface" [class.degraded]="unavailable() || health()?.status === 'degraded'">
@@ -20,53 +18,22 @@
     </button>
   </section>
 
-  <section class="settings-section" aria-labelledby="services-title">
-    <div class="section-title"><div><h2 id="services-title">Services</h2><p>Readiness reported directly by the Go API.</p></div><span>Live</span></div>
-    <div class="status-list ui-surface">
-      <article>
-        <span class="status-dot" [class.online]="health()?.services?.backend" aria-hidden="true"></span>
-        <div><strong>Backend API</strong><small>Search streaming and account requests</small></div>
-        <b [class.online]="health()?.services?.backend">{{ statusLabel(health()?.services?.backend) }}</b>
-      </article>
-      <article>
-        <span class="status-dot" [class.online]="health()?.services?.database" aria-hidden="true"></span>
-        <div><strong>PostgreSQL</strong><small>Saved listings, preferences and history</small></div>
-        <b [class.online]="health()?.services?.database">{{ statusLabel(health()?.services?.database) }}</b>
-      </article>
-      <article>
-        <span class="status-dot" [class.online]="health()?.services?.redis" aria-hidden="true"></span>
-        <div><strong>Redis cache</strong><small>Fast reusable marketplace search results</small></div>
-        <b [class.online]="health()?.services?.redis">{{ statusLabel(health()?.services?.redis) }}</b>
-      </article>
-    </div>
-  </section>
-
-  <section class="settings-section" aria-labelledby="app-title">
-    <div class="section-title"><div><h2 id="app-title">This device</h2><p>Local browser and installed-app capabilities.</p></div><span>Private</span></div>
-    <div class="status-list ui-surface">
-      <article>
-        <span class="status-dot" [class.online]="pwa.online()" aria-hidden="true"></span>
-        <div><strong>Network</strong><small>Required when loading fresh marketplace results</small></div>
-        <b [class.online]="pwa.online()">{{ pwa.online() ? 'Connected' : 'Offline' }}</b>
-      </article>
-      <article>
-        <span class="status-dot" [class.online]="pwa.serviceWorkerEnabled()" aria-hidden="true"></span>
-        <div><strong>Offline app shell</strong><small>Enabled automatically on the HTTPS production app</small></div>
-        <b [class.online]="pwa.serviceWorkerEnabled()">{{ pwa.serviceWorkerEnabled() ? 'Enabled' : 'Development' }}</b>
-      </article>
-      <article>
-        <span class="status-dot" [class.online]="pwa.installed()" aria-hidden="true"></span>
-        <div><strong>App mode</strong><small>Runs without browser chrome when installed</small></div>
-        <b [class.online]="pwa.installed()">{{ pwa.installed() ? 'Installed' : 'Browser' }}</b>
-      </article>
-      @if (pwa.installAvailable()) {
-        <article class="install-row" animate.enter="reveal-enter" animate.leave="reveal-leave">
-          <span class="status-dot online" aria-hidden="true"></span>
-          <div><strong>Install this app</strong><small>Add it to your Home Screen for the native app experience</small></div>
-          <button class="ui-button ui-button-primary" type="button" (click)="pwa.install()">Install</button>
-        </article>
-      }
-    </div>
+  <section class="status-list ui-surface" aria-label="Production services">
+    <article>
+      <span class="status-dot" [class.online]="health()?.services?.backend" aria-hidden="true"></span>
+      <div><strong>Backend API</strong><small>Search streaming and accounts</small></div>
+      <b [class.online]="health()?.services?.backend">{{ statusLabel(health()?.services?.backend) }}</b>
+    </article>
+    <article>
+      <span class="status-dot" [class.online]="health()?.services?.database" aria-hidden="true"></span>
+      <div><strong>PostgreSQL</strong><small>Saved listings and history</small></div>
+      <b [class.online]="health()?.services?.database">{{ statusLabel(health()?.services?.database) }}</b>
+    </article>
+    <article>
+      <span class="status-dot" [class.online]="health()?.services?.redis" aria-hidden="true"></span>
+      <div><strong>Redis</strong><small>Search result cache</small></div>
+      <b [class.online]="health()?.services?.redis">{{ statusLabel(health()?.services?.redis) }}</b>
+    </article>
   </section>
 
   <p class="privacy-note">Health checks contain only availability flags and timestamps. Connection addresses, credentials and internal errors are never returned.</p>

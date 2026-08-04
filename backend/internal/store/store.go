@@ -59,8 +59,19 @@ CREATE TABLE IF NOT EXISTS saved_listings (
 );
 CREATE INDEX IF NOT EXISTS saved_listings_account_date_idx
   ON saved_listings (account_id, saved_at DESC);`
-	if _, err := s.db.Exec(ctx, schema); err != nil {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin database migration: %w", err)
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('999scraper_schema'))`); err != nil {
+		return fmt.Errorf("lock database migration: %w", err)
+	}
+	if _, err := tx.Exec(ctx, schema); err != nil {
 		return fmt.Errorf("migrate database: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit database migration: %w", err)
 	}
 	return nil
 }

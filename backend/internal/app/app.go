@@ -26,6 +26,13 @@ func New(ctx context.Context, logger *slog.Logger) (*http.Server, func(), error)
 		return nil, nil, err
 	}
 	db := store.New(dbPool)
+	migrationCtx, cancelMigration := context.WithTimeout(ctx, 45*time.Second)
+	defer cancelMigration()
+	if err := db.Migrate(migrationCtx); err != nil {
+		dbPool.Close()
+		return nil, nil, err
+	}
+	logger.Info("database schema ready")
 	redisCache, err := cache.Open(ctx, cfg.Redis.URL, logger)
 	if err != nil {
 		dbPool.Close()

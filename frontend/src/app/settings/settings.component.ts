@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { environment } from '../../environments/environment';
-import { PwaService } from '../pwa.service';
 
 interface HealthStatus {
   status: 'ok' | 'degraded';
@@ -9,7 +8,6 @@ interface HealthStatus {
     database: boolean;
     redis: boolean;
   };
-  checkedAt: string;
 }
 
 @Component({
@@ -19,7 +17,6 @@ interface HealthStatus {
   styleUrl: './settings.component.scss',
 })
 export class SettingsComponent {
-  readonly pwa = inject(PwaService);
   readonly health = signal<HealthStatus | null>(null);
   readonly checking = signal(false);
   readonly unavailable = signal(false);
