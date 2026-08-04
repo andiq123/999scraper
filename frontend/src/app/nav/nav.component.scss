@@ -1,116 +1,79 @@
 :host {
-  position: sticky;
-  top: 0;
-  z-index: 30;
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1000;
   display: block;
-  padding: max(.32rem, env(safe-area-inset-top)) max(.5rem, env(safe-area-inset-right)) .25rem max(.5rem, env(safe-area-inset-left));
+  padding: .4rem max(.55rem, env(safe-area-inset-right)) max(.45rem, env(safe-area-inset-bottom)) max(.55rem, env(safe-area-inset-left));
   pointer-events: none;
 }
 
 nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: .35rem;
-  width: min(var(--page-width), 100%);
-  min-height: 48px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .15rem;
+  width: min(100%, 440px);
+  min-height: 60px;
   margin: auto;
-  padding: .2rem .24rem .2rem .48rem;
-  border-color: rgb(255 255 255 / 72%);
-  border-radius: 15px;
-  background: rgb(250 252 255 / 86%);
-  box-shadow: 0 8px 30px rgb(24 32 51 / 8%), inset 0 1px rgb(255 255 255 / 86%);
-  -webkit-backdrop-filter: blur(22px) saturate(165%);
-  backdrop-filter: blur(22px) saturate(165%);
+  padding: .28rem;
+  border: 1px solid rgb(255 255 255 / 72%);
+  border-radius: 22px;
+  background: rgb(246 249 253 / 78%);
+  box-shadow: 0 12px 36px rgb(24 32 51 / 16%), inset 0 1px rgb(255 255 255 / 88%);
+  -webkit-backdrop-filter: blur(28px) saturate(175%);
+  backdrop-filter: blur(28px) saturate(175%);
   pointer-events: auto;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  flex: none;
-  color: var(--text);
-  font-size: .94rem;
-  font-weight: 760;
-  letter-spacing: -.035em;
-  text-decoration: none;
-}
-
-.brand strong { font: inherit; }
-.brand span {
-  display: inline-grid;
+a {
+  display: grid;
+  grid-template-rows: 27px auto;
   place-items: center;
-  min-width: 34px;
-  height: 34px;
-  margin-right: .32rem;
-  padding-inline: .32rem;
-  border-radius: 10px;
-  color: white;
-  background: linear-gradient(145deg, #4798ff, var(--accent) 58%, #1558d6);
-  box-shadow: 0 5px 14px rgb(var(--accent-rgb) / 24%), inset 0 1px rgb(255 255 255 / 28%);
-  font-size: .73rem;
-}
-
-.actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: .08rem;
+  gap: .05rem;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.actions::-webkit-scrollbar { display: none; }
-
-a:not(.brand), button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: .24rem;
-  min-height: 40px;
-  padding: .42rem .55rem;
-  border: 0;
-  border-radius: 11px;
+  min-height: 52px;
+  padding: .2rem .15rem;
+  border-radius: 17px;
   color: var(--muted);
-  background: transparent;
-  font-size: .76rem;
-  font-weight: 660;
+  font-size: .59rem;
+  font-weight: 650;
+  line-height: 1;
   text-decoration: none;
-  white-space: nowrap;
-  cursor: pointer;
 }
 
-.active {
-  color: var(--text) !important;
-  background: rgb(255 255 255 / 90%) !important;
-  box-shadow: 0 1px 2px rgb(24 32 51 / 5%), 0 5px 14px rgb(24 32 51 / 6%);
+a.active {
+  color: var(--accent);
+  background: rgb(255 255 255 / 78%);
+  box-shadow: 0 1px 2px rgb(24 32 51 / 5%), 0 5px 16px rgb(24 32 51 / 7%), inset 0 1px rgb(255 255 255 / 80%);
 }
-.install { color: var(--accent); }
-.install span { font-size: 1rem; font-weight: 760; line-height: 0; transform: translateY(-1px); }
-.install b { font: inherit; }
-.logout { color: var(--subtle); }
+
+.tab-icon { position: relative; display: block; width: 25px; height: 25px; }
+.search-icon::before { position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; border: 2px solid currentColor; border-radius: 50%; content: ""; }
+.search-icon::after { position: absolute; right: 3px; bottom: 4px; width: 9px; height: 2px; border-radius: 999px; content: ""; background: currentColor; transform: rotate(45deg); transform-origin: right center; }
+.heart-icon { font-size: 1.8rem; font-weight: 380; line-height: 23px; }
+.settings-icon { display: grid; align-content: center; gap: 4px; padding-inline: 2px; }
+.settings-icon i { position: relative; display: block; height: 2px; border-radius: 999px; background: currentColor; }
+.settings-icon i::after { position: absolute; top: -2px; width: 6px; height: 6px; border: 2px solid currentColor; border-radius: 50%; content: ""; background: rgb(247 249 252); }
+.settings-icon i:nth-child(1)::after, .settings-icon i:nth-child(3)::after { left: 3px; }
+.settings-icon i:nth-child(2)::after { right: 3px; }
+.account-icon::before { position: absolute; top: 2px; left: 8px; width: 8px; height: 8px; border: 2px solid currentColor; border-radius: 50%; content: ""; }
+.account-icon::after { position: absolute; right: 3px; bottom: 2px; left: 3px; height: 9px; border: 2px solid currentColor; border-radius: 10px 10px 6px 6px; content: ""; }
 
 @media (hover: hover) {
-  a:not(.brand):hover, button:hover { color: var(--text); background: rgb(255 255 255 / 68%); }
-  .brand:hover span { transform: translateY(-1px) scale(1.025); box-shadow: 0 8px 18px rgb(var(--accent-rgb) / 28%); }
+  a:hover { color: var(--text); background: rgb(255 255 255 / 55%); }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .brand span { transition: transform var(--duration) var(--ease), box-shadow var(--duration) var(--ease); }
-}
-
-@media (max-width: 520px) {
-  .brand strong, .install b { display: none; }
-  .brand span { margin-right: 0; }
-  a:not(.brand), button { padding-inline: .48rem; }
+  a, .tab-icon { transition: color var(--duration-fast) ease, background-color var(--duration-fast) ease, transform var(--duration-fast) var(--ease); }
+  a:active .tab-icon { transform: scale(.88); }
 }
 
 @media (min-width: 700px) {
-  :host { padding-inline: 1rem; padding-bottom: .35rem; }
-  nav { min-height: 50px; padding-right: .32rem; padding-left: .58rem; border-radius: 17px; }
-  a:not(.brand), button { min-height: 40px; padding-inline: .68rem; font-size: .79rem; }
+  :host { padding-bottom: max(.65rem, env(safe-area-inset-bottom)); }
+  nav { width: min(420px, calc(100% - 2rem)); }
 }
 
 @media (display-mode: standalone) {
-  nav { box-shadow: 0 10px 32px rgb(24 32 51 / 9%), inset 0 1px rgb(255 255 255 / 88%); }
+  nav { background: rgb(246 249 253 / 72%); }
 }

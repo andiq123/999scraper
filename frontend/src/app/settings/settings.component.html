@@ -59,6 +59,13 @@
         <div><strong>App mode</strong><small>Runs without browser chrome when installed</small></div>
         <b [class.online]="pwa.installed()">{{ pwa.installed() ? 'Installed' : 'Browser' }}</b>
       </article>
+      @if (pwa.installAvailable()) {
+        <article class="install-row" animate.enter="reveal-enter" animate.leave="reveal-leave">
+          <span class="status-dot online" aria-hidden="true"></span>
+          <div><strong>Install this app</strong><small>Add it to your Home Screen for the native app experience</small></div>
+          <button class="ui-button ui-button-primary" type="button" (click)="pwa.install()">Install</button>
+        </article>
+      }
     </div>
   </section>
 

@@ -1,5 +1,5 @@
 <main class="auth-card ui-surface">
-  <h1>Login</h1>
+  <h1>Log in</h1>
   <p>Enter your six-digit code.</p>
   <form (submit)="submit($event)">
     <label class="sr-only" for="login-code">Private login code</label>
@@ -16,7 +16,11 @@
       (input)="updateCode($event)"
     >
     <button class="ui-button ui-button-primary" type="submit" [disabled]="code().length !== 6 || submitting()">
-      {{ submitting() ? 'Logging in…' : 'Login' }}
+      {{ submitting() ? 'Logging in…' : 'Log in' }}
     </button>
   </form>
+  <div class="auth-alternative">
+    <span>New here?</span>
+    <a class="ui-button ui-button-quiet" routerLink="/register">Create a login code</a>
+  </div>
 </main>

@@ -1,17 +1,18 @@
-<nav class="ui-surface" aria-label="Primary navigation">
-  <a class="brand" href="/?fresh=1" (click)="freshHome($event)" aria-label="Start a fresh search"><span>999</span><strong>Scraper</strong></a>
-  <div class="actions">
-    <a routerLink="/" [routerLinkActiveOptions]="{exact: true}" routerLinkActive="active">Search</a>
-    <a routerLink="/settings" routerLinkActive="active">Settings</a>
-  @if (pwa.installAvailable()) {
-      <button animate.enter="reveal-enter" animate.leave="reveal-leave" class="install" type="button" (click)="pwa.install()" aria-label="Install 999 Search"><span aria-hidden="true">↓</span><b>Install</b></button>
-  }
-  @if (auth.session()) {
-      <a animate.enter="reveal-enter" animate.leave="reveal-leave" routerLink="/saved" routerLinkActive="active">Saved</a>
-      <a animate.enter="reveal-enter" animate.leave="reveal-leave" routerLink="/history" routerLinkActive="active">History</a>
-      <button animate.enter="reveal-enter" animate.leave="reveal-leave" class="logout" type="button" (click)="auth.logout()">Log out</button>
-  } @else {
-      <a animate.enter="reveal-enter" animate.leave="reveal-leave" routerLink="/login" routerLinkActive="active">Log in</a>
-  }
-  </div>
+<nav aria-label="Primary navigation">
+  <a routerLink="/" [routerLinkActiveOptions]="{exact: true}" routerLinkActive="active">
+    <span class="tab-icon search-icon" aria-hidden="true"></span>
+    <span>Search</span>
+  </a>
+  <a routerLink="/saved" routerLinkActive="active">
+    <span class="tab-icon heart-icon" aria-hidden="true">♡</span>
+    <span>Saved</span>
+  </a>
+  <a routerLink="/settings" routerLinkActive="active">
+    <span class="tab-icon settings-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span>Settings</span>
+  </a>
+  <a routerLink="/account" routerLinkActive="active">
+    <span class="tab-icon account-icon" aria-hidden="true"></span>
+    <span>Account</span>
+  </a>
 </nav>

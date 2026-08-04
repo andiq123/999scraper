@@ -1,0 +1,26 @@
+<main class="account-page page-shell">
+  <header class="account-heading">
+    <h1>Account</h1>
+    <p>{{ auth.session() ? 'Your private search space.' : 'Search freely. Sign in only to keep things.' }}</p>
+  </header>
+
+  @if (auth.session()) {
+    <section class="account-state ui-surface">
+      <div class="account-status"><span aria-hidden="true">✓</span><div><strong>Signed in</strong><small>Your saved listings and history are available.</small></div></div>
+      <nav class="account-list" aria-label="Account destinations">
+        <a routerLink="/saved"><span aria-hidden="true">♡</span><span><strong>Saved listings</strong><small>Everything you kept</small></span><b aria-hidden="true">›</b></a>
+        <a routerLink="/history"><span aria-hidden="true">↺</span><span><strong>Search history</strong><small>Your previous searches</small></span><b aria-hidden="true">›</b></a>
+      </nav>
+      <button class="logout" type="button" (click)="auth.logout()">Log out</button>
+    </section>
+  } @else {
+    <section class="account-state ui-surface">
+      <div class="account-status guest"><span aria-hidden="true">6</span><div><strong>One private code</strong><small>No name, email, or password required.</small></div></div>
+      <div class="account-actions">
+        <a class="ui-button ui-button-primary" routerLink="/login">Log in with code</a>
+        <a class="ui-button ui-button-quiet" routerLink="/register">Register · get a code</a>
+      </div>
+      <p class="guest-note">You can always search without an account.</p>
+    </section>
+  }
+</main>
