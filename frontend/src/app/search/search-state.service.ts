@@ -25,8 +25,8 @@ export interface SearchState {
   priceMin: number | null;
   priceMax: number | null;
   priceCurrency: number | null;
-  fuel: string | null;
-  transmission: string | null;
+  fuel: string[];
+  transmission: string[];
   generationFrom: number | null;
   generationTo: number | null;
   storageFrom: number | null;
@@ -39,24 +39,24 @@ export interface SearchState {
   areaTo: number | null;
   floorFrom: number | null;
   floorTo: number | null;
-  propertySector: string;
-  propertyState: string | null;
-  housingStock: string | null;
-  listingAuthor: string | null;
-  buildingType: string | null;
+  propertySector: string[];
+  propertyState: string[];
+  housingStock: string[];
+  listingAuthor: string[];
+  buildingType: string[];
   screenFrom: number | null;
   screenTo: number | null;
   mileageFrom: number | null;
   mileageTo: number | null;
   powerFrom: number | null;
   powerTo: number | null;
-  drivetrain: string | null;
-  bodyType: string | null;
-  registration: 'moldova' | 'other' | null;
-  originCountry: VehicleOrigin | null;
+  drivetrain: string[];
+  bodyType: string[];
+  registration: Array<'moldova' | 'other'>;
+  originCountry: VehicleOrigin[];
   deviceTags: string[];
-  condition: 'new' | 'used' | null;
-  listingMode: PropertyListingMode | null;
+  condition: Array<'new' | 'used'>;
+  listingMode: PropertyListingMode[];
   products: Product[];
   searched: boolean;
   loadedPages: number;
@@ -192,16 +192,16 @@ function readStoredState(key: string): SearchState | null {
     }
     return {
       ...value,
-      registration: value.registration ?? null,
-      originCountry: value.originCountry ?? null,
-      listingMode: (value as unknown as { listingMode?: string }).listingMode === 'rent' ? 'monthly' : value.listingMode,
+      fuel: choiceArray(value.fuel), transmission: choiceArray(value.transmission),
+      drivetrain: choiceArray(value.drivetrain), bodyType: choiceArray(value.bodyType),
+      registration: choiceArray(value.registration), originCountry: choiceArray(value.originCountry),
+      condition: choiceArray(value.condition),
+      listingMode: choiceArray((value as unknown as { listingMode?: string | string[] }).listingMode).map((mode) => mode === 'rent' ? 'monthly' : mode) as PropertyListingMode[],
       floorFrom: value.floorFrom ?? null,
       floorTo: value.floorTo ?? null,
-      propertySector: value.propertySector ?? '',
-      propertyState: value.propertyState ?? null,
-      housingStock: value.housingStock ?? null,
-      listingAuthor: value.listingAuthor ?? null,
-      buildingType: value.buildingType ?? null,
+      propertySector: choiceArray(value.propertySector),
+      propertyState: choiceArray(value.propertyState), housingStock: choiceArray(value.housingStock),
+      listingAuthor: choiceArray(value.listingAuthor), buildingType: choiceArray(value.buildingType),
     };
   } catch {
     sessionStorage.removeItem(key);
@@ -227,6 +227,7 @@ function writeStoredState(key: string, state: SearchState): void {
 function isSearchState(value: unknown): value is SearchState {
   if (!value || typeof value !== 'object') return false;
   const state = value as Partial<SearchState>;
+  const raw = value as Record<string, unknown>;
   return typeof state.query === 'string'
     && typeof state.activeQuery === 'string'
     && typeof state.excludedWord === 'string'
@@ -243,13 +244,11 @@ function isSearchState(value: unknown): value is SearchState {
       state.generationTo, state.storageFrom, state.storageTo, state.ramFrom, state.ramTo, state.roomsFrom,
       state.roomsTo, state.areaFrom, state.areaTo, state.floorFrom ?? null, state.floorTo ?? null, state.screenFrom, state.screenTo].every(isNullableNumber)
     && [state.mileageFrom, state.mileageTo, state.powerFrom, state.powerTo].every(isNullableNumber)
-    && [state.fuel, state.transmission, state.drivetrain, state.bodyType, state.registration ?? null, state.originCountry ?? null].every(isNullableString)
-    && (state.registration === undefined || state.registration === null || state.registration === 'moldova' || state.registration === 'other')
-    && (state.originCountry === undefined || state.originCountry === null || ['China', 'Coreea', 'Japonia', 'SUA', 'Zona Euro', 'Altă'].includes(state.originCountry))
-    && (state.condition === null || state.condition === 'new' || state.condition === 'used')
-    && (state.listingMode === null || state.listingMode === 'sale' || (state as unknown as { listingMode?: string }).listingMode === 'rent' || state.listingMode === 'monthly' || state.listingMode === 'daily')
-    && (state.propertySector === undefined || typeof state.propertySector === 'string')
-    && [state.propertyState ?? null, state.housingStock ?? null, state.listingAuthor ?? null, state.buildingType ?? null].every(isNullableString)
+    && ['fuel', 'transmission', 'drivetrain', 'bodyType', 'propertySector', 'propertyState', 'housingStock', 'listingAuthor', 'buildingType'].every((key) => isStringChoice(raw[key]))
+    && isEnumChoice(raw['registration'], ['moldova', 'other'])
+    && isEnumChoice(raw['originCountry'], ['China', 'Coreea', 'Japonia', 'SUA', 'Zona Euro', 'Altă'])
+    && isEnumChoice(raw['condition'], ['new', 'used'])
+    && isEnumChoice(raw['listingMode'], ['sale', 'rent', 'monthly', 'daily'])
     && isStringArray(state.excludedWords)
     && isStringArray(state.queryExclusions)
     && isStringArray(state.deviceTags)
@@ -258,5 +257,12 @@ function isSearchState(value: unknown): value is SearchState {
 }
 
 function isNullableNumber(value: unknown): value is number | null { return value === null || typeof value === 'number'; }
-function isNullableString(value: unknown): value is string | null { return value === null || typeof value === 'string'; }
 function isStringArray(value: unknown): value is string[] { return Array.isArray(value) && value.every((item) => typeof item === 'string'); }
+function isStringChoice(value: unknown): boolean { return value === undefined || value === null || typeof value === 'string' || isStringArray(value); }
+function isEnumChoice(value: unknown, options: readonly string[]): boolean {
+  return value === undefined || value === null || (typeof value === 'string' && options.includes(value))
+    || (isStringArray(value) && value.every((item) => options.includes(item)));
+}
+function choiceArray<T extends string>(value: T | T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : value ? [value] : [];
+}

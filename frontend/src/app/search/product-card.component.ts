@@ -19,6 +19,7 @@ export class ProductCardComponent {
   readonly convertedPrice = input('');
   readonly bulkMode = input(false);
   readonly bulkSelected = input(false);
+  readonly newlyRevealed = input(false);
   readonly exclude = output<string>();
   readonly save = output<Product>();
   readonly bulkSelect = output<Product>();

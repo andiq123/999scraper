@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, HostListener, OnDestroy, afterNextRender, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, OnDestroy, afterNextRender, computed, effect, inject, signal, viewChild, type WritableSignal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { Product, SortOrder } from '../models';
@@ -14,6 +14,7 @@ import { SearchSuggestion, completeSearchInput, marketCategories, suggestionsFor
 import { RangeFilterComponent, type RangePreset } from './range-filter.component';
 import { type CollapsiblePanel, UiPreferencesService } from '../ui-preferences.service';
 import { ListingSummaryService, type BulkDownloadProgress } from '../listing-summary.service';
+import { decodeSearchFilters, encodeSearchFilters, searchFiltersFromState, type SharedSearchFilters } from './search-url-state';
 const carNoise = new Set([
   'accesorii', 'acumulator', 'anvelope', 'capace', 'covorașe', 'covorase', 'dezmembrare', 'dezmembrări',
   'faruri', 'huse', 'jante', 'piese', 'roți', 'scut', 'sticlă', 'sticla', 'radiator', 'radiatoare', 'adaptor',
@@ -58,6 +59,7 @@ export class SearchComponent implements OnDestroy {
   private controller?: AbortController;
   private draftKind: SearchKind = 'generic';
   private draftHadPrice = false;
+  private lastSyncedSearchURL = '';
   private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
 
   readonly query = signal('');
@@ -77,8 +79,8 @@ export class SearchComponent implements OnDestroy {
   readonly priceMin = signal<number | null>(null);
   readonly priceMax = signal<number | null>(null);
   readonly priceCurrency = signal<number | null>(null);
-  readonly fuel = signal<string | null>(null);
-  readonly transmission = signal<string | null>(null);
+  readonly fuel = signal<string[]>([]);
+  readonly transmission = signal<string[]>([]);
   readonly generationFrom = signal<number | null>(null);
   readonly generationTo = signal<number | null>(null);
   readonly storageFrom = signal<number | null>(null);
@@ -91,24 +93,24 @@ export class SearchComponent implements OnDestroy {
   readonly areaTo = signal<number | null>(null);
   readonly floorFrom = signal<number | null>(null);
   readonly floorTo = signal<number | null>(null);
-  readonly propertySector = signal('');
-  readonly propertyState = signal<string | null>(null);
-  readonly housingStock = signal<string | null>(null);
-  readonly listingAuthor = signal<string | null>(null);
-  readonly buildingType = signal<string | null>(null);
+  readonly propertySector = signal<string[]>([]);
+  readonly propertyState = signal<string[]>([]);
+  readonly housingStock = signal<string[]>([]);
+  readonly listingAuthor = signal<string[]>([]);
+  readonly buildingType = signal<string[]>([]);
   readonly screenFrom = signal<number | null>(null);
   readonly screenTo = signal<number | null>(null);
   readonly mileageFrom = signal<number | null>(null);
   readonly mileageTo = signal<number | null>(null);
   readonly powerFrom = signal<number | null>(null);
   readonly powerTo = signal<number | null>(null);
-  readonly drivetrain = signal<string | null>(null);
-  readonly bodyType = signal<string | null>(null);
-  readonly registration = signal<'moldova' | 'other' | null>(null);
-  readonly originCountry = signal<VehicleOrigin | null>(null);
+  readonly drivetrain = signal<string[]>([]);
+  readonly bodyType = signal<string[]>([]);
+  readonly registration = signal<Array<'moldova' | 'other'>>([]);
+  readonly originCountry = signal<VehicleOrigin[]>([]);
   readonly deviceTags = signal<string[]>([]);
-  readonly condition = signal<'new' | 'used' | null>(null);
-  readonly listingMode = signal<PropertyListingMode | null>(null);
+  readonly condition = signal<Array<'new' | 'used'>>([]);
+  readonly listingMode = signal<PropertyListingMode[]>([]);
   readonly activeIntent = signal<SearchIntent>(parseSearchIntent(''));
   readonly fuelOptions = fuelOptions;
   readonly transmissionOptions = transmissionOptions;
@@ -138,6 +140,7 @@ export class SearchComponent implements OnDestroy {
   readonly bulkSelected = signal<ReadonlySet<string>>(new Set());
   readonly bulkDownloading = signal(false);
   readonly bulkProgress = signal<BulkDownloadProgress>({ completed: 0, total: 0 });
+  readonly newlyRevealed = signal<ReadonlySet<string>>(new Set());
   readonly maxBulkSelection = 20;
   readonly loadedPages = signal(0);
   readonly totalPages = signal(0);
@@ -163,11 +166,11 @@ export class SearchComponent implements OnDestroy {
     const intent = this.searchIntent();
     if (intent.kind === 'vehicle') {
       const range = this.mileageFrom() !== null || this.mileageTo() !== null ? rangeSummary('Mileage', this.mileageFrom(), this.mileageTo()).replace(/(\d+)/g, '$1 km') : rangeSummary('Model years', this.yearFrom(), this.yearTo());
-      const detail = this.originCountry() ? `Origin: ${this.originCountry()}` : this.registration() ? (this.registration() === 'moldova' ? 'Moldova registration' : 'Other registration') : '';
+      const detail = this.originCountry().length ? `Origin: ${this.originCountry().join(', ')}` : this.registration().length ? `${this.registration().length} registration option${this.registration().length === 1 ? '' : 's'}` : '';
       return detail ? `${range} · ${detail}` : range;
     }
     if (intent.kind === 'iphone' || intent.kind === 'playstation') return rangeSummary(intent.kind === 'iphone' ? 'iPhone generations' : 'PlayStation generations', this.generationFrom(), this.generationTo());
-    if (intent.kind === 'realEstate') return this.propertySector().trim() || (this.listingMode() === 'monthly' ? 'Monthly rentals' : this.listingMode() === 'daily' ? 'Daily rentals' : rangeSummary('Rooms', this.roomsFrom(), this.roomsTo()));
+    if (intent.kind === 'realEstate') return this.propertySector().join(', ') || (this.listingMode().length === 1 ? `${this.listingMode()[0][0].toUpperCase()}${this.listingMode()[0].slice(1)} listings` : rangeSummary('Rooms', this.roomsFrom(), this.roomsTo()));
     if (intent.kind === 'tv') return rangeSummary('Screen size', this.screenFrom(), this.screenTo());
     return rangeSummary('RAM', this.ramFrom(), this.ramTo());
   });
@@ -214,15 +217,16 @@ export class SearchComponent implements OnDestroy {
     const range = minimum === maximum ? minimum : `${minimum}–${maximum}`;
     return `${converted ? '≈ ' : ''}${range} ${['MDL', 'EUR', 'USD'][target]}`;
   });
-  readonly hasCustomFilters = computed(() => this.order() !== 'relevance' || !this.smartCleanup() || this.excludeNegotiable() || this.onlyWithPhotos() || this.excludedWords().length > 0 || this.queryExclusions().length > 0 || this.yearFrom() !== null || this.yearTo() !== null || this.priceMin() !== null || this.priceMax() !== null || this.fuel() !== null || this.transmission() !== null || this.mileageFrom() !== null || this.mileageTo() !== null || this.powerFrom() !== null || this.powerTo() !== null || this.drivetrain() !== null || this.bodyType() !== null || this.registration() !== null || this.originCountry() !== null || this.generationFrom() !== null || this.generationTo() !== null || this.storageFrom() !== null || this.storageTo() !== null || this.ramFrom() !== null || this.ramTo() !== null || this.roomsFrom() !== null || this.roomsTo() !== null || this.areaFrom() !== null || this.areaTo() !== null || this.floorFrom() !== null || this.floorTo() !== null || this.propertySector().trim() !== '' || this.propertyState() !== null || this.housingStock() !== null || this.listingAuthor() !== null || this.buildingType() !== null || this.screenFrom() !== null || this.screenTo() !== null || this.deviceTags().length > 0 || this.condition() !== null || this.listingMode() !== null);
+  readonly hasCustomFilters = computed(() => this.order() !== 'relevance' || !this.smartCleanup() || this.excludeNegotiable() || this.onlyWithPhotos() || this.excludedWords().length > 0 || this.queryExclusions().length > 0 || this.yearFrom() !== null || this.yearTo() !== null || this.priceMin() !== null || this.priceMax() !== null || this.fuel().length > 0 || this.transmission().length > 0 || this.mileageFrom() !== null || this.mileageTo() !== null || this.powerFrom() !== null || this.powerTo() !== null || this.drivetrain().length > 0 || this.bodyType().length > 0 || this.registration().length > 0 || this.originCountry().length > 0 || this.generationFrom() !== null || this.generationTo() !== null || this.storageFrom() !== null || this.storageTo() !== null || this.ramFrom() !== null || this.ramTo() !== null || this.roomsFrom() !== null || this.roomsTo() !== null || this.areaFrom() !== null || this.areaTo() !== null || this.floorFrom() !== null || this.floorTo() !== null || this.propertySector().length > 0 || this.propertyState().length > 0 || this.housingStock().length > 0 || this.listingAuthor().length > 0 || this.buildingType().length > 0 || this.screenFrom() !== null || this.screenTo() !== null || this.deviceTags().length > 0 || this.condition().length > 0 || this.listingMode().length > 0);
+  private readonly singleListingMode = computed(() => this.listingMode().length === 1 ? this.listingMode()[0] : null);
   readonly priceFloor = computed(() => this.observedPriceRange()?.min ?? 0);
   readonly priceCeiling = computed(() => {
     const observed = this.observedPriceRange();
-    if (!observed) return priceCap(this.filterIntent(), this.priceCurrency(), this.listingMode());
+    if (!observed) return priceCap(this.filterIntent(), this.priceCurrency(), this.singleListingMode());
     return observed.max > observed.min ? observed.max : observed.min + Math.max(1, Math.round(observed.min * .1));
   });
   readonly priceStep = computed(() => priceSliderStep(this.priceCeiling() - this.priceFloor()));
-  readonly pricePresets = computed(() => adaptivePricePresets(this.availablePrices(), budgetPresets(this.filterIntent(), this.priceCurrency(), this.listingMode())));
+  readonly pricePresets = computed(() => adaptivePricePresets(this.availablePrices(), budgetPresets(this.filterIntent(), this.priceCurrency(), this.singleListingMode())));
   readonly priceCurrencyLabel = computed(() => ['MDL', 'EUR', 'USD'][this.priceCurrency() ?? -1] ?? 'listing currency');
   readonly priceFloorLabel = computed(() => formatNumber(this.priceFloor()));
   readonly priceCeilingLabel = computed(() => formatNumber(this.priceCeiling()));
@@ -249,23 +253,23 @@ export class SearchComponent implements OnDestroy {
     if (this.roomsFrom() !== null || this.roomsTo() !== null) chips.push({ id: 'rooms', label: rangeSummary('Rooms', this.roomsFrom(), this.roomsTo()) });
     if (this.areaFrom() !== null || this.areaTo() !== null) chips.push({ id: 'area', label: rangeSummary('Area', this.areaFrom(), this.areaTo()).replace(/(\d+)/g, '$1 m²') });
     if (this.floorFrom() !== null || this.floorTo() !== null) chips.push({ id: 'floor', label: rangeSummary('Floor', this.floorFrom(), this.floorTo()) });
-    if (this.propertySector().trim()) chips.push({ id: 'property-sector', label: this.propertySector().trim() });
-    if (this.propertyState()) chips.push({ id: 'property-state', label: this.propertyState()! });
-    if (this.housingStock()) chips.push({ id: 'housing-stock', label: this.housingStock()! });
-    if (this.listingAuthor()) chips.push({ id: 'listing-author', label: this.listingAuthor()! });
-    if (this.buildingType()) chips.push({ id: 'building-type', label: this.buildingType()! });
+    for (const value of this.propertySector()) chips.push({ id: `property-sector:${value}`, label: value });
+    for (const value of this.propertyState()) chips.push({ id: `property-state:${value}`, label: value });
+    for (const value of this.housingStock()) chips.push({ id: `housing-stock:${value}`, label: value });
+    for (const value of this.listingAuthor()) chips.push({ id: `listing-author:${value}`, label: value });
+    for (const value of this.buildingType()) chips.push({ id: `building-type:${value}`, label: value });
     if (this.screenFrom() !== null || this.screenTo() !== null) chips.push({ id: 'screen', label: rangeSummary('Screen', this.screenFrom(), this.screenTo()).replace(/(\d+(?:\.\d+)?)/g, '$1″') });
     if (this.priceMin() !== null || this.priceMax() !== null) chips.push({ id: 'price', label: `${this.priceRangeLabel()} ${this.priceCurrencyLabel()}` });
-    if (this.fuel()) chips.push({ id: 'fuel', label: this.fuel()! });
-    if (this.transmission()) chips.push({ id: 'transmission', label: this.transmission()! });
+    for (const value of this.fuel()) chips.push({ id: `fuel:${value}`, label: value });
+    for (const value of this.transmission()) chips.push({ id: `transmission:${value}`, label: value });
     if (this.mileageFrom() !== null || this.mileageTo() !== null) chips.push({ id: 'mileage', label: rangeSummary('Mileage', this.mileageFrom(), this.mileageTo()).replace(/(\d+)/g, '$1 km') });
     if (this.powerFrom() !== null || this.powerTo() !== null) chips.push({ id: 'power', label: rangeSummary('Power', this.powerFrom(), this.powerTo()).replace(/(\d+)/g, '$1 hp') });
-    if (this.drivetrain()) chips.push({ id: 'drivetrain', label: this.drivetrain()! });
-    if (this.bodyType()) chips.push({ id: 'body-type', label: this.bodyType()! });
-    if (this.registration()) chips.push({ id: 'registration', label: this.registration() === 'moldova' ? 'Registered in Moldova' : 'Other registration' });
-    if (this.originCountry()) chips.push({ id: 'origin-country', label: `Origin: ${this.originCountry()}` });
-    if (this.condition()) chips.push({ id: 'condition', label: this.condition() === 'new' ? 'New' : 'Used' });
-    if (this.listingMode()) chips.push({ id: 'listing-mode', label: this.listingMode() === 'monthly' ? 'Monthly rent' : this.listingMode() === 'daily' ? 'Daily rent' : 'For sale' });
+    for (const value of this.drivetrain()) chips.push({ id: `drivetrain:${value}`, label: value });
+    for (const value of this.bodyType()) chips.push({ id: `body-type:${value}`, label: value });
+    for (const value of this.registration()) chips.push({ id: `registration:${value}`, label: value === 'moldova' ? 'Registered in Moldova' : 'Other registration' });
+    for (const value of this.originCountry()) chips.push({ id: `origin-country:${value}`, label: `Origin: ${value}` });
+    for (const value of this.condition()) chips.push({ id: `condition:${value}`, label: value === 'new' ? 'New' : 'Used' });
+    for (const value of this.listingMode()) chips.push({ id: `listing-mode:${value}`, label: value === 'monthly' ? 'Monthly rent' : value === 'daily' ? 'Daily rent' : 'For sale' });
     for (const tag of this.deviceTags()) chips.push({ id: `tag:${tag}`, label: tag[0].toUpperCase() + tag.slice(1) });
     for (const word of this.queryExclusions()) chips.push({ id: `query-exclude:${word}`, label: `Without ${word}` });
     const queryExcluded = new Set(this.queryExclusions().map(fold));
@@ -298,19 +302,21 @@ export class SearchComponent implements OnDestroy {
     const freshEntry = this.route.snapshot.queryParamMap.get('fresh') === '1';
     if (freshEntry) {
       this.searchState.startFresh();
-      void this.router.navigate([], { relativeTo: this.route, queryParams: { fresh: null }, replaceUrl: true, state: this.searchState.currentHistoryState() });
+      void this.router.navigate([], { relativeTo: this.route, queryParams: { filters: null, fresh: null }, replaceUrl: true, state: this.searchState.currentHistoryState() });
     }
     const cached = freshEntry ? null : historyCached;
     const replay = this.route.snapshot.queryParamMap.get('q')?.trim();
-    const canRestore = cached && (!replay || replay === cached.activeQuery);
+    const sharedFilters = decodeSearchFilters(this.route.snapshot.queryParamMap.get('filters'));
+    const canRestore = cached && !sharedFilters && (!replay || replay === cached.activeQuery);
     if (canRestore) {
       this.restore(cached);
       afterNextRender(() => window.requestAnimationFrame(() => window.scrollTo({ top: cached.scrollY, behavior: 'instant' })));
     } else if (replay) {
       this.updateQuery(replay);
+      if (sharedFilters) this.applySharedFilters(sharedFilters);
       queueMicrotask(() => void this.search());
     }
-    void this.loadPersonalData(!canRestore);
+    void this.loadPersonalData(!canRestore && !sharedFilters);
     let handledFreshRequest = this.searchState.freshRequests();
     effect(() => {
       const request = this.searchState.freshRequests();
@@ -326,10 +332,15 @@ export class SearchComponent implements OnDestroy {
         this.bulkSelected.set(new Set([...selected].filter((id) => visible.has(id))));
       }
     });
-    effect(() => this.searchState.save(this.snapshot(window.scrollY)));
+    effect(() => {
+      const state = this.snapshot(window.scrollY);
+      this.searchState.save(state);
+      this.syncSearchURL(state);
+    });
   }
 
   ngOnDestroy(): void {
+    this.newlyRevealed.set(new Set());
     this.controller?.abort();
     this.searchState.save(this.snapshot(window.scrollY), true);
   }
@@ -378,14 +389,18 @@ export class SearchComponent implements OnDestroy {
 
     const routeQuery = this.route.snapshot.queryParamMap.get('q') ?? '';
     const createsHistoryEntry = searchKey(routeQuery) !== searchKey(intent.sourceQuery);
+    const filterParam = encodeSearchFilters(searchFiltersFromState(this.snapshot(window.scrollY)));
+    const urlSignature = `${intent.sourceQuery}\n${filterParam}`;
     let navigationState = this.searchState.currentHistoryState();
     if (createsHistoryEntry) {
       const previous = this.snapshot(window.scrollY);
       if (previous.searched) previous.query = previous.activeQuery;
       this.searchState.save(previous, true);
       navigationState = this.searchState.createHistoryState();
+      this.lastSyncedSearchURL = urlSignature;
     }
 
+    this.newlyRevealed.set(new Set());
     this.controller?.abort();
     this.ids.clear();
     this.rawProducts.set([]);
@@ -398,7 +413,7 @@ export class SearchComponent implements OnDestroy {
     if (createsHistoryEntry) {
       void this.router.navigate([], {
         relativeTo: this.route,
-        queryParams: { q: intent.sourceQuery, fresh: null },
+        queryParams: { q: intent.sourceQuery, filters: filterParam, fresh: null },
         state: navigationState,
       });
     }
@@ -493,22 +508,22 @@ export class SearchComponent implements OnDestroy {
     this.roomsTo.set(intent.rooms.to);
     this.areaFrom.set(intent.area.from);
     this.areaTo.set(intent.area.to);
-    this.propertySector.set(intent.propertySector ?? '');
+    this.propertySector.set(intent.propertySector ? [intent.propertySector] : []);
     this.screenFrom.set(intent.screen.from);
     this.screenTo.set(intent.screen.to);
     this.mileageFrom.set(intent.mileage.from);
     this.mileageTo.set(intent.mileage.to);
     this.powerFrom.set(intent.power.from);
     this.powerTo.set(intent.power.to);
-    this.fuel.set(intent.fuel);
-    this.transmission.set(intent.transmission);
-    this.drivetrain.set(intent.drivetrain);
-    this.bodyType.set(intent.bodyType);
-    this.registration.set(intent.registration);
-    this.originCountry.set(intent.originCountry);
+    this.fuel.set(intent.fuel ? [intent.fuel] : []);
+    this.transmission.set(intent.transmission ? [intent.transmission] : []);
+    this.drivetrain.set(intent.drivetrain ? [intent.drivetrain] : []);
+    this.bodyType.set(intent.bodyType ? [intent.bodyType] : []);
+    this.registration.set(intent.registration ? [intent.registration] : []);
+    this.originCountry.set(intent.originCountry ? [intent.originCountry] : []);
     this.deviceTags.set(intent.tags);
-    this.condition.set(intent.condition);
-    this.setPropertyListingMode(intent.listingMode);
+    this.condition.set(intent.condition ? [intent.condition] : []);
+    this.listingMode.set(intent.listingMode ? [intent.listingMode] : []);
     this.queryExclusions.set(intent.exclusions);
     if (resetPrice) {
       this.priceMin.set(intent.price.from);
@@ -537,7 +552,11 @@ export class SearchComponent implements OnDestroy {
     this.restore(state);
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { q: state.activeQuery || null, fresh: null },
+      queryParams: {
+        q: state.activeQuery || null,
+        filters: state.activeQuery ? encodeSearchFilters(searchFiltersFromState(state)) : null,
+        fresh: null,
+      },
       replaceUrl: true,
       state: this.searchState.currentHistoryState(),
     });
@@ -548,7 +567,7 @@ export class SearchComponent implements OnDestroy {
 
   removeFilter(id: string): void {
     if (id === 'order') this.order.set('relevance');
-    else if (id === 'cleanup') this.smartCleanup.set(true);
+    else if (id === 'cleanup') this.setSmartCleanup(true);
     else if (id === 'photos') this.onlyWithPhotos.set(false);
     else if (id === 'fixed') this.excludeNegotiable.set(false);
     else if (id === 'year') { this.yearFrom.set(null); this.yearTo.set(null); }
@@ -558,23 +577,23 @@ export class SearchComponent implements OnDestroy {
     else if (id === 'rooms') { this.roomsFrom.set(null); this.roomsTo.set(null); }
     else if (id === 'area') { this.areaFrom.set(null); this.areaTo.set(null); }
     else if (id === 'floor') { this.floorFrom.set(null); this.floorTo.set(null); }
-    else if (id === 'property-sector') this.propertySector.set('');
-    else if (id === 'property-state') this.propertyState.set(null);
-    else if (id === 'housing-stock') this.housingStock.set(null);
-    else if (id === 'listing-author') this.listingAuthor.set(null);
-    else if (id === 'building-type') this.buildingType.set(null);
+    else if (id.startsWith('property-sector:')) this.propertySector.update((values) => values.filter((value) => value !== id.slice(16)));
+    else if (id.startsWith('property-state:')) this.propertyState.update((values) => values.filter((value) => value !== id.slice(15)));
+    else if (id.startsWith('housing-stock:')) this.housingStock.update((values) => values.filter((value) => value !== id.slice(14)));
+    else if (id.startsWith('listing-author:')) this.listingAuthor.update((values) => values.filter((value) => value !== id.slice(15)));
+    else if (id.startsWith('building-type:')) this.buildingType.update((values) => values.filter((value) => value !== id.slice(14)));
     else if (id === 'screen') { this.screenFrom.set(null); this.screenTo.set(null); }
     else if (id === 'price') { this.priceMin.set(null); this.priceMax.set(null); }
-    else if (id === 'fuel') this.fuel.set(null);
-    else if (id === 'transmission') this.transmission.set(null);
+    else if (id.startsWith('fuel:')) this.fuel.update((values) => values.filter((value) => value !== id.slice(5)));
+    else if (id.startsWith('transmission:')) this.transmission.update((values) => values.filter((value) => value !== id.slice(13)));
     else if (id === 'mileage') { this.mileageFrom.set(null); this.mileageTo.set(null); }
     else if (id === 'power') { this.powerFrom.set(null); this.powerTo.set(null); }
-    else if (id === 'drivetrain') this.drivetrain.set(null);
-    else if (id === 'body-type') this.bodyType.set(null);
-    else if (id === 'registration') this.registration.set(null);
-    else if (id === 'origin-country') this.originCountry.set(null);
-    else if (id === 'condition') this.condition.set(null);
-    else if (id === 'listing-mode') this.setPropertyListingMode(null);
+    else if (id.startsWith('drivetrain:')) this.drivetrain.update((values) => values.filter((value) => value !== id.slice(11)));
+    else if (id.startsWith('body-type:')) this.bodyType.update((values) => values.filter((value) => value !== id.slice(10)));
+    else if (id.startsWith('registration:')) this.registration.update((values) => values.filter((value) => value !== id.slice(13)));
+    else if (id.startsWith('origin-country:')) this.originCountry.update((values) => values.filter((value) => value !== id.slice(15)));
+    else if (id.startsWith('condition:')) this.condition.update((values) => values.filter((value) => value !== id.slice(10)));
+    else if (id.startsWith('listing-mode:')) this.listingMode.update((values) => values.filter((value) => value !== id.slice(13)));
     else if (id.startsWith('tag:')) this.toggleDeviceTag(id.slice(4));
     else if (id.startsWith('query-exclude:')) this.queryExclusions.update((words) => words.filter((word) => word !== id.slice(14)));
     else if (id.startsWith('exclude:')) this.removeExcludedWord(id.slice(8));
@@ -682,24 +701,39 @@ export class SearchComponent implements OnDestroy {
     this.deviceTags.update((tags) => tags.includes(tag) ? tags.filter((item) => item !== tag) : [...tags, tag]);
   }
 
+  toggleChoice<T>(target: WritableSignal<T[]>, value: T): void {
+    target.update((values) => values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
+  }
+
+  setSmartCleanup(enabled: boolean): void {
+    if (enabled === this.smartCleanup()) return;
+    const visibleBefore = new Set(this.products().map((product) => product.id));
+    this.smartCleanup.set(enabled);
+    if (enabled) {
+      this.newlyRevealed.set(new Set());
+      return;
+    }
+    this.newlyRevealed.set(new Set(this.products().filter((product) => !visibleBefore.has(product.id)).map((product) => product.id)));
+  }
+
   rememberPanel(panel: CollapsiblePanel, event: Event): void {
     this.uiPreferences.setOpen(panel, (event.currentTarget as HTMLDetailsElement).open);
   }
 
-  setRegistration(value: 'moldova' | 'other' | null): void {
-    this.registration.set(value);
+  toggleRegistration(value: 'moldova' | 'other'): void {
+    this.toggleChoice(this.registration, value);
     // A session restored from an older app version has no registration facet.
     // Refresh it once; newly streamed searches continue filtering instantly.
-    if (value && this.rawProducts().length > 0 && this.rawProducts().every((product) => product.registration === undefined)) {
+    if (this.registration().length && this.rawProducts().length > 0 && this.rawProducts().every((product) => product.registration === undefined)) {
       void this.search();
     }
   }
 
-  setOriginCountry(value: VehicleOrigin | null): void {
-    this.originCountry.set(value);
+  toggleOriginCountry(value: VehicleOrigin): void {
+    this.toggleChoice(this.originCountry, value);
     // Old session snapshots predate this facet. Refresh only once when the
     // user actually requests origin filtering; normal toggles stay in-memory.
-    if (value && this.rawProducts().length > 0 && this.rawProducts().every((product) => product.originCountry === undefined)) {
+    if (this.originCountry().length && this.rawProducts().length > 0 && this.rawProducts().every((product) => product.originCountry === undefined)) {
       void this.search();
     }
   }
@@ -730,11 +764,17 @@ export class SearchComponent implements OnDestroy {
     if (this.priceMin() !== null && this.priceMin()! > value) this.priceMin.set(null);
   }
 
-  setPropertyListingMode(mode: PropertyListingMode | null): void {
-    if (this.listingMode() === mode) return;
-    this.listingMode.set(mode);
+  togglePropertyListingMode(mode: PropertyListingMode): void {
+    this.toggleChoice(this.listingMode, mode);
     // Sale and rental budgets are not comparable; never carry a stale price
     // range across offer types.
+    this.priceMin.set(null);
+    this.priceMax.set(null);
+  }
+
+  clearPropertyListingMode(): void {
+    if (!this.listingMode().length) return;
+    this.listingMode.set([]);
     this.priceMin.set(null);
     this.priceMax.set(null);
   }
@@ -742,6 +782,7 @@ export class SearchComponent implements OnDestroy {
   resetFilters(clearSavedWords = true): void {
     this.order.set('relevance');
     this.smartCleanup.set(true);
+    this.newlyRevealed.set(new Set());
     this.excludeNegotiable.set(false);
     this.onlyWithPhotos.set(false);
     if (clearSavedWords) this.excludedWords.set([]);
@@ -751,16 +792,16 @@ export class SearchComponent implements OnDestroy {
     this.priceMin.set(null);
     this.priceMax.set(null);
     this.priceCurrency.set(defaultPriceCurrency(this.filterIntent()));
-    this.fuel.set(null);
-    this.transmission.set(null);
+    this.fuel.set([]);
+    this.transmission.set([]);
     this.mileageFrom.set(null);
     this.mileageTo.set(null);
     this.powerFrom.set(null);
     this.powerTo.set(null);
-    this.drivetrain.set(null);
-    this.bodyType.set(null);
-    this.registration.set(null);
-    this.originCountry.set(null);
+    this.drivetrain.set([]);
+    this.bodyType.set([]);
+    this.registration.set([]);
+    this.originCountry.set([]);
     this.generationFrom.set(null);
     this.generationTo.set(null);
     this.storageFrom.set(null);
@@ -773,16 +814,16 @@ export class SearchComponent implements OnDestroy {
     this.areaTo.set(null);
     this.floorFrom.set(null);
     this.floorTo.set(null);
-    this.propertySector.set('');
-    this.propertyState.set(null);
-    this.housingStock.set(null);
-    this.listingAuthor.set(null);
-    this.buildingType.set(null);
+    this.propertySector.set([]);
+    this.propertyState.set([]);
+    this.housingStock.set([]);
+    this.listingAuthor.set([]);
+    this.buildingType.set([]);
     this.screenFrom.set(null);
     this.screenTo.set(null);
     this.deviceTags.set([]);
-    this.condition.set(null);
-    this.listingMode.set(null);
+    this.condition.set([]);
+    this.listingMode.set([]);
     if (clearSavedWords) void this.library.saveExcludedWords([]);
   }
 
@@ -806,11 +847,74 @@ export class SearchComponent implements OnDestroy {
     this.closeSearchSuggestions();
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { q: null, fresh: null },
+      queryParams: { q: null, filters: null, fresh: null },
       replaceUrl: true,
       state: this.searchState.currentHistoryState(),
     });
     window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+  }
+
+  private applySharedFilters(filters: SharedSearchFilters): void {
+    this.order.set(filters.order);
+    this.smartCleanup.set(filters.smartCleanup);
+    this.excludeNegotiable.set(filters.excludeNegotiable);
+    this.onlyWithPhotos.set(filters.onlyWithPhotos);
+    this.excludedWords.set(filters.excludedWords);
+    this.queryExclusions.set(filters.queryExclusions);
+    this.yearFrom.set(filters.yearFrom);
+    this.yearTo.set(filters.yearTo);
+    this.priceMin.set(filters.priceMin);
+    this.priceMax.set(filters.priceMax);
+    this.priceCurrency.set(filters.priceCurrency);
+    this.fuel.set(filters.fuel);
+    this.transmission.set(filters.transmission);
+    this.generationFrom.set(filters.generationFrom);
+    this.generationTo.set(filters.generationTo);
+    this.storageFrom.set(filters.storageFrom);
+    this.storageTo.set(filters.storageTo);
+    this.ramFrom.set(filters.ramFrom);
+    this.ramTo.set(filters.ramTo);
+    this.roomsFrom.set(filters.roomsFrom);
+    this.roomsTo.set(filters.roomsTo);
+    this.areaFrom.set(filters.areaFrom);
+    this.areaTo.set(filters.areaTo);
+    this.floorFrom.set(filters.floorFrom);
+    this.floorTo.set(filters.floorTo);
+    this.propertySector.set(filters.propertySector);
+    this.propertyState.set(filters.propertyState);
+    this.housingStock.set(filters.housingStock);
+    this.listingAuthor.set(filters.listingAuthor);
+    this.buildingType.set(filters.buildingType);
+    this.screenFrom.set(filters.screenFrom);
+    this.screenTo.set(filters.screenTo);
+    this.mileageFrom.set(filters.mileageFrom);
+    this.mileageTo.set(filters.mileageTo);
+    this.powerFrom.set(filters.powerFrom);
+    this.powerTo.set(filters.powerTo);
+    this.drivetrain.set(filters.drivetrain);
+    this.bodyType.set(filters.bodyType);
+    this.registration.set(filters.registration);
+    this.originCountry.set(filters.originCountry);
+    this.deviceTags.set(filters.deviceTags);
+    this.condition.set(filters.condition);
+    this.listingMode.set(filters.listingMode);
+  }
+
+  private syncSearchURL(state: SearchState): void {
+    if (!state.searched || !state.activeQuery) return;
+    const filters = encodeSearchFilters(searchFiltersFromState(state));
+    const signature = `${state.activeQuery}\n${filters}`;
+    if (signature === this.lastSyncedSearchURL) return;
+    this.lastSyncedSearchURL = signature;
+    queueMicrotask(() => {
+      if (signature !== this.lastSyncedSearchURL) return;
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { q: state.activeQuery, filters, fresh: null },
+        replaceUrl: true,
+        state: this.searchState.currentHistoryState(),
+      });
+    });
   }
 
   private setNumberRange(target: { set(value: number | null): void }, event: Event): void {
@@ -821,20 +925,20 @@ export class SearchComponent implements OnDestroy {
   private adaptFiltersTo(intent: SearchIntent): void {
     this.priceMin.set(null);
     this.priceMax.set(null);
-    this.condition.set(null);
+    this.condition.set([]);
     if (intent.kind !== 'vehicle') {
       this.yearFrom.set(null);
       this.yearTo.set(null);
-      this.fuel.set(null);
-      this.transmission.set(null);
+      this.fuel.set([]);
+      this.transmission.set([]);
       this.mileageFrom.set(null);
       this.mileageTo.set(null);
       this.powerFrom.set(null);
       this.powerTo.set(null);
-      this.drivetrain.set(null);
-      this.bodyType.set(null);
-      this.registration.set(null);
-      this.originCountry.set(null);
+      this.drivetrain.set([]);
+      this.bodyType.set([]);
+      this.registration.set([]);
+      this.originCountry.set([]);
     }
     if (intent.kind !== 'iphone' && intent.kind !== 'playstation') {
       this.generationFrom.set(null);
@@ -848,9 +952,9 @@ export class SearchComponent implements OnDestroy {
     if (intent.kind !== 'laptop' && intent.kind !== 'phone') { this.ramFrom.set(null); this.ramTo.set(null); }
     if (intent.kind !== 'realEstate') {
       this.roomsFrom.set(null); this.roomsTo.set(null); this.areaFrom.set(null); this.areaTo.set(null);
-      this.floorFrom.set(null); this.floorTo.set(null); this.propertySector.set(''); this.propertyState.set(null);
-      this.housingStock.set(null); this.listingAuthor.set(null); this.buildingType.set(null);
-      this.listingMode.set(null);
+      this.floorFrom.set(null); this.floorTo.set(null); this.propertySector.set([]);
+      this.housingStock.set([]); this.listingAuthor.set([]); this.buildingType.set([]); this.propertyState.set([]);
+      this.listingMode.set([]);
     }
     if (!['laptop', 'phone', 'tv'].includes(intent.kind)) { this.screenFrom.set(null); this.screenTo.set(null); }
   }
@@ -881,6 +985,7 @@ export class SearchComponent implements OnDestroy {
   }
 
   private restore(state: SearchState): void {
+    this.newlyRevealed.set(new Set());
     this.query.set(state.query);
     this.searchAssist.set(null);
     this.activeQuery.set(state.activeQuery);
@@ -982,26 +1087,26 @@ export class SearchComponent implements OnDestroy {
       const from = this.yearFrom();
       const to = this.yearTo();
       if ((from !== null && (product.year ?? 0) < from) || (to !== null && (product.year ?? 0) > to)) return false;
-      if (this.fuel() && !choiceMatches(product.fuel, this.fuel()!)) return false;
-      if (this.transmission() && !choiceMatches(product.transmission, this.transmission()!)) return false;
+      if (this.fuel().length && !this.fuel().some((value) => choiceMatches(product.fuel, value))) return false;
+      if (this.transmission().length && !this.transmission().some((value) => choiceMatches(product.transmission, value))) return false;
       if (!inRange(product.mileage ?? null, this.mileageFrom(), this.mileageTo())) return false;
       if (!inRange(product.power ?? null, this.powerFrom(), this.powerTo())) return false;
-      if (this.drivetrain() && !choiceMatches(product.drivetrain, this.drivetrain()!)) return false;
-      if (this.bodyType() && !choiceMatches(product.bodyType, this.bodyType()!)) return false;
-      if (this.registration() && !registrationMatches(product.registration, this.registration()!)) return false;
-      if (this.originCountry() && !facetMatches(product.originCountry, this.originCountry()!)) return false;
+      if (this.drivetrain().length && !this.drivetrain().some((value) => choiceMatches(product.drivetrain, value))) return false;
+      if (this.bodyType().length && !this.bodyType().some((value) => choiceMatches(product.bodyType, value))) return false;
+      if (this.registration().length && !this.registration().some((value) => registrationMatches(product.registration, value))) return false;
+      if (this.originCountry().length && !this.originCountry().some((value) => facetMatches(product.originCountry, value))) return false;
       if (isDeviceIntent(intent) && !matchesDeviceFilters(product, intent, this.generationFrom(), this.generationTo(), this.storageFrom(), this.storageTo(), this.deviceTags())) return false;
       if (isStorageIntent(intent) && !inRange(storageValue(product), this.storageFrom(), this.storageTo())) return false;
       if ((intent.kind === 'laptop' || intent.kind === 'phone') && !inRange(ramValue(product), this.ramFrom(), this.ramTo())) return false;
       if (intent.kind === 'realEstate' && (!inRange(roomsValue(product), this.roomsFrom(), this.roomsTo()) || !inRange(areaValue(product), this.areaFrom(), this.areaTo()) || !inRange(floorValue(product), this.floorFrom(), this.floorTo()))) return false;
-      if (intent.kind === 'realEstate' && !offerTypeMatches(product.offerType, this.listingMode())) return false;
-      if (intent.kind === 'realEstate' && this.propertySector().trim() && !facetMatches(product.sector, this.propertySector())) return false;
-      if (intent.kind === 'realEstate' && this.propertyState() && !facetMatches(product.propertyState, this.propertyState()!)) return false;
-      if (intent.kind === 'realEstate' && this.housingStock() && !facetMatches(product.housingStock, this.housingStock()!)) return false;
-      if (intent.kind === 'realEstate' && this.listingAuthor() && !facetMatches(product.listingAuthor, this.listingAuthor()!)) return false;
-      if (intent.kind === 'realEstate' && this.buildingType() && !facetMatches(product.buildingType, this.buildingType()!)) return false;
+      if (intent.kind === 'realEstate' && this.listingMode().length && !this.listingMode().some((value) => offerTypeMatches(product.offerType, value))) return false;
+      if (intent.kind === 'realEstate' && this.propertySector().length && !this.propertySector().some((value) => facetMatches(product.sector, value))) return false;
+      if (intent.kind === 'realEstate' && this.propertyState().length && !this.propertyState().some((value) => facetMatches(product.propertyState, value))) return false;
+      if (intent.kind === 'realEstate' && this.housingStock().length && !this.housingStock().some((value) => facetMatches(product.housingStock, value))) return false;
+      if (intent.kind === 'realEstate' && this.listingAuthor().length && !this.listingAuthor().some((value) => facetMatches(product.listingAuthor, value))) return false;
+      if (intent.kind === 'realEstate' && this.buildingType().length && !this.buildingType().some((value) => facetMatches(product.buildingType, value))) return false;
       if ((intent.kind === 'laptop' || intent.kind === 'phone' || intent.kind === 'tv') && !inRange(screenValue(product), this.screenFrom(), this.screenTo())) return false;
-      if (this.condition() && !conditionMatches(product.condition, this.condition()!)) return false;
+      if (this.condition().length && !this.condition().some((value) => conditionMatches(product.condition, value))) return false;
       if (this.excludeNegotiable() && product.price == null) return false;
       if (this.onlyWithPhotos() && !product.thumbnailURL) return false;
       if (excluded.some((phrase) => containsPhrase(titleWords, phrase))) return false;
