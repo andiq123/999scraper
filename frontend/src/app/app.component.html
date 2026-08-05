@@ -8,10 +8,10 @@
   <div class="network-state" role="status"><span aria-hidden="true"></span> Offline · saved app available</div>
 }
 @if (pwa.updateReady()) {
-  <aside class="update-card" role="status" aria-live="polite">
+  <aside class="update-card" role="status" aria-live="polite" aria-atomic="true">
     <span class="update-mark" aria-hidden="true">↑</span>
-    <div><strong>Update ready</strong><small>Installing in {{ pwa.updateCountdown() }}s</small></div>
-    <button class="ui-button ui-button-primary" type="button" (click)="pwa.activateUpdate()">Update now</button>
+    <div><strong>Update ready</strong><small>{{ pwa.updateMessage() }}</small></div>
+    <button class="ui-button ui-button-primary" type="button" (click)="pwa.reloadForUpdate()">Refresh now</button>
   </aside>
 }
 <app-nav />

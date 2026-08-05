@@ -1,15 +1,16 @@
 <main class="auth-card ui-surface">
   <h1>Log in</h1>
   <p>Enter your six-digit code.</p>
-  <form (submit)="submit($event)">
+  <form autocomplete="on" (submit)="submit($event)">
     <label class="sr-only" for="login-code">Private login code</label>
     <input
       id="login-code"
-      type="text"
+      name="password"
+      type="password"
       inputmode="numeric"
       pattern="[0-9]{6}"
       maxlength="6"
-      autocomplete="one-time-code"
+      autocomplete="current-password"
       spellcheck="false"
       placeholder="000000"
       [value]="code()"

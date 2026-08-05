@@ -1,6 +1,6 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
-import { filter } from 'rxjs';
+import { concat, filter, interval, timer } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ToastService } from './toast.service';
 
@@ -14,9 +14,7 @@ export class PwaService {
   readonly installAvailable = signal(false);
   readonly serviceWorkerEnabled = signal(this.updates.isEnabled);
   readonly updateReady = signal(false);
-  readonly updateCountdown = signal(3);
-  private updateTimer?: number;
-  private activating = false;
+  readonly updateMessage = signal('A newer version is ready. Refresh when you’re ready.');
 
   constructor() {
     if (typeof window === 'undefined') return;
@@ -40,7 +38,6 @@ export class PwaService {
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
     this.destroyRef.onDestroy(() => {
-      if (this.updateTimer !== undefined) window.clearInterval(this.updateTimer);
       window.removeEventListener('appinstalled', onInstalled);
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
@@ -50,10 +47,16 @@ export class PwaService {
       this.updates.versionUpdates.pipe(
         filter((event): event is VersionReadyEvent => event.type === 'VERSION_READY'),
         takeUntilDestroyed(this.destroyRef),
-      ).subscribe(() => this.beginUpdateCountdown());
+      ).subscribe(() => this.showUpdate('A newer version is ready. Refresh when you’re ready.'));
       this.updates.unrecoverable.pipe(
         takeUntilDestroyed(this.destroyRef),
-      ).subscribe(() => this.beginUpdateCountdown());
+      ).subscribe(() => this.showUpdate('This version needs a refresh to recover.'));
+
+      // The worker checks on navigation too. A light six-hour poll keeps a long-open app fresh
+      // without adding work to the initial render or repeatedly waking the browser.
+      concat(timer(15_000), interval(6 * 60 * 60 * 1_000)).pipe(
+        takeUntilDestroyed(this.destroyRef),
+      ).subscribe(() => void this.checkForUpdate());
     }
   }
 
@@ -61,31 +64,21 @@ export class PwaService {
     this.toast.success('In Safari, tap Share, then “Add to Home Screen”.');
   }
 
-  async activateUpdate(): Promise<void> {
-    if (this.activating) return;
-    this.activating = true;
-    if (this.updateTimer !== undefined) window.clearInterval(this.updateTimer);
-    this.updateTimer = undefined;
+  reloadForUpdate(): void {
+    window.location.reload();
+  }
+
+  private async checkForUpdate(): Promise<void> {
     try {
-      await this.updates.activateUpdate();
-      window.location.reload();
+      await this.updates.checkForUpdate();
     } catch {
-      this.activating = false;
-      this.toast.error('The update could not be applied. Reload the page to try again.');
+      // An update check is opportunistic; the existing app remains usable offline.
     }
   }
 
-  private beginUpdateCountdown(): void {
-    if (this.updateTimer !== undefined || this.activating) return;
+  private showUpdate(message: string): void {
+    if (this.updateReady()) return;
+    this.updateMessage.set(message);
     this.updateReady.set(true);
-    this.updateCountdown.set(3);
-    this.updateTimer = window.setInterval(() => {
-      const remaining = this.updateCountdown() - 1;
-      this.updateCountdown.set(Math.max(0, remaining));
-      if (remaining > 0) return;
-      window.clearInterval(this.updateTimer);
-      this.updateTimer = undefined;
-      void this.activateUpdate();
-    }, 1_000);
   }
 }

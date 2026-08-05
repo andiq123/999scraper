@@ -202,13 +202,6 @@
           <option value="priceDesc">Highest price</option>
         </select>
       </label>
-      @if (!isPropertySearch()) { <label>Condition
-        <select [value]="condition() ?? ''" (change)="condition.set($any($event.target).value || null)">
-          <option value="">Any condition</option>
-          <option value="new">New</option>
-          <option value="used">Used</option>
-        </select>
-      </label> }
       <fieldset class="price-filter">
         <legend><span>Price</span><output>{{ priceRangeLabel() }}</output></legend>
         <select aria-label="Price currency" [value]="priceCurrency() ?? ''" (change)="setCurrency($event)">
