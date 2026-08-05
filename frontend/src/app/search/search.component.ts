@@ -13,6 +13,7 @@ import { SearchIntent, SearchKind, type PropertyListingMode, type VehicleOrigin,
 import { SearchSuggestion, completeSearchInput, marketCategories, suggestionsFor } from './search-suggestions';
 import { RangeFilterComponent, type RangePreset } from './range-filter.component';
 import { type CollapsiblePanel, UiPreferencesService } from '../ui-preferences.service';
+import { ListingSummaryService, type BulkDownloadProgress } from '../listing-summary.service';
 const carNoise = new Set([
   'accesorii', 'acumulator', 'anvelope', 'capace', 'covorașe', 'covorase', 'dezmembrare', 'dezmembrări',
   'faruri', 'huse', 'jante', 'piese', 'roți', 'scut', 'sticlă', 'sticla', 'radiator', 'radiatoare', 'adaptor',
@@ -46,6 +47,7 @@ export class SearchComponent implements OnDestroy {
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly summaries = inject(ListingSummaryService);
   readonly searchState = inject(SearchStateService);
   readonly recentSearches = inject(RecentSearchesService);
   readonly auth = inject(AuthService);
@@ -132,6 +134,11 @@ export class SearchComponent implements OnDestroy {
   readonly buildingTypeOptions = computed(() => facetValues(this.rawProducts(), (product) => product.buildingType));
   readonly loading = signal(false);
   readonly searched = signal(false);
+  readonly bulkMode = signal(false);
+  readonly bulkSelected = signal<ReadonlySet<string>>(new Set());
+  readonly bulkDownloading = signal(false);
+  readonly bulkProgress = signal<BulkDownloadProgress>({ completed: 0, total: 0 });
+  readonly maxBulkSelection = 20;
   readonly loadedPages = signal(0);
   readonly totalPages = signal(0);
   readonly progress = computed(() => this.totalPages() ? Math.round(this.loadedPages() / this.totalPages() * 100) : 0);
@@ -309,6 +316,14 @@ export class SearchComponent implements OnDestroy {
       if (request === handledFreshRequest) return;
       handledFreshRequest = request;
       this.startFreshWorkspace();
+    });
+    effect(() => {
+      if (!this.bulkMode() || this.bulkDownloading()) return;
+      const visible = new Set(this.products().map((product) => product.id));
+      const selected = this.bulkSelected();
+      if ([...selected].some((id) => !visible.has(id))) {
+        this.bulkSelected.set(new Set([...selected].filter((id) => visible.has(id))));
+      }
     });
     effect(() => this.searchState.save(this.snapshot(window.scrollY)));
   }
@@ -562,6 +577,58 @@ export class SearchComponent implements OnDestroy {
       await this.library.toggleSaved(product);
     } catch {
       this.toast.error('Could not update saved listings.');
+    }
+  }
+
+  toggleBulkMode(): void {
+    if (this.bulkDownloading()) return;
+    this.bulkMode.update((enabled) => !enabled);
+    this.bulkSelected.set(new Set());
+  }
+
+  toggleBulkSelection(product: Product): void {
+    if (this.bulkDownloading()) return;
+    const selected = new Set(this.bulkSelected());
+    if (selected.delete(product.id)) {
+      this.bulkSelected.set(selected);
+      return;
+    }
+    if (selected.size >= this.maxBulkSelection) {
+      this.toast.error(`You can export up to ${this.maxBulkSelection} listings at once.`);
+      return;
+    }
+    selected.add(product.id);
+    this.bulkSelected.set(selected);
+  }
+
+  selectVisibleForBulk(): void {
+    const ids = this.products().slice(0, this.maxBulkSelection).map((product) => product.id);
+    this.bulkSelected.set(new Set(ids));
+    if (this.products().length > this.maxBulkSelection) {
+      this.toast.success(`Selected the first ${this.maxBulkSelection} visible listings.`);
+    }
+  }
+
+  clearBulkSelection(): void {
+    if (!this.bulkDownloading()) this.bulkSelected.set(new Set());
+  }
+
+  async downloadBulkJSON(): Promise<void> {
+    if (this.bulkDownloading()) return;
+    const ids = [...this.bulkSelected()];
+    if (!ids.length) return;
+
+    this.bulkDownloading.set(true);
+    this.bulkProgress.set({ completed: 0, total: ids.length });
+    try {
+      await this.summaries.download(ids, (progress) => this.bulkProgress.set(progress));
+      this.toast.success(`${ids.length} listing${ids.length === 1 ? '' : 's'} downloaded as JSON.`);
+      this.bulkMode.set(false);
+      this.bulkSelected.set(new Set());
+    } catch (error) {
+      this.toast.error(error instanceof Error ? error.message : 'Could not prepare the JSON download.');
+    } finally {
+      this.bulkDownloading.set(false);
     }
   }
 

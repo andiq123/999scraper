@@ -3,11 +3,13 @@ import { environment } from '../environments/environment';
 
 type CachedSummary = { json: string; expiresAt: number };
 type CopyResult = 'copied' | 'ready';
+export type BulkDownloadProgress = { completed: number; total: number };
 
 const cacheTTL = 60 * 60 * 1_000;
 const maxCachedSummaries = 40;
 const recentCopiesKey = '999scraper.recentJsonCopies';
 const maxRecentCopies = 5;
+const bulkRequestConcurrency = 2;
 
 @Injectable({ providedIn: 'root' })
 export class ListingSummaryService {
@@ -39,6 +41,43 @@ export class ListingSummaryService {
 
     await this.summaryJSON(id);
     return 'ready';
+  }
+
+  async download(ids: readonly string[], onProgress?: (progress: BulkDownloadProgress) => void): Promise<void> {
+    if (!ids.length) throw new Error('Select at least one listing.');
+
+    const listings = new Array<unknown>(ids.length);
+    let cursor = 0;
+    let completed = 0;
+    let failure: unknown;
+    onProgress?.({ completed, total: ids.length });
+
+    const worker = async (): Promise<void> => {
+      while (cursor < ids.length && failure === undefined) {
+        const index = cursor++;
+        try {
+          listings[index] = JSON.parse(await this.summaryJSON(ids[index]));
+          onProgress?.({ completed: ++completed, total: ids.length });
+        } catch (error) {
+          failure = error;
+        }
+      }
+    };
+
+    await Promise.all(Array.from(
+      { length: Math.min(bulkRequestConcurrency, ids.length) },
+      () => worker(),
+    ));
+    if (failure !== undefined) throw failure;
+
+    const exportedAt = new Date();
+    const json = JSON.stringify({
+      source: '999.md',
+      exportedAt: exportedAt.toISOString(),
+      count: listings.length,
+      listings,
+    }, null, 2);
+    downloadJSON(json, `999-listings-${fileTimestamp(exportedAt)}.json`);
   }
 
   private summaryJSON(id: string): Promise<string> {
@@ -88,6 +127,22 @@ export class ListingSummaryService {
       // Ranking remains available for the current session when storage is unavailable.
     }
   }
+}
+
+function downloadJSON(json: string, filename: string): void {
+  const url = URL.createObjectURL(new Blob([json], { type: 'application/json;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.hidden = true;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url));
+}
+
+function fileTimestamp(date: Date): string {
+  return date.toISOString().replace(/[:.]/g, '-');
 }
 
 function readRecentCopies(): string[] {

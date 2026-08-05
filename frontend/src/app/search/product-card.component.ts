@@ -17,8 +17,11 @@ export class ProductCardComponent {
   readonly eager = input(false);
   readonly priority = input(false);
   readonly convertedPrice = input('');
+  readonly bulkMode = input(false);
+  readonly bulkSelected = input(false);
   readonly exclude = output<string>();
   readonly save = output<Product>();
+  readonly bulkSelect = output<Product>();
   readonly selectedWord = signal('');
   readonly copyState = signal<'idle' | 'loading' | 'ready' | 'copied'>('idle');
   readonly copyRank = computed(() => this.summaries.rank(this.product().id));

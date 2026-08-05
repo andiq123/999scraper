@@ -280,10 +280,25 @@
         <div class="result-bar" animate.enter="reveal-enter" animate.leave="reveal-leave">
           <p><strong>{{ products().length }}</strong> shown @if (hiddenCount()) { <span>· {{ hiddenCount() }} cleaned</span> }</p>
           @if (visiblePriceSummary()) { <p class="visible-price" aria-label="Visible result price range"><small>Price</small><strong>{{ visiblePriceSummary() }}</strong></p> }
+          <button class="bulk-trigger" type="button" (click)="toggleBulkMode()" [disabled]="bulkDownloading()" [attr.aria-pressed]="bulkMode()"><span aria-hidden="true">JSON</span> {{ bulkMode() ? 'Cancel' : 'Bulk JSON' }}</button>
           <button class="restart-search" type="button" (click)="startOver()" aria-label="Clear this search and start over"><span aria-hidden="true">×</span> Start over</button>
         </div>
+        @if (bulkMode()) {
+          <div class="bulk-toolbar" animate.enter="reveal-enter" animate.leave="reveal-leave" role="region" aria-label="Bulk JSON export" [attr.aria-busy]="bulkDownloading()">
+            <div class="bulk-count" aria-live="polite"><strong>{{ bulkSelected().size }}</strong><span>selected · max {{ maxBulkSelection }}</span></div>
+            <button class="bulk-secondary" type="button" (click)="selectVisibleForBulk()" [disabled]="bulkDownloading()">Select visible</button>
+            <button class="bulk-secondary" type="button" (click)="clearBulkSelection()" [disabled]="bulkSelected().size === 0 || bulkDownloading()">Clear</button>
+            <button class="bulk-download" type="button" (click)="downloadBulkJSON()" [disabled]="bulkSelected().size === 0 || bulkDownloading()">
+              @if (bulkDownloading()) {
+                <span class="bulk-spinner" aria-hidden="true"></span> Preparing {{ bulkProgress().completed }}/{{ bulkProgress().total }}
+              } @else {
+                <span aria-hidden="true">↓</span> Download JSON
+              }
+            </button>
+          </div>
+        }
         <div class="grid">
-          @for (product of products(); track product.id; let index = $index) { <app-product-card animate.enter="reveal-enter" [product]="product" [saved]="library.savedIds().has(product.id)" [eager]="index < 6" [priority]="index === 0" [convertedPrice]="currency.label(product, priceCurrency())" (save)="toggleSaved($event)" (exclude)="addExclusion($event)" /> }
+          @for (product of products(); track product.id; let index = $index) { <app-product-card animate.enter="reveal-enter" [product]="product" [saved]="library.savedIds().has(product.id)" [eager]="index < 6" [priority]="index === 0" [convertedPrice]="currency.label(product, priceCurrency())" [bulkMode]="bulkMode()" [bulkSelected]="bulkSelected().has(product.id)" (bulkSelect)="toggleBulkSelection($event)" (save)="toggleSaved($event)" (exclude)="addExclusion($event)" /> }
         </div>
       } @else if (searched() && !loading()) {
         <div class="empty empty-state" animate.enter="reveal-enter" animate.leave="reveal-leave"><h2>No products found</h2><p>Try a broader search or fewer filters.</p><div class="empty-actions">@if (hasCustomFilters()) { <button class="ui-button ui-button-primary" type="button" (click)="resetFilters()">Show broader results</button> }<button class="ui-button ui-button-quiet" type="button" (click)="startOver()">Start over</button></div></div>

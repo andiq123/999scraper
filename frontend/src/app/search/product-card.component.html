@@ -1,10 +1,15 @@
-<article class="ui-surface">
+<article class="ui-surface" [class.bulk-mode]="bulkMode()" [class.bulk-selected]="bulkSelected()">
   <a class="row-link" [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'Open ' + product().title + ' on 999.md'"></a>
   <div class="media">
     @if (product().thumbnailURL) {
       <img [src]="product().thumbnailURL" alt="" aria-hidden="true" width="320" height="240" [attr.loading]="eager() ? 'eager' : 'lazy'" [attr.fetchpriority]="priority() ? 'high' : 'auto'" decoding="async">
     } @else {
       <div class="placeholder" aria-hidden="true">No image</div>
+    }
+    @if (bulkMode()) {
+      <button class="bulk-selector" type="button" [class.selected]="bulkSelected()" [attr.aria-pressed]="bulkSelected()" [attr.aria-label]="(bulkSelected() ? 'Remove ' : 'Select ') + product().title + ' for JSON export'" (click)="bulkSelect.emit(product())">
+        <span aria-hidden="true">{{ bulkSelected() ? '✓' : '' }}</span>
+      </button>
     }
     @if (copyRank(); as rank) {
       <span class="copy-rank" [class.latest]="rank === 1" [attr.aria-label]="rank === 1 ? 'Most recently copied JSON listing' : 'Copied JSON listing number ' + rank">
