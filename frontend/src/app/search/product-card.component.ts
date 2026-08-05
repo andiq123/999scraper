@@ -26,6 +26,7 @@ export class ProductCardComponent {
   readonly selectedWord = signal('');
   readonly copyState = signal<'idle' | 'loading' | 'ready' | 'copied'>('idle');
   readonly copyRank = computed(() => this.summaries.rank(this.product().id));
+  readonly openRank = computed(() => this.summaries.openRank(this.product().id));
   readonly popoverId = computed(() => `exclude-${this.product().id.replace(/[^a-zA-Z0-9_-]/g, '')}`);
   readonly titleWords = computed(() => this.product().title.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) ?? []);
   readonly metadata = computed(() => {
@@ -53,6 +54,10 @@ export class ProductCardComponent {
     if (!word) return;
     this.exclude.emit(word);
     this.popover?.nativeElement.hidePopover();
+  }
+
+  recordOpen(): void {
+    this.summaries.recordOpen(this.product().id);
   }
 
   async copyJSON(): Promise<void> {

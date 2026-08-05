@@ -8,18 +8,32 @@ export type BulkDownloadProgress = { completed: number; total: number };
 const cacheTTL = 60 * 60 * 1_000;
 const maxCachedSummaries = 40;
 const recentCopiesKey = '999scraper.recentJsonCopies';
+const recentOpensKey = '999scraper.recentOpenedListings';
 const maxRecentCopies = 5;
+const maxRecentOpens = 5;
 const bulkRequestConcurrency = 2;
 
 @Injectable({ providedIn: 'root' })
 export class ListingSummaryService {
   private readonly summaries = new Map<string, CachedSummary>();
   private readonly requests = new Map<string, Promise<string>>();
-  private readonly recentCopies = signal(readRecentCopies());
+  private readonly recentCopies = signal(readRecentIds(recentCopiesKey, maxRecentCopies));
+  private readonly recentOpens = signal(readRecentIds(recentOpensKey, maxRecentOpens));
 
   rank(id: string): number | null {
     const index = this.recentCopies().indexOf(id);
     return index === -1 ? null : index + 1;
+  }
+
+  openRank(id: string): number | null {
+    const index = this.recentOpens().indexOf(id);
+    return index === -1 ? null : index + 1;
+  }
+
+  recordOpen(id: string): void {
+    const recent = [id, ...this.recentOpens().filter((item) => item !== id)].slice(0, maxRecentOpens);
+    this.recentOpens.set(recent);
+    persistRecentIds(recentOpensKey, recent);
   }
 
   async copy(id: string): Promise<CopyResult> {
@@ -121,11 +135,7 @@ export class ListingSummaryService {
   private recordCopy(id: string): void {
     const recent = [id, ...this.recentCopies().filter((item) => item !== id)].slice(0, maxRecentCopies);
     this.recentCopies.set(recent);
-    try {
-      localStorage.setItem(recentCopiesKey, JSON.stringify(recent));
-    } catch {
-      // Ranking remains available for the current session when storage is unavailable.
-    }
+    persistRecentIds(recentCopiesKey, recent);
   }
 }
 
@@ -145,14 +155,22 @@ function fileTimestamp(date: Date): string {
   return date.toISOString().replace(/[:.]/g, '-');
 }
 
-function readRecentCopies(): string[] {
+function readRecentIds(key: string, limit: number): string[] {
   if (typeof localStorage === 'undefined') return [];
   try {
-    const value = JSON.parse(localStorage.getItem(recentCopiesKey) ?? '[]');
+    const value = JSON.parse(localStorage.getItem(key) ?? '[]');
     return Array.isArray(value)
-      ? value.filter((id): id is string => typeof id === 'string' && /^\d{1,32}$/.test(id)).slice(0, maxRecentCopies)
+      ? value.filter((id): id is string => typeof id === 'string' && /^\d{1,32}$/.test(id)).slice(0, limit)
       : [];
   } catch {
     return [];
+  }
+}
+
+function persistRecentIds(key: string, ids: readonly string[]): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(ids));
+  } catch {
+    // Ranking remains available for the current session when storage is unavailable.
   }
 }

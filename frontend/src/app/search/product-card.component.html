@@ -1,5 +1,5 @@
 <article class="ui-surface" [class.bulk-mode]="bulkMode()" [class.bulk-selected]="bulkSelected()" [class.newly-revealed]="newlyRevealed()">
-  <a class="row-link" [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'Open ' + product().title + ' on 999.md'"></a>
+  <a class="row-link" [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'Open ' + product().title + ' on 999.md'" (click)="recordOpen()"></a>
   <div class="media">
     @if (product().thumbnailURL) {
       <img [src]="product().thumbnailURL" alt="" aria-hidden="true" width="320" height="240" [attr.loading]="eager() ? 'eager' : 'lazy'" [attr.fetchpriority]="priority() ? 'high' : 'auto'" decoding="async">
@@ -11,12 +11,19 @@
         <span aria-hidden="true">{{ bulkSelected() ? '✓' : '' }}</span>
       </button>
     }
-    @if (newlyRevealed()) { <span class="newly-shown">Newly shown</span> }
-    @if (copyRank(); as rank) {
-      <span class="copy-rank" [class.latest]="rank === 1" [attr.aria-label]="rank === 1 ? 'Most recently copied JSON listing' : 'Copied JSON listing number ' + rank">
-        @if (rank === 1) { Latest JSON } @else { <span class="copy-rank-wide">JSON </span>#{{ rank }} }
-      </span>
-    }
+    <div class="activity-badges">
+      @if (newlyRevealed()) { <span class="newly-shown">Newly shown</span> }
+      @if (openRank(); as rank) {
+        <span class="open-rank" [class.latest]="rank === 1" [attr.aria-label]="rank === 1 ? 'Most recently opened listing' : 'Opened listing number ' + rank">
+          @if (rank === 1) { Last opened } @else { Opened #{{ rank }} }
+        </span>
+      }
+      @if (copyRank(); as rank) {
+        <span class="copy-rank" [class.latest]="rank === 1" [attr.aria-label]="rank === 1 ? 'Most recently copied JSON listing' : 'Copied JSON listing number ' + rank">
+          @if (rank === 1) { Latest JSON } @else { <span class="copy-rank-wide">JSON </span>#{{ rank }} }
+        </span>
+      }
+    </div>
     @if (product().year) { <span class="year">{{ product().year }}</span> }
     <button class="copy-json" type="button" [disabled]="copyState() === 'loading'" (click)="copyJSON()" [attr.aria-label]="copyState() === 'loading' ? 'Loading listing details' : 'Copy listing JSON information'">
       <span class="copy-json-icon" aria-hidden="true">{{ copyState() === 'loading' ? '…' : copyState() === 'copied' ? '✓' : '{ }' }}</span>
@@ -36,7 +43,7 @@
     </div>
     <div class="footer">
       <div class="prices"><p>{{ price() }}</p>@if (convertedPrice()) { <small>{{ convertedPrice() }}</small> }</div>
-      <a class="ui-button ui-button-quiet" [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer">View <span aria-hidden="true">↗</span></a>
+      <a class="ui-button ui-button-quiet" [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer" (click)="recordOpen()">View <span aria-hidden="true">↗</span></a>
     </div>
   </div>
 </article>
