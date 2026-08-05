@@ -707,13 +707,16 @@ export class SearchComponent implements OnDestroy {
 
   setSmartCleanup(enabled: boolean): void {
     if (enabled === this.smartCleanup()) return;
+    const scrollY = window.scrollY;
     const visibleBefore = new Set(this.products().map((product) => product.id));
     this.smartCleanup.set(enabled);
     if (enabled) {
       this.newlyRevealed.set(new Set());
+      preserveScrollPosition(scrollY);
       return;
     }
     this.newlyRevealed.set(new Set(this.products().filter((product) => !visibleBefore.has(product.id)).map((product) => product.id)));
+    preserveScrollPosition(scrollY);
   }
 
   rememberPanel(panel: CollapsiblePanel, event: Event): void {
@@ -908,12 +911,15 @@ export class SearchComponent implements OnDestroy {
     this.lastSyncedSearchURL = signature;
     queueMicrotask(() => {
       if (signature !== this.lastSyncedSearchURL) return;
-      void this.router.navigate([], {
+      const url = this.router.serializeUrl(this.router.createUrlTree([], {
         relativeTo: this.route,
         queryParams: { q: state.activeQuery, filters, fresh: null },
-        replaceUrl: true,
-        state: this.searchState.currentHistoryState(),
-      });
+      }));
+      window.history.replaceState(
+        { ...window.history.state, ...this.searchState.currentHistoryState() },
+        document.title,
+        url,
+      );
     });
   }
 
@@ -1324,6 +1330,11 @@ function budgetPresets(intent: SearchIntent, currency: number | null, listingMod
   return isTechIntent(intent) ? [1_000, 2_500, 5_000] : [5_000, 10_000, 50_000];
 }
 function isTechIntent(intent: SearchIntent): boolean { return ['iphone', 'phone', 'playstation', 'laptop', 'tv'].includes(intent.kind); }
+function preserveScrollPosition(top: number): void {
+  window.requestAnimationFrame(() => {
+    if (Math.abs(window.scrollY - top) > 1) window.scrollTo({ top, behavior: 'instant' });
+  });
+}
 function priceSliderStep(cap: number): number {
   if (cap <= 10_000) return 10;
   if (cap <= 50_000) return 500;
