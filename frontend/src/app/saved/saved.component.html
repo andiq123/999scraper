@@ -1,9 +1,20 @@
 <main class="saved-page page-shell">
   <header class="page-heading"><p>Personal library</p><h1>Saved listings</h1><span>Keep promising finds in one quiet place.</span></header>
   @if (library.saved().length) {
+    <section class="saved-origin-filter" aria-label="Filter saved listings by origin">
+      <span>Țara de origine</span>
+      <div role="group" aria-label="Țara de origine">
+        <button type="button" [class.active]="selectedOrigin() === null" (click)="selectedOrigin.set(null)">All <small>{{ library.saved().length }}</small></button>
+        <button type="button" [class.active]="selectedOrigin() === 'SUA'" [disabled]="originCounts().SUA === 0" (click)="selectedOrigin.set('SUA')">SUA <small>{{ originCounts().SUA }}</small></button>
+        <button type="button" [class.active]="selectedOrigin() === 'Zona Euro'" [disabled]="originCounts()['Zona Euro'] === 0" (click)="selectedOrigin.set('Zona Euro')">Europa <small>{{ originCounts()['Zona Euro'] }}</small></button>
+      </div>
+    </section>
     <div class="grid" animate.enter="reveal-enter" animate.leave="reveal-leave">
-      @for (item of library.saved(); track item.product.id; let index = $index) {
+      @for (item of filteredSaved(); track item.product.id; let index = $index) {
         <app-product-card animate.leave="reveal-leave" [product]="item.product" [saved]="true" [eager]="index < 6" [priority]="index === 0" (save)="toggle($event)" />
+      }
+      @empty {
+        <section class="filtered-empty"><h2>No saved listings from this origin</h2><p>Try the other origin or show all saved listings.</p></section>
       }
     </div>
   } @else {

@@ -76,3 +76,25 @@ type Product struct {
 type ProductsContainer struct {
 	Products []Product `json:"products"`
 }
+
+// ListingSummary is a compact, LLM-friendly view of a public 999.md listing.
+// Details preserves the marketplace's labelled fields while omitting empty and
+// unchecked values.
+type ListingSummary struct {
+	Source      string                    `json:"source"`
+	RetrievedAt time.Time                 `json:"retrievedAt"`
+	Listing     ListingSummaryListing     `json:"listing"`
+	Description string                    `json:"description,omitempty"`
+	Details     map[string]map[string]any `json:"details,omitempty"`
+	Images      []string                  `json:"images,omitempty"`
+	Contacts    map[string]any            `json:"contacts,omitempty"`
+}
+
+type ListingSummaryListing struct {
+	ID       string `json:"id"`
+	URL      string `json:"url"`
+	Title    string `json:"title"`
+	Status   string `json:"status,omitempty"`
+	Category string `json:"category,omitempty"`
+	Seller   string `json:"seller,omitempty"`
+}

@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, computed, inject, input, output, signal } from '@angular/core';
 import { Product } from '../models';
+import { ListingSummaryService } from '../listing-summary.service';
+import { ToastService } from '../toast.service';
 
 @Component({
 	selector: 'app-product-card',
@@ -8,6 +10,8 @@ import { Product } from '../models';
   styleUrl: './product-card.component.scss',
 })
 export class ProductCardComponent {
+  private readonly summaries = inject(ListingSummaryService);
+  private readonly toast = inject(ToastService);
   readonly product = input.required<Product>();
   readonly saved = input(false);
   readonly eager = input(false);
@@ -16,6 +20,7 @@ export class ProductCardComponent {
   readonly exclude = output<string>();
   readonly save = output<Product>();
   readonly selectedWord = signal('');
+  readonly copyState = signal<'idle' | 'loading' | 'ready' | 'copied'>('idle');
   readonly popoverId = computed(() => `exclude-${this.product().id.replace(/[^a-zA-Z0-9_-]/g, '')}`);
   readonly titleWords = computed(() => this.product().title.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) ?? []);
   readonly metadata = computed(() => {
@@ -43,5 +48,24 @@ export class ProductCardComponent {
     if (!word) return;
     this.exclude.emit(word);
     this.popover?.nativeElement.hidePopover();
+  }
+
+  async copyJSON(): Promise<void> {
+    if (this.copyState() === 'loading') return;
+    this.copyState.set('loading');
+    try {
+      const result = await this.summaries.copy(this.product().id);
+      if (result === 'ready') {
+        this.copyState.set('ready');
+        this.toast.success('Details ready. Tap Copy JSON once more.');
+        return;
+      }
+      this.copyState.set('copied');
+      this.toast.success('Listing JSON copied to clipboard.');
+      window.setTimeout(() => this.copyState.set('idle'), 1_800);
+    } catch (error) {
+      this.copyState.set('idle');
+      this.toast.error(error instanceof Error ? error.message : 'Could not copy listing JSON.');
+    }
   }
 }

@@ -21,15 +21,16 @@ import (
 )
 
 type API struct {
-	store   *store.Store
-	auth    *auth.Service
-	scraper *scraper.Scraper
-	cache   *cache.Cache
-	logger  *slog.Logger
-	queries *queryGate
-	logins  *loginLimiter
-	rates   *currency.Service
-	origins map[string]struct{}
+	store     *store.Store
+	auth      *auth.Service
+	scraper   *scraper.Scraper
+	cache     *cache.Cache
+	logger    *slog.Logger
+	queries   *queryGate
+	logins    *loginLimiter
+	summaries *loginLimiter
+	rates     *currency.Service
+	origins   map[string]struct{}
 }
 
 func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, rates *currency.Service, allowedOrigins []string, logger *slog.Logger) http.Handler {
@@ -37,7 +38,7 @@ func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, r
 	for _, origin := range allowedOrigins {
 		origins[origin] = struct{}{}
 	}
-	api := &API{store: s, auth: a, scraper: sc, cache: c, rates: rates, origins: origins, logger: logger, queries: newQueryGate(), logins: newLoginLimiter()}
+	api := &API{store: s, auth: a, scraper: sc, cache: c, rates: rates, origins: origins, logger: logger, queries: newQueryGate(), logins: newLoginLimiter(), summaries: newRequestLimiter(60, time.Minute)}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", api.health)
 	mux.HandleFunc("GET /api/health", api.health)
@@ -46,6 +47,7 @@ func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, r
 	mux.HandleFunc("GET /api/rates", api.exchangeRates)
 	mux.Handle("GET /api/account/current", a.OptionalMiddleware(http.HandlerFunc(api.currentAccount)))
 	mux.Handle("POST /api/products/stream", a.OptionalMiddleware(http.HandlerFunc(api.productsStream)))
+	mux.HandleFunc("GET /api/products/{id}/summary", api.listingSummary)
 	mux.Handle("GET /api/history", a.Middleware(http.HandlerFunc(api.history)))
 	mux.Handle("GET /api/preferences", a.Middleware(http.HandlerFunc(api.preferences)))
 	mux.Handle("PUT /api/preferences", a.Middleware(http.HandlerFunc(api.savePreferences)))
@@ -240,6 +242,54 @@ func (a *API) deleteListing(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (a *API) listingSummary(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if !validListingID(id) {
+		writeError(w, http.StatusBadRequest, "invalid listing id")
+		return
+	}
+	if !a.summaries.allow(clientAddress(r), time.Now()) {
+		w.Header().Set("Retry-After", "60")
+		writeError(w, http.StatusTooManyRequests, "too many detail requests; try again shortly")
+		return
+	}
+	if summary, ok := a.cache.GetListingSummary(r.Context(), id); ok {
+		writeJSON(w, http.StatusOK, summary)
+		return
+	}
+	release, err := a.queries.acquire(r.Context(), "listing-summary:"+id)
+	if err != nil {
+		return
+	}
+	defer release()
+	if summary, ok := a.cache.GetListingSummary(r.Context(), id); ok {
+		writeJSON(w, http.StatusOK, summary)
+		return
+	}
+	summary, err := a.scraper.ListingSummary(r.Context(), id)
+	if err != nil {
+		a.logger.Warn("listing detail scrape failed", "listing_id", id, "error", err)
+		writeError(w, http.StatusBadGateway, "listing details are temporarily unavailable")
+		return
+	}
+	cacheCtx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 2*time.Second)
+	defer cancel()
+	a.cache.SetListingSummary(cacheCtx, id, summary)
+	writeJSON(w, http.StatusOK, summary)
+}
+
+func validListingID(id string) bool {
+	if len(id) == 0 || len(id) > 32 {
+		return false
+	}
+	for _, character := range id {
+		if character < '0' || character > '9' {
+			return false
+		}
+	}
+	return true
+}
+
 func cleanWords(values []string) []string {
 	seen := make(map[string]struct{}, len(values))
 	cleaned := make([]string, 0, len(values))
@@ -409,10 +459,17 @@ type loginWindow struct {
 type loginLimiter struct {
 	mu      sync.Mutex
 	windows map[string]loginWindow
+	limit   int
+	window  time.Duration
 }
 
 func newLoginLimiter() *loginLimiter {
-	return &loginLimiter{windows: make(map[string]loginWindow)}
+	return newRequestLimiter(6, time.Minute)
+
+}
+
+func newRequestLimiter(limit int, window time.Duration) *loginLimiter {
+	return &loginLimiter{windows: make(map[string]loginWindow), limit: limit, window: window}
 }
 
 func (l *loginLimiter) allow(client string, now time.Time) bool {
@@ -420,9 +477,9 @@ func (l *loginLimiter) allow(client string, now time.Time) bool {
 	defer l.mu.Unlock()
 	window := l.windows[client]
 	if now.After(window.until) {
-		window = loginWindow{until: now.Add(time.Minute)}
+		window = loginWindow{until: now.Add(l.window)}
 	}
-	if window.count >= 6 {
+	if window.count >= l.limit {
 		return false
 	}
 	window.count++

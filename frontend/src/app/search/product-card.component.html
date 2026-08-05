@@ -1,12 +1,16 @@
 <article class="ui-surface">
   <a class="row-link" [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'Open ' + product().title + ' on 999.md'"></a>
-  <div class="media" aria-hidden="true">
+  <div class="media">
     @if (product().thumbnailURL) {
-      <img [src]="product().thumbnailURL" [alt]="product().title" width="320" height="240" [attr.loading]="eager() ? 'eager' : 'lazy'" [attr.fetchpriority]="priority() ? 'high' : 'auto'" decoding="async">
+      <img [src]="product().thumbnailURL" alt="" aria-hidden="true" width="320" height="240" [attr.loading]="eager() ? 'eager' : 'lazy'" [attr.fetchpriority]="priority() ? 'high' : 'auto'" decoding="async">
     } @else {
-      <div class="placeholder">No image</div>
+      <div class="placeholder" aria-hidden="true">No image</div>
     }
     @if (product().year) { <span class="year">{{ product().year }}</span> }
+    <button class="copy-json" type="button" [disabled]="copyState() === 'loading'" (click)="copyJSON()" [attr.aria-label]="copyState() === 'loading' ? 'Loading listing details' : 'Copy listing JSON information'">
+      <span class="copy-json-icon" aria-hidden="true">{{ copyState() === 'loading' ? '…' : copyState() === 'copied' ? '✓' : '{ }' }}</span>
+      <span class="copy-json-label">{{ copyState() === 'loading' ? 'Loading details' : copyState() === 'copied' ? 'JSON copied' : copyState() === 'ready' ? 'Copy JSON' : 'Copy JSON info' }}</span>
+    </button>
   </div>
   <button class="save" type="button" [class.saved]="saved()" (click)="save.emit(product())" [attr.aria-label]="saved() ? 'Remove from saved listings' : 'Save listing'" [attr.aria-pressed]="saved()"><span aria-hidden="true">{{ saved() ? '♥' : '♡' }}</span></button>
   <div class="copy">

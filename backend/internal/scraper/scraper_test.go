@@ -173,3 +173,38 @@ func TestProductPreservesSmartFacets(t *testing.T) {
 		t.Fatalf("smart facets were not preserved: %#v", product)
 	}
 }
+
+func TestListingSummaryNormalizesPublicDetails(t *testing.T) {
+	ad := detailAdvert{ID: "104789746", Title: " Tesla Model 3 ", State: "AD_STATE_PUBLIC"}
+	ad.Owner.Login = "seller"
+	ad.SubCategory.Title.Translated = "Autoturisme"
+	general := detailGroup{Title: "General", Controls: make([]detailControl, 3)}
+	general.Controls[0].Title = "Țara de origine"
+	general.Controls[0].Feature.Type = "FEATURE_OPTIONS"
+	general.Controls[0].Feature.Value = map[string]any{"translated": "SUA", "value": float64(29678)}
+	general.Controls[1].Title = "Textul anunțului"
+	general.Controls[1].Feature.Type = "FEATURE_BODY"
+	general.Controls[1].Feature.Value = map[string]any{"translated": "Clean description"}
+	general.Controls[2].Title = "Absent feature"
+	general.Controls[2].Feature.Type = "FEATURE_BOOLEAN"
+	general.Controls[2].Feature.Value = false
+	media := detailGroup{Title: "Media", Controls: make([]detailControl, 1)}
+	media.Controls[0].Title = "Fotografii"
+	media.Controls[0].Feature.Type = "FEATURE_IMAGES"
+	media.Controls[0].Feature.Value = []any{"image.jpg"}
+	ad.Groups = []detailGroup{general, media}
+
+	summary := New("https://999.md", Options{}).summary(ad)
+	if summary.Listing.Title != "Tesla Model 3" || summary.Listing.Status != "PUBLIC" || summary.Description != "Clean description" {
+		t.Fatalf("unexpected listing summary: %#v", summary)
+	}
+	if summary.Details["General"]["Țara de origine"] != "SUA" {
+		t.Fatalf("translated option was not normalized: %#v", summary.Details)
+	}
+	if _, exists := summary.Details["General"]["Absent feature"]; exists {
+		t.Fatal("unchecked boolean should be omitted")
+	}
+	if len(summary.Images) != 1 || summary.Images[0] != "https://i.simpalsmedia.com/999.md/BoardImages/900x900/image.jpg" {
+		t.Fatalf("unexpected image URL: %#v", summary.Images)
+	}
+}

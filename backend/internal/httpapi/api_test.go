@@ -74,6 +74,33 @@ func TestLoginLimiterResetsAndExpires(t *testing.T) {
 	}
 }
 
+func TestRequestLimiterUsesConfiguredWindow(t *testing.T) {
+	limiter := newRequestLimiter(2, 10*time.Second)
+	now := time.Now()
+	if !limiter.allow("client", now) || !limiter.allow("client", now) {
+		t.Fatal("blocked a request within the configured limit")
+	}
+	if limiter.allow("client", now) {
+		t.Fatal("allowed a request above the configured limit")
+	}
+	if !limiter.allow("client", now.Add(11*time.Second)) {
+		t.Fatal("did not reset after the configured window")
+	}
+}
+
+func TestValidListingID(t *testing.T) {
+	for _, id := range []string{"1", "104789746"} {
+		if !validListingID(id) {
+			t.Fatalf("rejected valid listing id %q", id)
+		}
+	}
+	for _, id := range []string{"", "abc", "12/34", strings.Repeat("1", 33)} {
+		if validListingID(id) {
+			t.Fatalf("accepted invalid listing id %q", id)
+		}
+	}
+}
+
 func TestStreamWriterUsesSSEFrames(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	writer := beginStream(recorder, recorder)

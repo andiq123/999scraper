@@ -77,6 +77,18 @@ const searchQuery = `query SearchAds($input: Ads_SearchInput!) {
   }
 }`
 
+const advertQuery = `query Advert($input: AdvertInput!) {
+  advert(input: $input) {
+    id title state
+    owner { login }
+    subCategory { url title { translated } }
+    groups(placement: VIEW_ONE_DESKTOP) {
+      title
+      controls { title feature { type value } }
+    }
+  }
+}`
+
 type Options struct {
 	MaxPages       int
 	Concurrency    int
@@ -99,6 +111,7 @@ type Scraper struct {
 	throttleMu  sync.Mutex
 	nextStart   time.Time
 	searchSlots chan struct{}
+	detailSlots chan struct{}
 }
 
 type graphQLRequest struct {
@@ -117,6 +130,42 @@ type graphQLResponse struct {
 	Errors []struct {
 		Message string `json:"message"`
 	} `json:"errors"`
+}
+
+type advertResponse struct {
+	Data struct {
+		Advert detailAdvert `json:"advert"`
+	} `json:"data"`
+	Errors []struct {
+		Message string `json:"message"`
+	} `json:"errors"`
+}
+
+type detailAdvert struct {
+	ID    string `json:"id"`
+	Title string `json:"title"`
+	State string `json:"state"`
+	Owner struct {
+		Login string `json:"login"`
+	} `json:"owner"`
+	SubCategory struct {
+		URL   string      `json:"url"`
+		Title choiceValue `json:"title"`
+	} `json:"subCategory"`
+	Groups []detailGroup `json:"groups"`
+}
+
+type detailGroup struct {
+	Title    string          `json:"title"`
+	Controls []detailControl `json:"controls"`
+}
+
+type detailControl struct {
+	Title   string `json:"title"`
+	Feature struct {
+		Type  string `json:"type"`
+		Value any    `json:"value"`
+	} `json:"feature"`
 }
 
 type advert struct {
@@ -242,6 +291,7 @@ func New(baseURL string, options Options) *Scraper {
 		baseURL:     strings.TrimRight(baseURL, "/"),
 		options:     options,
 		searchSlots: make(chan struct{}, options.MaxSearches),
+		detailSlots: make(chan struct{}, min(options.Concurrency, 2)),
 		client: &http.Client{
 			Timeout:   options.RequestTimeout,
 			Transport: transport,
@@ -251,6 +301,40 @@ func New(baseURL string, options Options) *Scraper {
 
 func (s *Scraper) Search(ctx context.Context, query string) ([]model.Product, error) {
 	return s.SearchStream(ctx, query, nil)
+}
+
+// ListingSummary reads the public detail page data and returns only useful,
+// labelled values. It shares the scraper's concurrency and request pacing.
+func (s *Scraper) ListingSummary(ctx context.Context, id string) (model.ListingSummary, error) {
+	select {
+	case s.detailSlots <- struct{}{}:
+		defer func() { <-s.detailSlots }()
+	case <-ctx.Done():
+		return model.ListingSummary{}, ctx.Err()
+	}
+
+	var lastErr error
+	for attempt := 0; attempt <= s.options.MaxRetries; attempt++ {
+		if err := s.waitForSlot(ctx); err != nil {
+			return model.ListingSummary{}, err
+		}
+		summary, retryAfter, err := s.detail(ctx, id)
+		if err == nil {
+			return summary, nil
+		}
+		lastErr = err
+		if !isRetryable(err) || attempt == s.options.MaxRetries {
+			break
+		}
+		delay := retryAfter
+		if delay <= 0 {
+			delay = backoff(attempt)
+		}
+		if err := wait(ctx, delay); err != nil {
+			return model.ListingSummary{}, err
+		}
+	}
+	return model.ListingSummary{}, lastErr
 }
 
 // SearchStream fetches the first page to discover the result size, then fetches
@@ -431,6 +515,158 @@ func (s *Scraper) page(ctx context.Context, query string, skip, limit int) ([]mo
 		products = append(products, s.product(ad))
 	}
 	return products, response.Data.SearchAds.Count, 0, nil
+}
+
+func (s *Scraper) detail(ctx context.Context, id string) (model.ListingSummary, time.Duration, error) {
+	payload, err := json.Marshal(graphQLRequest{
+		OperationName: "Advert",
+		Variables:     map[string]any{"input": map[string]string{"id": id}},
+		Query:         advertQuery,
+	})
+	if err != nil {
+		return model.ListingSummary{}, 0, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.baseURL+"/graphql", bytes.NewReader(payload))
+	if err != nil {
+		return model.ListingSummary{}, 0, err
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Lang", "ro")
+	req.Header.Set("Source", "desktop")
+	req.Header.Set("User-Agent", "999scraper/3.0 (+local search client)")
+	res, err := s.client.Do(req)
+	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return model.ListingSummary{}, 0, err
+		}
+		return model.ListingSummary{}, 0, retryableError{fmt.Errorf("fetch listing details: %w", err)}
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		_, _ = io.Copy(io.Discard, io.LimitReader(res.Body, 64<<10))
+		err := fmt.Errorf("listing service returned %s", res.Status)
+		if retryableStatus(res.StatusCode) {
+			return model.ListingSummary{}, parseRetryAfter(res.Header.Get("Retry-After")), retryableError{err}
+		}
+		return model.ListingSummary{}, 0, err
+	}
+	var response advertResponse
+	if err := json.NewDecoder(io.LimitReader(res.Body, maxResponseSize)).Decode(&response); err != nil {
+		return model.ListingSummary{}, 0, retryableError{fmt.Errorf("decode listing details: %w", err)}
+	}
+	if len(response.Errors) > 0 {
+		return model.ListingSummary{}, 0, fmt.Errorf("listing service: %s", response.Errors[0].Message)
+	}
+	if response.Data.Advert.ID == "" {
+		return model.ListingSummary{}, 0, fmt.Errorf("listing was not found")
+	}
+	return s.summary(response.Data.Advert), 0, nil
+}
+
+func (s *Scraper) summary(ad detailAdvert) model.ListingSummary {
+	summary := model.ListingSummary{
+		Source:      "999.md",
+		RetrievedAt: time.Now().UTC(),
+		Listing: model.ListingSummaryListing{
+			ID:       ad.ID,
+			URL:      s.baseURL + "/ro/" + ad.ID,
+			Title:    strings.TrimSpace(ad.Title),
+			Status:   strings.TrimPrefix(ad.State, "AD_STATE_"),
+			Category: strings.TrimSpace(ad.SubCategory.Title.Translated),
+			Seller:   strings.TrimSpace(ad.Owner.Login),
+		},
+		Details: make(map[string]map[string]any),
+	}
+	for _, group := range ad.Groups {
+		fields := make(map[string]any)
+		for _, control := range group.Controls {
+			title := strings.TrimSpace(control.Title)
+			value := summaryValue(control.Feature.Value)
+			if title == "" || value == nil || value == false {
+				continue
+			}
+			switch control.Feature.Type {
+			case "FEATURE_BODY":
+				if text, ok := value.(string); ok {
+					summary.Description = text
+				}
+			case "FEATURE_IMAGES":
+				summary.Images = imageURLs(value)
+			case "FEATURE_CONTACTS":
+				if contacts, ok := value.(map[string]any); ok {
+					summary.Contacts = contacts
+				}
+			default:
+				fields[title] = value
+			}
+		}
+		if len(fields) > 0 {
+			summary.Details[strings.TrimSpace(group.Title)] = fields
+		}
+	}
+	if len(summary.Details) == 0 {
+		summary.Details = nil
+	}
+	return summary
+}
+
+func summaryValue(value any) any {
+	switch typed := value.(type) {
+	case nil:
+		return nil
+	case string:
+		if text := strings.TrimSpace(typed); text != "" {
+			return text
+		}
+		return nil
+	case map[string]any:
+		if translated, ok := typed["translated"].(string); ok && strings.TrimSpace(translated) != "" {
+			return strings.TrimSpace(translated)
+		}
+		result := make(map[string]any, len(typed))
+		for key, item := range typed {
+			if key == "abbreviations" || key == "translated" {
+				continue
+			}
+			if cleaned := summaryValue(item); cleaned != nil {
+				result[key] = cleaned
+			}
+		}
+		if len(result) == 0 {
+			return nil
+		}
+		return result
+	case []any:
+		result := make([]any, 0, len(typed))
+		for _, item := range typed {
+			if cleaned := summaryValue(item); cleaned != nil {
+				result = append(result, cleaned)
+			}
+		}
+		if len(result) == 0 {
+			return nil
+		}
+		return result
+	default:
+		return typed
+	}
+}
+
+func imageURLs(value any) []string {
+	items, ok := value.([]any)
+	if !ok {
+		return nil
+	}
+	images := make([]string, 0, len(items))
+	for _, item := range items {
+		name, ok := item.(string)
+		if name = strings.TrimSpace(name); !ok || name == "" {
+			continue
+		}
+		images = append(images, "https://i.simpalsmedia.com/999.md/BoardImages/900x900/"+name)
+	}
+	return images
 }
 
 type retryableError struct{ error }
