@@ -6,6 +6,11 @@
     } @else {
       <div class="placeholder" aria-hidden="true">No image</div>
     }
+    @if (copyRank(); as rank) {
+      <span class="copy-rank" [class.latest]="rank === 1" [attr.aria-label]="rank === 1 ? 'Most recently copied JSON listing' : 'Copied JSON listing number ' + rank">
+        @if (rank === 1) { Latest JSON } @else { <span class="copy-rank-wide">JSON </span>#{{ rank }} }
+      </span>
+    }
     @if (product().year) { <span class="year">{{ product().year }}</span> }
     <button class="copy-json" type="button" [disabled]="copyState() === 'loading'" (click)="copyJSON()" [attr.aria-label]="copyState() === 'loading' ? 'Loading listing details' : 'Copy listing JSON information'">
       <span class="copy-json-icon" aria-hidden="true">{{ copyState() === 'loading' ? '…' : copyState() === 'copied' ? '✓' : '{ }' }}</span>

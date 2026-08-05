@@ -21,6 +21,7 @@ export class ProductCardComponent {
   readonly save = output<Product>();
   readonly selectedWord = signal('');
   readonly copyState = signal<'idle' | 'loading' | 'ready' | 'copied'>('idle');
+  readonly copyRank = computed(() => this.summaries.rank(this.product().id));
   readonly popoverId = computed(() => `exclude-${this.product().id.replace(/[^a-zA-Z0-9_-]/g, '')}`);
   readonly titleWords = computed(() => this.product().title.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) ?? []);
   readonly metadata = computed(() => {
