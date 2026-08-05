@@ -29,7 +29,10 @@
         <button type="button" [attr.popovertarget]="popoverId()" (click)="chooseWord(word)" [attr.aria-label]="'Exclude ' + word + ' from results'">{{ word }}</button>
       }
     </h2>
-    @if (metadata().length) { <p class="metadata">{{ metadata().join(' · ') }}</p> }
+    <div class="card-meta">
+      @if (metadata().length) { <p class="metadata">{{ metadata().join(' · ') }}</p> }
+      <span class="listing-id" [attr.aria-label]="'Listing ID ' + product().id"><span>ID</span> {{ product().id }}</span>
+    </div>
     <div class="footer">
       <div class="prices"><p>{{ price() }}</p>@if (convertedPrice()) { <small>{{ convertedPrice() }}</small> }</div>
       <a class="ui-button ui-button-quiet" [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer">View <span aria-hidden="true">↗</span></a>

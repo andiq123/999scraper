@@ -4,7 +4,11 @@ import { PropertyListingMode, VehicleOrigin } from './search-intent';
 
 const storageKey = '999scraper.search.v6';
 const lastStorageKey = '999scraper.search.last.v1';
+const historyEntryPrefix = '999scraper.search.entry.v1.';
+const historyIndexKey = '999scraper.search.entries.v1';
+const historyStateKey = 'searchEntryId';
 const maxAge = 12 * 60 * 60 * 1000;
+const maxHistoryEntries = 8;
 
 export interface SearchState {
   query: string;
@@ -65,11 +69,36 @@ export interface SearchState {
 export class SearchStateService {
   private readonly cached = signal<SearchState | null>(readStoredState(storageKey));
   readonly lastSearch = signal<SearchState | null>(readStoredState(lastStorageKey));
+  private readonly historyEntries = new Map<string, SearchState>();
+  private activeHistoryEntry: string | null = null;
   private readonly freshRequest = signal(0);
   readonly freshRequests = this.freshRequest.asReadonly();
   private writeTimer?: number;
 
   snapshot(): SearchState | null { return this.cached(); }
+
+  attachToCurrentHistoryEntry(): SearchState | null {
+    let id = readHistoryEntryId(window.history.state);
+    if (!id) {
+      id = this.createHistoryEntry();
+      window.history.replaceState({ ...window.history.state, [historyStateKey]: id }, document.title);
+      return this.cached();
+    }
+    return this.activateHistoryEntry(id) ?? this.cached();
+  }
+
+  createHistoryState(): Record<string, string> {
+    return { [historyStateKey]: this.createHistoryEntry() };
+  }
+
+  currentHistoryState(): Record<string, string> {
+    return this.activeHistoryEntry ? { [historyStateKey]: this.activeHistoryEntry } : {};
+  }
+
+  restoreHistoryEntry(browserState: unknown): SearchState | null {
+    const id = readHistoryEntryId(browserState);
+    return id ? this.activateHistoryEntry(id) : null;
+  }
 
   startFresh(): void {
     if (this.writeTimer !== undefined) window.clearTimeout(this.writeTimer);
@@ -105,16 +134,52 @@ export class SearchStateService {
 
   save(state: SearchState, immediately = false): void {
     this.cached.set(state);
+    const historyEntry = this.activeHistoryEntry;
+    if (historyEntry) this.historyEntries.set(historyEntry, state);
     if (this.writeTimer !== undefined) window.clearTimeout(this.writeTimer);
-    if (immediately) return this.write(state);
+    if (immediately) return this.write(state, historyEntry);
     // Route navigation uses the in-memory snapshot immediately. Persist the
     // growing streamed list less often because sessionStorage is synchronous.
-    this.writeTimer = window.setTimeout(() => this.write(state), 900);
+    this.writeTimer = window.setTimeout(() => this.write(state, historyEntry), 900);
   }
 
-  private write(state: SearchState): void {
+  private write(state: SearchState, historyEntry = this.activeHistoryEntry): void {
     this.writeTimer = undefined;
     writeStoredState(storageKey, state);
+    if (historyEntry) writeStoredState(historyEntryPrefix + historyEntry, state);
+  }
+
+  private createHistoryEntry(): string {
+    const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    this.activeHistoryEntry = id;
+    rememberHistoryEntry(id);
+    return id;
+  }
+
+  private activateHistoryEntry(id: string): SearchState | null {
+    this.activeHistoryEntry = id;
+    const state = this.historyEntries.get(id) ?? readStoredState(historyEntryPrefix + id);
+    if (!state) return null;
+    this.historyEntries.set(id, state);
+    this.cached.set(state);
+    return state;
+  }
+}
+
+function readHistoryEntryId(value: unknown): string | null {
+  if (!value || typeof value !== 'object') return null;
+  const id = (value as Record<string, unknown>)[historyStateKey];
+  return typeof id === 'string' && /^[a-z0-9-]{8,40}$/.test(id) ? id : null;
+}
+
+function rememberHistoryEntry(id: string): void {
+  try {
+    const stored: unknown = JSON.parse(sessionStorage.getItem(historyIndexKey) ?? '[]');
+    const entries = [id, ...(Array.isArray(stored) ? stored.filter((item): item is string => typeof item === 'string' && item !== id) : [])];
+    for (const expired of entries.slice(maxHistoryEntries)) sessionStorage.removeItem(historyEntryPrefix + expired);
+    sessionStorage.setItem(historyIndexKey, JSON.stringify(entries.slice(0, maxHistoryEntries)));
+  } catch {
+    // In-memory history still supports Back and Forward for this app session.
   }
 }
 

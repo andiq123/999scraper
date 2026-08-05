@@ -294,12 +294,13 @@ export class SearchComponent implements OnDestroy {
 
   constructor() {
     void this.currency.load();
+    const historyCached = this.searchState.attachToCurrentHistoryEntry();
     const freshEntry = this.route.snapshot.queryParamMap.get('fresh') === '1';
     if (freshEntry) {
       this.searchState.startFresh();
-      void this.router.navigate([], { relativeTo: this.route, queryParams: { fresh: null }, replaceUrl: true });
+      void this.router.navigate([], { relativeTo: this.route, queryParams: { fresh: null }, replaceUrl: true, state: this.searchState.currentHistoryState() });
     }
-    const cached = this.searchState.snapshot();
+    const cached = freshEntry ? null : historyCached;
     const replay = this.route.snapshot.queryParamMap.get('q')?.trim();
     const canRestore = cached && (!replay || replay === cached.activeQuery);
     if (canRestore) {
@@ -336,6 +337,21 @@ export class SearchComponent implements OnDestroy {
   @HostListener('window:pagehide')
   cacheBeforePageExit(): void { this.searchState.save(this.snapshot(window.scrollY), true); }
 
+  @HostListener('window:popstate', ['$event'])
+  restoreBrowserHistory(event: PopStateEvent): void {
+    const state = this.searchState.restoreHistoryEntry(event.state);
+    if (!state) return;
+    this.controller?.abort();
+    this.controller = undefined;
+    this.bulkMode.set(false);
+    this.bulkSelected.set(new Set());
+    this.closeSearchSuggestions();
+    this.restore(state);
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      window.scrollTo({ top: state.scrollY, behavior: 'instant' });
+    }));
+  }
+
   @HostListener('window:scroll')
   closeSuggestionsOnScroll(): void {
     if (this.suggestionsOpen()) this.closeSearchSuggestions();
@@ -360,6 +376,16 @@ export class SearchComponent implements OnDestroy {
     if (this.yearRangeInvalid() || this.mileageRangeInvalid() || this.powerRangeInvalid() || this.generationRangeInvalid() || this.storageRangeInvalid() || this.ramRangeInvalid() || this.roomsRangeInvalid() || this.areaRangeInvalid() || this.floorRangeInvalid() || this.screenRangeInvalid() || this.priceRangeInvalid()) return;
     this.recentSearches.add(query);
 
+    const routeQuery = this.route.snapshot.queryParamMap.get('q') ?? '';
+    const createsHistoryEntry = searchKey(routeQuery) !== searchKey(intent.sourceQuery);
+    let navigationState = this.searchState.currentHistoryState();
+    if (createsHistoryEntry) {
+      const previous = this.snapshot(window.scrollY);
+      if (previous.searched) previous.query = previous.activeQuery;
+      this.searchState.save(previous, true);
+      navigationState = this.searchState.createHistoryState();
+    }
+
     this.controller?.abort();
     this.ids.clear();
     this.rawProducts.set([]);
@@ -369,7 +395,13 @@ export class SearchComponent implements OnDestroy {
     this.totalPages.set(0);
     this.loading.set(true);
     this.searched.set(true);
-    void this.router.navigate([], { relativeTo: this.route, queryParams: { q: intent.sourceQuery }, replaceUrl: true });
+    if (createsHistoryEntry) {
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { q: intent.sourceQuery, fresh: null },
+        state: navigationState,
+      });
+    }
 
     const controller = new AbortController();
     this.controller = controller;
@@ -507,6 +539,7 @@ export class SearchComponent implements OnDestroy {
       relativeTo: this.route,
       queryParams: { q: state.activeQuery || null, fresh: null },
       replaceUrl: true,
+      state: this.searchState.currentHistoryState(),
     });
     window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
       window.scrollTo({ top: state.scrollY, behavior: 'instant' });
@@ -775,6 +808,7 @@ export class SearchComponent implements OnDestroy {
       relativeTo: this.route,
       queryParams: { q: null, fresh: null },
       replaceUrl: true,
+      state: this.searchState.currentHistoryState(),
     });
     window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'instant' }));
   }
