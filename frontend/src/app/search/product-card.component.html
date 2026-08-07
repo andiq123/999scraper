@@ -25,7 +25,7 @@
       }
     </div>
     @if (product().year) { <span class="year">{{ product().year }}</span> }
-    <button class="copy-json" type="button" [disabled]="copyState() === 'loading'" (click)="copyJSON()" [attr.aria-label]="copyState() === 'loading' ? 'Loading listing details' : 'Copy listing JSON information'">
+    <button class="copy-json copy-json-image" type="button" [disabled]="copyState() === 'loading'" (click)="copyJSON()" [attr.aria-label]="copyState() === 'loading' ? 'Loading listing details' : 'Copy listing JSON information'">
       <span class="copy-json-icon" aria-hidden="true">{{ copyState() === 'loading' ? '…' : copyState() === 'copied' ? '✓' : '{ }' }}</span>
       <span class="copy-json-label">{{ copyState() === 'loading' ? 'Loading details' : copyState() === 'copied' ? 'JSON copied' : copyState() === 'ready' ? 'Copy JSON' : 'Copy JSON info' }}</span>
     </button>
@@ -43,7 +43,13 @@
     </div>
     <div class="footer">
       <div class="prices"><p>{{ price() }}</p>@if (convertedPrice()) { <small>{{ convertedPrice() }}</small> }</div>
-      <a class="ui-button ui-button-quiet" [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer" (click)="recordOpen()">View <span aria-hidden="true">↗</span></a>
+      <div class="card-actions">
+        <button class="copy-json-mobile" type="button" [disabled]="copyState() === 'loading'" (click)="copyJSON()" [attr.aria-label]="copyState() === 'loading' ? 'Loading listing details' : 'Copy listing JSON information'">
+          <span aria-hidden="true">{{ copyState() === 'loading' ? '…' : copyState() === 'copied' ? '✓' : '{ }' }}</span>
+          <span>{{ copyState() === 'loading' ? 'Loading' : copyState() === 'copied' ? 'Copied' : 'JSON' }}</span>
+        </button>
+        <a class="ui-button ui-button-quiet" [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer" (click)="recordOpen()">View <span aria-hidden="true">↗</span></a>
+      </div>
     </div>
   </div>
 </article>

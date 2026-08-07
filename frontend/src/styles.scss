@@ -65,6 +65,7 @@ input, select { min-height: 46px; }
 @media (max-width: 699px) { input, select { font-size: 16px !important; } }
 @media (max-width: 699px) {
   html, body { scrollbar-width: none; }
+  app-root { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
   html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; height: 0; }
   .search-page .search-form { position: sticky; top: max(.4rem, env(safe-area-inset-top)); background: var(--surface-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
   .search-page.search-page.search-page { width: calc(100% - .75rem); }
@@ -75,11 +76,12 @@ input, select { min-height: 46px; }
   .search-page .result-feed .status button { min-height: 36px; padding: .35rem .55rem; }
   .search-page .result-feed .active-filters { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .15rem; }
   .search-page .result-feed .active-filters > div { padding-right: .25rem; }
-  .search-page .result-feed .active-filters .clear-filters { position: relative; z-index: 1; min-height: 32px; padding-inline: .5rem; background: var(--canvas); }
+  .search-page .result-feed .active-filters .clear-filters { position: relative; z-index: 1; min-height: 32px; padding-inline: .5rem; background: var(--canvas); box-shadow: -10px 0 14px var(--canvas); }
   .search-page .result-feed .result-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .2rem .4rem; margin-top: .25rem; }
   .search-page .result-feed .result-bar > p:first-child { margin: 0; }
-  .search-page .result-feed .visible-price { grid-column: 1 / -1; grid-row: 2; justify-self: start; max-width: 100%; }
+  .search-page .result-feed .visible-price { grid-column: 1; grid-row: 2; justify-self: start; max-width: 100%; }
   .search-page .result-feed .visible-price strong { max-width: 65vw; }
+  .search-page .result-feed .bulk-trigger { grid-column: 2; grid-row: 2; justify-self: end; min-height: 30px; padding-inline: .45rem; }
   .search-page .result-feed .restart-search { grid-column: 2; grid-row: 1; }
   .search-page .result-feed .grid { grid-template-columns: minmax(0, 1fr); gap: .42rem; }
 }
