@@ -45,6 +45,7 @@ const searchQuery = `query SearchAds($input: Ads_SearchInput!, $includeDescripti
       vinCode: feature(id: 2512) { value }
       body: feature(id: 13) @include(if: $includeDescriptionVIN) { value }
       phoneModel: feature(id: 590) { value }
+      consoleBrand: feature(id: 693) { value }
       consoleModel: feature(id: 694) { value }
       phoneStorage: feature(id: 1265) { value }
       consoleStorage: feature(id: 2295) { value }
@@ -201,6 +202,7 @@ type advert struct {
 	VIN              rawFeature    `json:"vinCode"`
 	Body             rawFeature    `json:"body"`
 	PhoneModel       choiceFeature `json:"phoneModel"`
+	ConsoleBrand     rawFeature    `json:"consoleBrand"`
 	ConsoleModel     choiceFeature `json:"consoleModel"`
 	PhoneStorage     choiceFeature `json:"phoneStorage"`
 	ConsoleStorage   choiceFeature `json:"consoleStorage"`
@@ -734,6 +736,8 @@ func wait(ctx context.Context, duration time.Duration) error {
 }
 
 func (s *Scraper) product(ad advert) model.Product {
+	description := featureText(ad.Body.Value)
+	descriptionStats := analyzeDescription(description)
 	price, currency, label := parsePrice(ad.Price.Value)
 	image := ""
 	if len(ad.Images.Value) > 0 {
@@ -750,52 +754,62 @@ func (s *Scraper) product(ad advert) model.Product {
 	if storage == "" {
 		storage = featureText(ad.LaptopStorage.Value)
 	}
-	brand := firstText(featureText(ad.PhoneBrand.Value), featureText(ad.LaptopBrand.Value), featureText(ad.TVBrand.Value))
+	brand := firstText(
+		featureText(ad.PhoneBrand.Value),
+		featureText(ad.ConsoleBrand.Value),
+		featureText(ad.LaptopBrand.Value),
+		featureText(ad.TVBrand.Value),
+	)
 	processor := strings.TrimSpace(strings.Join(nonEmpty(featureText(ad.LaptopCPU.Value), featureText(ad.LaptopCPUModel.Value)), " "))
 	gpu := strings.TrimSpace(strings.Join(nonEmpty(featureText(ad.LaptopGPU.Value), featureText(ad.LaptopGPUModel.Value)), " "))
 	resolution := firstText(featureText(ad.LaptopResolution.Value), featureText(ad.TVResolution.Value))
 	os := firstText(featureText(ad.PhoneOS.Value), featureText(ad.LaptopOS.Value), featureText(ad.TVPlatform.Value))
 	return model.Product{
-		ID:            ad.ID,
-		Title:         strings.TrimSpace(ad.Title),
-		ThumbnailURL:  image,
-		Price:         price,
-		PriceString:   label,
-		OfferType:     featureText(ad.OfferType.Value),
-		Currency:      currency,
-		IsBoosted:     ad.Booster.Enable,
-		Year:          ad.Year.Value,
-		Make:          strings.TrimSpace(ad.Make.Value.Translated),
-		Model:         strings.TrimSpace(ad.Model.Value.Translated),
-		Fuel:          strings.TrimSpace(ad.Fuel.Value.Translated),
-		Transmission:  strings.TrimSpace(ad.Transmission.Value.Translated),
-		BodyType:      featureText(ad.BodyType.Value),
-		Mileage:       featureInt(ad.Mileage.Value),
-		Power:         featureInt(ad.Power.Value),
-		Drivetrain:    featureText(ad.Drivetrain.Value),
-		Registration:  strings.TrimSpace(ad.Registration.Value.Translated),
-		OriginCountry: strings.TrimSpace(ad.OriginCountry.Value.Translated),
-		VIN:           firstText(normalizeVIN(featureText(ad.VIN.Value)), vinFromDescription(featureText(ad.Body.Value))),
-		DeviceModel:   strings.TrimSpace(deviceModel),
-		Storage:       strings.TrimSpace(storage),
-		Brand:         brand,
-		RAM:           firstText(featureText(ad.PhoneRAM.Value), featureText(ad.LaptopRAM.Value)),
-		Processor:     processor,
-		GPU:           gpu,
-		Screen:        featureText(ad.Screen.Value),
-		Resolution:    resolution,
-		OS:            os,
-		Rooms:         featureText(ad.Rooms.Value),
-		Area:          featureText(ad.Area.Value),
-		Sector:        featureText(ad.Sector.Value),
-		HousingStock:  featureText(ad.HousingStock.Value),
-		ListingAuthor: featureText(ad.ListingAuthor.Value),
-		Floor:         featureText(ad.Floor.Value),
-		PropertyState: featureText(ad.PropertyState.Value),
-		BuildingType:  featureText(ad.BuildingType.Value),
-		Category:      strings.TrimSpace(ad.SubCategory.Title.Translated),
-		Condition:     strings.TrimSpace(ad.Condition.Value.Translated),
-		URLToProduct:  s.baseURL + "/ro/" + ad.ID,
+		ID:                          ad.ID,
+		Title:                       strings.TrimSpace(ad.Title),
+		ThumbnailURL:                image,
+		Price:                       price,
+		PriceString:                 label,
+		OfferType:                   featureText(ad.OfferType.Value),
+		Currency:                    currency,
+		IsBoosted:                   ad.Booster.Enable,
+		Year:                        ad.Year.Value,
+		Make:                        strings.TrimSpace(ad.Make.Value.Translated),
+		Model:                       strings.TrimSpace(ad.Model.Value.Translated),
+		Fuel:                        strings.TrimSpace(ad.Fuel.Value.Translated),
+		Transmission:                strings.TrimSpace(ad.Transmission.Value.Translated),
+		BodyType:                    featureText(ad.BodyType.Value),
+		Mileage:                     featureInt(ad.Mileage.Value),
+		Power:                       featureInt(ad.Power.Value),
+		Drivetrain:                  featureText(ad.Drivetrain.Value),
+		Registration:                strings.TrimSpace(ad.Registration.Value.Translated),
+		OriginCountry:               strings.TrimSpace(ad.OriginCountry.Value.Translated),
+		VIN:                         firstText(normalizeVIN(featureText(ad.VIN.Value)), vinFromDescription(description)),
+		ImageCount:                  len(ad.Images.Value),
+		DescriptionWordCount:        descriptionStats.WordCount,
+		DescriptionUsefulWordCount:  descriptionStats.UsefulWordCount,
+		DescriptionMarketingPercent: descriptionStats.MarketingPercent,
+		VehicleFlags:                vehicleFlags(description),
+		DeviceModel:                 strings.TrimSpace(deviceModel),
+		Storage:                     strings.TrimSpace(storage),
+		Brand:                       brand,
+		RAM:                         firstText(featureText(ad.PhoneRAM.Value), featureText(ad.LaptopRAM.Value)),
+		Processor:                   processor,
+		GPU:                         gpu,
+		Screen:                      featureText(ad.Screen.Value),
+		Resolution:                  resolution,
+		OS:                          os,
+		Rooms:                       featureText(ad.Rooms.Value),
+		Area:                        featureText(ad.Area.Value),
+		Sector:                      featureText(ad.Sector.Value),
+		HousingStock:                featureText(ad.HousingStock.Value),
+		ListingAuthor:               featureText(ad.ListingAuthor.Value),
+		Floor:                       featureText(ad.Floor.Value),
+		PropertyState:               featureText(ad.PropertyState.Value),
+		BuildingType:                featureText(ad.BuildingType.Value),
+		Category:                    strings.TrimSpace(ad.SubCategory.Title.Translated),
+		Condition:                   strings.TrimSpace(ad.Condition.Value.Translated),
+		URLToProduct:                s.baseURL + "/ro/" + ad.ID,
 	}
 }
 
@@ -815,7 +829,12 @@ func normalizeVIN(value string) string {
 	return vin
 }
 
-var descriptionVINPattern = regexp.MustCompile(`(?i)\bVIN(?:[[:space:]-]*(?:CODE|COD|КОД))?[[:space:]:#-]{0,12}([A-HJ-NPR-Z0-9]{17})\b`)
+var (
+	descriptionVINPattern = regexp.MustCompile(`(?i)\bVIN(?:[[:space:]-]*(?:CODE|COD|КОД))?[[:space:]:#-]{0,12}([A-HJ-NPR-Z0-9]{17})\b`)
+	riskTextReplacer      = strings.NewReplacer(
+		"ă", "a", "â", "a", "î", "i", "ș", "s", "ş", "s", "ț", "t", "ţ", "t",
+	)
+)
 
 func vinFromDescription(description string) string {
 	match := descriptionVINPattern.FindStringSubmatch(description)
@@ -823,6 +842,92 @@ func vinFromDescription(description string) string {
 		return ""
 	}
 	return normalizeVIN(match[1])
+}
+
+type descriptionAnalysis struct {
+	WordCount        int
+	UsefulWordCount  int
+	MarketingPercent int
+}
+
+var marketingDescriptionMarkers = []string{
+	"fara prima rata", "prima rata", "in credit", "creditare", "leasing", "aprobare", "doar cu buletin",
+	"fidejusor", "persoana garant", "lucreaza peste hotare", "istorie credit", "program de lucru",
+	"program -", "mai multe automobile", "vanzari auto", "transport gratuit", "www", "http", "/profile/",
+	"кредит", "лизинг", "одобрен", "паспорт", "поручител", "кредитн", "рабочий график", "бесплатн транспорт",
+}
+
+func analyzeDescription(description string) descriptionAnalysis {
+	totalWords := len(strings.Fields(description))
+	if totalWords == 0 {
+		return descriptionAnalysis{}
+	}
+	noiseWords := 0
+	seen := make(map[string]struct{})
+	segments := strings.FieldsFunc(description, func(r rune) bool {
+		switch r {
+		case '\n', '\r', '.', '!', '?', ';':
+			return true
+		default:
+			return false
+		}
+	})
+	for _, segment := range segments {
+		folded := foldRiskText(segment)
+		words := len(strings.Fields(segment))
+		if words == 0 {
+			continue
+		}
+		_, repeated := seen[folded]
+		if repeated || containsAny(folded, marketingDescriptionMarkers...) {
+			noiseWords += words
+		}
+		seen[folded] = struct{}{}
+	}
+	usefulWords := max(0, totalWords-noiseWords)
+	return descriptionAnalysis{
+		WordCount:        totalWords,
+		UsefulWordCount:  usefulWords,
+		MarketingPercent: noiseWords * 100 / totalWords,
+	}
+}
+
+func vehicleFlags(description string) []string {
+	text := foldRiskText(description)
+	flags := make([]string, 0, 3)
+	if containsAny(text,
+		"dupa accident", "dupa tamponare", "дтп", "после авар",
+		"cu daune", "accidentata", "accidentate", "avariata", "поврежден",
+	) {
+		flags = append(flags, "accidentDamage")
+	}
+	if containsAny(text,
+		"motor defect", "defect motor", "nu porneste", "necesita reparatie", "necesita investitii",
+		"под замен", "не завод", "не на ходу", "needs repair", "engine damage",
+	) && !containsAny(text, "nu necesita reparatie", "nu necesita investitii") {
+		flags = append(flags, "mechanicalIssue")
+	}
+	if containsAny(text,
+		"fara acte", "acte expir", "numere straine", "doar cu iesire", "procura nu fac",
+		"probleme juridice", "без документ", "иностранные номера", "только на выезд",
+	) {
+		flags = append(flags, "documentRisk")
+	}
+	return flags
+}
+
+func foldRiskText(value string) string {
+	value = strings.ToLower(value)
+	return strings.Join(strings.Fields(riskTextReplacer.Replace(value)), " ")
+}
+
+func containsAny(value string, needles ...string) bool {
+	for _, needle := range needles {
+		if strings.Contains(value, needle) {
+			return true
+		}
+	}
+	return false
 }
 
 func featureText(raw json.RawMessage) string {

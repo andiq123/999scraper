@@ -1,17 +1,24 @@
-<nav aria-label="Primary navigation">
-  <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="active">
+<nav aria-label="Primary navigation" [class.authenticated]="auth.session()">
+  <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="active" ariaCurrentWhenActive="page">
     <span class="tab-icon search-icon" aria-hidden="true"></span>
     <span>Search</span>
   </a>
-  <a routerLink="/saved" routerLinkActive="active">
-    <span class="tab-icon heart-icon" aria-hidden="true">♡</span>
-    <span>Saved</span>
-  </a>
-  <a routerLink="/account" routerLinkActive="active">
+  @if (auth.session()) {
+    <a routerLink="/saved" routerLinkActive="active" ariaCurrentWhenActive="page">
+      <span class="tab-icon heart-icon" aria-hidden="true">♡</span>
+      <span>Saved</span>
+    </a>
+  }
+  <a
+    [routerLink]="auth.session() ? '/account' : '/login'"
+    routerLinkActive="active"
+    ariaCurrentWhenActive="page"
+    [attr.aria-label]="auth.session() ? 'Account' : 'Log in'"
+  >
     <span class="tab-icon account-icon" aria-hidden="true"></span>
-    <span>Account</span>
+    <span>{{ auth.ready() && !auth.session() ? 'Log in' : 'Account' }}</span>
   </a>
-  <a routerLink="/settings" routerLinkActive="active">
+  <a routerLink="/settings" routerLinkActive="active" ariaCurrentWhenActive="page">
     <span class="tab-icon settings-icon" aria-hidden="true"><i></i><i></i><i></i></span>
     <span>Settings</span>
   </a>

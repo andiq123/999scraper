@@ -39,6 +39,18 @@
         <span aria-hidden="true">{{ bulkSelected() ? '✓' : '' }}</span>
       </button>
     }
+    @if (quality(); as quality) {
+      <button
+        class="quality-score"
+        type="button"
+        [class]="'quality-score ' + quality.tier"
+        [attr.popovertarget]="qualityPopoverId()"
+        [attr.aria-label]="'Ad quality ' + quality.score + ' out of 10, ' + quality.label + '. Show scoring details.'"
+      >
+        <strong>{{ quality.score }}</strong
+        ><span>/10</span>
+      </button>
+    }
     <div class="activity-badges">
       @if (newlyRevealed()) {
         <span class="newly-shown">Newly shown</span>
@@ -104,21 +116,23 @@
       }}</span>
     </button>
   </div>
-  <button
-    class="save"
-    type="button"
-    [class.saved]="saved()"
-    (click)="save.emit(product())"
-    [attr.aria-label]="saved() ? 'Remove from saved listings' : 'Save listing'"
-    [attr.aria-pressed]="saved()"
-  >
-    <span aria-hidden="true"
-      ><svg viewBox="0 0 24 24">
-        <path
-          d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"
-        /></svg
-    ></span>
-  </button>
+  @if (auth.session()) {
+    <button
+      class="save"
+      type="button"
+      [class.saved]="saved()"
+      (click)="save.emit(product())"
+      [attr.aria-label]="saved() ? 'Remove from saved listings' : 'Save listing'"
+      [attr.aria-pressed]="saved()"
+    >
+      <span aria-hidden="true"
+        ><svg viewBox="0 0 24 24">
+          <path
+            d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"
+          /></svg
+      ></span>
+    </button>
+  }
   <div class="copy">
     <h2 [title]="product().title">
       @for (word of titleWords(); track $index) {
@@ -207,6 +221,52 @@
     </div>
   </div>
 </article>
+
+@if (quality(); as quality) {
+  <div class="quality-popover" popover="auto" [attr.id]="qualityPopoverId()">
+    <header>
+      <span class="quality-ring" [class]="'quality-ring ' + quality.tier">
+        <strong>{{ quality.score }}</strong
+        ><small>/10</small>
+      </span>
+      <div>
+        <small>Ad quality</small>
+        <h3>{{ quality.label }}</h3>
+      </div>
+      <button
+        type="button"
+        [attr.popovertarget]="qualityPopoverId()"
+        popovertargetaction="hide"
+        aria-label="Close ad quality details"
+      >
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" /></svg>
+      </button>
+    </header>
+    <p class="quality-note">
+      Combines ad completeness with explicitly disclosed risks. It is a screening aid, not a vehicle inspection.
+    </p>
+    @if (quality.strengths.length) {
+      <section>
+        <h4>Strong signals</h4>
+        <ul class="quality-strengths">
+          @for (signal of quality.strengths; track signal) {
+            <li><span aria-hidden="true">✓</span>{{ signal }}</li>
+          }
+        </ul>
+      </section>
+    }
+    @if (quality.concerns.length) {
+      <section>
+        <h4>Concerns</h4>
+        <ul class="quality-improvements">
+          @for (signal of quality.concerns; track signal) {
+            <li><span aria-hidden="true">−</span>{{ signal }}</li>
+          }
+        </ul>
+      </section>
+    }
+  </div>
+}
 
 <div class="exclude-popover" popover="auto" [attr.id]="popoverId()" #popover>
   <span class="popover-mark" aria-hidden="true">−</span>

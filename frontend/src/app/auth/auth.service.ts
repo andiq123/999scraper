@@ -12,10 +12,14 @@ export class AuthService {
   private restoreRequest?: Promise<boolean>;
 
   readonly session = signal<Session | null>(null);
+  readonly ready = signal(false);
 
   restore(): Promise<boolean> {
-    if (this.session()) return Promise.resolve(true);
-    return (this.restoreRequest ??= this.loadSession());
+    if (this.session()) {
+      this.ready.set(true);
+      return Promise.resolve(true);
+    }
+    return (this.restoreRequest ??= this.loadSession().finally(() => this.ready.set(true)));
   }
 
   async login(code: string): Promise<void> {
@@ -27,6 +31,7 @@ export class AuthService {
     this.writeToken(token);
     this.restoreRequest = Promise.resolve(true);
     this.session.set(session);
+    this.ready.set(true);
   }
 
   register(): Promise<Registration> {

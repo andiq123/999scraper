@@ -407,9 +407,9 @@ func (a *API) productsStream(w http.ResponseWriter, r *http.Request) {
 
 func searchCacheQuery(query string, extractVINFromDescription bool) string {
 	if extractVINFromDescription {
-		return query + "\n[description-vin]"
+		return query + "\n[listing-quality-v6;description-vin]"
 	}
-	return query
+	return query + "\n[listing-quality-v6]"
 }
 
 func (a *API) cachedSearch(ctx context.Context, query string) (model.ProductsContainer, bool) {

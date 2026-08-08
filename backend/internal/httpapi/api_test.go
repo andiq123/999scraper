@@ -115,6 +115,17 @@ func TestValidListingID(t *testing.T) {
 	}
 }
 
+func TestSearchCacheQueryVersionsEveryPreviewShape(t *testing.T) {
+	plain := searchCacheQuery("Mazda 3", false)
+	withDescriptionVIN := searchCacheQuery("Mazda 3", true)
+	if !strings.Contains(plain, "listing-quality-v6") {
+		t.Fatalf("plain preview cache key is unversioned: %q", plain)
+	}
+	if plain == withDescriptionVIN || !strings.Contains(withDescriptionVIN, "description-vin") {
+		t.Fatalf("VIN extraction cache key is not distinct: %q vs %q", plain, withDescriptionVIN)
+	}
+}
+
 func TestStreamWriterUsesSSEFrames(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	writer := beginStream(recorder, recorder)

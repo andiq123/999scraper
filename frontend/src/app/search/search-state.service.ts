@@ -1,11 +1,11 @@
 import { Injectable, signal } from '@angular/core';
-import { Product, SortOrder } from '../models';
+import { Product, QualityThreshold, SortOrder } from '../models';
 import { PropertyListingMode, VehicleOrigin } from './search-intent';
 
-const storageKey = '999scraper.search.v6';
-const lastStorageKey = '999scraper.search.last.v1';
-const historyEntryPrefix = '999scraper.search.entry.v1.';
-const historyIndexKey = '999scraper.search.entries.v1';
+const storageKey = '999scraper.search.v7';
+const lastStorageKey = '999scraper.search.last.v2';
+const historyEntryPrefix = '999scraper.search.entry.v2.';
+const historyIndexKey = '999scraper.search.entries.v2';
 const historyStateKey = 'searchEntryId';
 const maxAge = 12 * 60 * 60 * 1000;
 const maxHistoryEntries = 8;
@@ -14,6 +14,7 @@ export interface SearchState {
   query: string;
   activeQuery: string;
   order: SortOrder;
+  qualityMin: QualityThreshold;
   smartCleanup: boolean;
   excludeNegotiable: boolean;
   onlyWithPhotos: boolean;
@@ -206,6 +207,7 @@ function readStoredState(key: string): SearchState | null {
     }
     return {
       ...value,
+      qualityMin: value.qualityMin ?? 0,
       onlyWithVIN: value.onlyWithVIN ?? false,
       fuel: choiceArray(value.fuel),
       transmission: choiceArray(value.transmission),
@@ -256,7 +258,11 @@ function isSearchState(value: unknown): value is SearchState {
     typeof state.query === 'string' &&
     typeof state.activeQuery === 'string' &&
     typeof state.excludedWord === 'string' &&
-    (state.order === 'relevance' || state.order === 'priceAsc' || state.order === 'priceDesc') &&
+    (state.order === 'relevance' ||
+      state.order === 'qualityDesc' ||
+      state.order === 'priceAsc' ||
+      state.order === 'priceDesc') &&
+    (state.qualityMin === undefined || [0, 5, 7, 9].includes(state.qualityMin)) &&
     typeof state.smartCleanup === 'boolean' &&
     typeof state.excludeNegotiable === 'boolean' &&
     typeof state.onlyWithPhotos === 'boolean' &&

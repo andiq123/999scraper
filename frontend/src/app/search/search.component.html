@@ -726,9 +726,20 @@
         >Order
         <select [value]="order()" (change)="order.set($any($event.target).value)">
           <option value="relevance">Best match</option>
+          <option value="qualityDesc">Best ad quality</option>
           <option value="priceAsc">Lowest price</option>
           <option value="priceDesc">Highest price</option>
         </select>
+      </label>
+      <label
+        >Minimum ad quality
+        <select [value]="qualityMin()" (change)="setQualityMinimum($event)">
+          <option value="0">Any score</option>
+          <option value="5">5+ · Useful details</option>
+          <option value="7">7+ · Well documented</option>
+          <option value="9">9+ · Excellent details</option>
+        </select>
+        <small>Category-aware and based only on information already loaded.</small>
       </label>
       <fieldset class="price-filter">
         <legend>

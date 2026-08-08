@@ -3,6 +3,7 @@ import { type SearchState } from './search-state.service';
 export type SharedSearchFilters = Pick<
   SearchState,
   | 'order'
+  | 'qualityMin'
   | 'smartCleanup'
   | 'excludeNegotiable'
   | 'onlyWithPhotos'
@@ -93,6 +94,7 @@ const filterFields: readonly (keyof SharedSearchFilters)[] = [
   'condition',
   'listingMode',
   'onlyWithVIN',
+  'qualityMin',
 ];
 
 const nullableNumbers: readonly (keyof SharedSearchFilters)[] = [
@@ -137,7 +139,7 @@ const multiSelectFields: readonly (keyof SharedSearchFilters)[] = [
 ];
 
 export function encodeSearchFilters(filters: SharedSearchFilters): string {
-  const bytes = new TextEncoder().encode(JSON.stringify([3, ...filterFields.map((key) => filters[key])]));
+  const bytes = new TextEncoder().encode(JSON.stringify([4, ...filterFields.map((key) => filters[key])]));
   return btoa(String.fromCharCode(...bytes))
     .replaceAll('+', '-')
     .replaceAll('/', '_')
@@ -147,6 +149,7 @@ export function encodeSearchFilters(filters: SharedSearchFilters): string {
 export function searchFiltersFromState(state: SearchState): SharedSearchFilters {
   return {
     order: state.order,
+    qualityMin: state.qualityMin,
     smartCleanup: state.smartCleanup,
     excludeNegotiable: state.excludeNegotiable,
     onlyWithPhotos: state.onlyWithPhotos,
@@ -202,13 +205,15 @@ export function decodeSearchFilters(value: string | null): SharedSearchFilters |
       .padEnd(Math.ceil(value.length / 4) * 4, '=');
     const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
     const payload: unknown = JSON.parse(new TextDecoder().decode(bytes));
-    if (!Array.isArray(payload) || (payload[0] !== 1 && payload[0] !== 2 && payload[0] !== 3)) return null;
-    const legacy = payload[0] === 1 || payload[0] === 2;
-    const fields = legacy ? filterFields.slice(0, -1) : filterFields;
+    if (!Array.isArray(payload) || ![1, 2, 3, 4].includes(payload[0] as number)) return null;
+    const version = payload[0] as number;
+    const legacy = version === 1 || version === 2;
+    const fields = legacy ? filterFields.slice(0, -2) : version === 3 ? filterFields.slice(0, -1) : filterFields;
     if (payload.length !== fields.length + 1) return null;
     const filters = Object.fromEntries(fields.map((key, index) => [key, payload[index + 1]]));
     if (legacy) filters['onlyWithVIN'] = false;
-    if (payload[0] === 1) {
+    if (version < 4) filters['qualityMin'] = 0;
+    if (version === 1) {
       for (const key of multiSelectFields) filters[key] = filters[key] === null ? [] : [filters[key]];
     }
     return isSharedSearchFilters(filters) ? filters : null;
@@ -221,7 +226,11 @@ function isSharedSearchFilters(value: unknown): value is SharedSearchFilters {
   if (!value || typeof value !== 'object') return false;
   const filters = value as Record<string, unknown>;
   return (
-    (filters.order === 'relevance' || filters.order === 'priceAsc' || filters.order === 'priceDesc') &&
+    (filters.order === 'relevance' ||
+      filters.order === 'qualityDesc' ||
+      filters.order === 'priceAsc' ||
+      filters.order === 'priceDesc') &&
+    (filters.qualityMin === 0 || filters.qualityMin === 5 || filters.qualityMin === 7 || filters.qualityMin === 9) &&
     typeof filters.smartCleanup === 'boolean' &&
     typeof filters.excludeNegotiable === 'boolean' &&
     typeof filters.onlyWithPhotos === 'boolean' &&

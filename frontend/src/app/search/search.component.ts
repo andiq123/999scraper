@@ -14,7 +14,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
-import { Product, SortOrder } from '../models';
+import { Product, type QualityThreshold, SortOrder } from '../models';
 import { ToastService } from '../toast.service';
 import { ProductCardComponent } from './product-card.component';
 import { SearchEvent, SearchService } from './search.service';
@@ -49,6 +49,7 @@ import {
   type SharedSearchFilters,
 } from './search-url-state';
 import { VINResearchService } from '../vin-research.service';
+import { isPartsVehicleAd, isWantedListing, listingQualityScore } from './listing-quality';
 const carNoise = new Set([
   'accesorii',
   'acumulator',
@@ -199,6 +200,7 @@ export class SearchComponent implements OnDestroy {
   readonly activeQuery = signal('');
   readonly searchAssist = signal<string | null>(null);
   readonly order = signal<SortOrder>('relevance');
+  readonly qualityMin = signal<QualityThreshold>(0);
   readonly smartCleanup = signal(true);
   readonly excludeNegotiable = signal(false);
   readonly onlyWithPhotos = signal(false);
@@ -535,8 +537,16 @@ export class SearchComponent implements OnDestroy {
   });
   readonly activeFilterChips = computed<FilterChip[]>(() => {
     const chips: FilterChip[] = [];
-    if (this.order() !== 'relevance')
-      chips.push({ id: 'order', label: this.order() === 'priceAsc' ? 'Lowest price' : 'Highest price' });
+    const order = this.order();
+    if (order !== 'relevance') {
+      const labels: Record<Exclude<SortOrder, 'relevance'>, string> = {
+        qualityDesc: 'Best ad quality',
+        priceAsc: 'Lowest price',
+        priceDesc: 'Highest price',
+      };
+      chips.push({ id: 'order', label: labels[order] });
+    }
+    if (this.qualityMin()) chips.push({ id: 'quality', label: `Ad quality ${this.qualityMin()}+` });
     if (!this.smartCleanup()) chips.push({ id: 'cleanup', label: 'Cleanup off' });
     if (this.onlyWithPhotos()) chips.push({ id: 'photos', label: 'With photos' });
     if (this.onlyWithVIN()) chips.push({ id: 'vin', label: 'VIN available' });
@@ -783,7 +793,7 @@ export class SearchComponent implements OnDestroy {
     const controller = new AbortController();
     this.controller = controller;
     try {
-      await this.searchService.stream(intent.sourceQuery, intent.kind === 'vehicle', controller.signal, (streamEvent) =>
+      await this.searchService.stream(intent.sourceQuery, true, controller.signal, (streamEvent) =>
         this.receive(streamEvent),
       );
     } catch (error) {
@@ -942,6 +952,7 @@ export class SearchComponent implements OnDestroy {
 
   removeFilter(id: string): void {
     if (id === 'order') this.order.set('relevance');
+    else if (id === 'quality') this.qualityMin.set(0);
     else if (id === 'cleanup') this.setSmartCleanup(true);
     else if (id === 'photos') this.onlyWithPhotos.set(false);
     else if (id === 'vin') this.onlyWithVIN.set(false);
@@ -1197,6 +1208,11 @@ export class SearchComponent implements OnDestroy {
     this.priceMax.set(null);
   }
 
+  setQualityMinimum(event: Event): void {
+    const value = Number((event.target as HTMLSelectElement).value);
+    this.qualityMin.set(value === 5 || value === 7 || value === 9 ? value : 0);
+  }
+
   setPricePreset(value: number): void {
     this.priceMax.set(value);
     if (this.priceMin() !== null && this.priceMin()! > value) this.priceMin.set(null);
@@ -1219,6 +1235,7 @@ export class SearchComponent implements OnDestroy {
 
   resetFilters(clearSavedWords = true): void {
     this.order.set('relevance');
+    this.qualityMin.set(0);
     this.smartCleanup.set(true);
     this.newlyRevealed.set(new Set());
     this.excludeNegotiable.set(false);
@@ -1295,6 +1312,7 @@ export class SearchComponent implements OnDestroy {
 
   private applySharedFilters(filters: SharedSearchFilters): void {
     this.order.set(filters.order);
+    this.qualityMin.set(filters.qualityMin);
     this.smartCleanup.set(filters.smartCleanup);
     this.excludeNegotiable.set(filters.excludeNegotiable);
     this.onlyWithPhotos.set(filters.onlyWithPhotos);
@@ -1449,6 +1467,7 @@ export class SearchComponent implements OnDestroy {
     this.searchAssist.set(null);
     this.activeQuery.set(state.activeQuery);
     this.order.set(state.order);
+    this.qualityMin.set(state.qualityMin);
     this.smartCleanup.set(state.smartCleanup);
     this.excludeNegotiable.set(state.excludeNegotiable);
     this.onlyWithPhotos.set(state.onlyWithPhotos);
@@ -1511,6 +1530,7 @@ export class SearchComponent implements OnDestroy {
       query: this.query(),
       activeQuery: this.activeQuery(),
       order: this.order(),
+      qualityMin: this.qualityMin(),
       smartCleanup: this.smartCleanup(),
       excludeNegotiable: this.excludeNegotiable(),
       onlyWithPhotos: this.onlyWithPhotos(),
@@ -1584,7 +1604,10 @@ export class SearchComponent implements OnDestroy {
       const signature = `${titleWords.join(' ')}|${product.price ?? ''}|${product.currency}`;
       if (
         this.smartCleanup() &&
-        (product.isBoosted || !containsAll(titleWords, queryWords) || signatures.has(signature))
+        (product.isBoosted ||
+          isWantedListing(product) ||
+          !containsAll(titleWords, queryWords) ||
+          signatures.has(signature))
       )
         return false;
       if (
@@ -1700,6 +1723,7 @@ export class SearchComponent implements OnDestroy {
         return false;
       if (this.condition().length && !this.condition().some((value) => conditionMatches(product.condition, value)))
         return false;
+      if (this.qualityMin() && listingQualityScore(product) < this.qualityMin()) return false;
       if (this.excludeNegotiable() && product.price == null) return false;
       if (this.onlyWithPhotos() && !product.thumbnailURL) return false;
       if (this.onlyWithVIN() && !product.vin) return false;
@@ -1711,6 +1735,12 @@ export class SearchComponent implements OnDestroy {
     return products.sort((a, b) => {
       if (this.order() === 'relevance')
         return relevance(b, queryWords) - relevance(a, queryWords) || this.comparePrice(a, b, 1);
+      if (this.order() === 'qualityDesc')
+        return (
+          listingQualityScore(b) - listingQualityScore(a) ||
+          relevance(b, queryWords) - relevance(a, queryWords) ||
+          this.comparePrice(a, b, 1)
+        );
       return this.comparePrice(a, b, direction);
     });
   }
@@ -1783,6 +1813,8 @@ function containsPhrase(words: string[], phrase: string[]): boolean {
 }
 function plausibleCar(product: Product, titleWords: string[]): boolean {
   if (
+    isWantedListing(product) ||
+    isPartsVehicleAd(product) ||
     !product.make ||
     !product.model ||
     !product.year ||

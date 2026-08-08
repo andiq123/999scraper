@@ -18,13 +18,14 @@ export interface SavedListing {
   savedAt: string;
 }
 
-export type SortOrder = 'relevance' | 'priceAsc' | 'priceDesc';
+export type SortOrder = 'relevance' | 'qualityDesc' | 'priceAsc' | 'priceDesc';
+export type QualityThreshold = 0 | 5 | 7 | 9;
+export type VehicleFlag = 'accidentDamage' | 'mechanicalIssue' | 'documentRisk';
 
 export interface Product {
   id: string;
   title: string;
   thumbnailURL: string;
-  description: string;
   price?: number | null;
   priceString?: string | null;
   offerType?: string;
@@ -42,6 +43,11 @@ export interface Product {
   registration?: string;
   originCountry?: string;
   vin?: string;
+  imageCount?: number;
+  descriptionWordCount?: number;
+  descriptionUsefulWordCount?: number;
+  descriptionMarketingPercent?: number;
+  vehicleFlags?: VehicleFlag[];
   deviceModel?: string;
   storage?: string;
   brand?: string;

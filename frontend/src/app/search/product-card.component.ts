@@ -13,6 +13,8 @@ import { Product } from '../models';
 import { ListingSummaryService } from '../listing-summary.service';
 import { ToastService } from '../toast.service';
 import { VINResearchService } from '../vin-research.service';
+import { listingQuality } from './listing-quality';
+import { AuthService } from '../auth/auth.service';
 
 @Component({
   selector: 'app-product-card',
@@ -24,6 +26,7 @@ export class ProductCardComponent {
   private readonly summaries = inject(ListingSummaryService);
   private readonly toast = inject(ToastService);
   private readonly vinResearch = inject(VINResearchService);
+  readonly auth = inject(AuthService);
   readonly product = input.required<Product>();
   readonly saved = input(false);
   readonly eager = input(false);
@@ -40,8 +43,10 @@ export class ProductCardComponent {
   readonly copyRank = computed(() => this.summaries.rank(this.product().id));
   readonly openRank = computed(() => this.summaries.openRank(this.product().id));
   readonly vinTooltipId = computed(() => `vin-${this.product().id.replace(/[^a-zA-Z0-9_-]/g, '')}`);
+  readonly qualityPopoverId = computed(() => `quality-${this.product().id.replace(/[^a-zA-Z0-9_-]/g, '')}`);
   readonly popoverId = computed(() => `exclude-${this.product().id.replace(/[^a-zA-Z0-9_-]/g, '')}`);
   readonly titleWords = computed(() => this.product().title.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) ?? []);
+  readonly quality = computed(() => listingQuality(this.product()));
   readonly metadata = computed(() => {
     const product = this.product();
     const vehicle = [

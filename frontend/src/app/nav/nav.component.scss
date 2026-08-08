@@ -12,9 +12,9 @@
 
 nav {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.15rem;
-  width: min(100%, 440px);
+  width: min(100%, 340px);
   min-height: 60px;
   margin: auto;
   padding: 0.28rem;
@@ -27,6 +27,10 @@ nav {
   -webkit-backdrop-filter: blur(28px) saturate(175%);
   backdrop-filter: blur(28px) saturate(175%);
   pointer-events: auto;
+}
+nav.authenticated {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: min(100%, 440px);
 }
 
 a {
@@ -148,6 +152,7 @@ a.active {
 @media (prefers-reduced-motion: no-preference) {
   nav {
     transition:
+      width var(--duration) var(--ease),
       background-color var(--duration) ease,
       box-shadow var(--duration) var(--ease);
   }
@@ -198,6 +203,9 @@ a.active {
     padding-bottom: max(0.65rem, env(safe-area-inset-bottom));
   }
   nav {
+    width: min(340px, calc(100% - 2rem));
+  }
+  nav.authenticated {
     width: min(420px, calc(100% - 2rem));
   }
 }

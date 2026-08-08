@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -167,11 +168,24 @@ func TestProductPreservesSmartFacets(t *testing.T) {
 	ad.Registration.Value.Translated = "Republica Moldova"
 	ad.OriginCountry.Value.Translated = "Japonia"
 	ad.VIN.Value = json.RawMessage(`"jt2bg22k1v0093427"`)
+	ad.Body.Value = json.RawMessage(`{"translated":"Well maintained family car with complete service history and two original keys."}`)
+	ad.Images.Value = []string{"one.jpg", "two.jpg", "three.jpg"}
 	ad.Condition.Value.Translated = "Cu rulaj"
 	ad.OfferType.Value = json.RawMessage(`{"translated":"Vând","value":1}`)
 	product := New("https://999.md", Options{}).product(ad)
-	if product.Year != 2010 || product.Fuel != "Benzină" || product.Transmission != "Automată" || product.BodyType != "Crossover" || product.Mileage != 75000 || product.Power != 174 || product.Drivetrain != "4x4" || product.Registration != "Republica Moldova" || product.OriginCountry != "Japonia" || product.VIN != "JT2BG22K1V0093427" || product.Condition != "Cu rulaj" || product.OfferType != "Vând" {
+	if product.Year != 2010 || product.Fuel != "Benzină" || product.Transmission != "Automată" || product.BodyType != "Crossover" || product.Mileage != 75000 || product.Power != 174 || product.Drivetrain != "4x4" || product.Registration != "Republica Moldova" || product.OriginCountry != "Japonia" || product.VIN != "JT2BG22K1V0093427" || product.Condition != "Cu rulaj" || product.OfferType != "Vând" || product.ImageCount != 3 || product.DescriptionWordCount != 12 || product.DescriptionUsefulWordCount != 12 {
 		t.Fatalf("smart facets were not preserved: %#v", product)
+	}
+}
+
+func TestProductPreservesConsoleBrand(t *testing.T) {
+	ad := advert{ID: "2", Title: "Sony PlayStation 5 Pro 2TB"}
+	ad.ConsoleBrand.Value = json.RawMessage(`{"translated":"Sony","value":7721}`)
+	ad.ConsoleModel.Value.Translated = "PlayStation 5 Pro"
+	ad.ConsoleStorage.Value.Translated = "2048 GB"
+	product := New("https://999.md", Options{}).product(ad)
+	if product.Brand != "Sony" || product.DeviceModel != "PlayStation 5 Pro" || product.Storage != "2048 GB" {
+		t.Fatalf("console facets were not preserved: %#v", product)
 	}
 }
 
@@ -195,6 +209,38 @@ func TestVINFallsBackToDescription(t *testing.T) {
 func TestDescriptionVINRequiresLabel(t *testing.T) {
 	if got := vinFromDescription("Reference 7SAYGDEF3NF464219"); got != "" {
 		t.Fatalf("unlabelled identifier was treated as VIN: %q", got)
+	}
+}
+
+func TestVehicleFlagsUseExplicitRiskLanguage(t *testing.T) {
+	tests := []struct {
+		description string
+		want        string
+	}{
+		{"Mazda după ДТП, necesită reparație și are numere străine", "accidentDamage,mechanicalIssue,documentRisk"},
+		{"Головка двигателя под замену", "mechanicalIssue"},
+		{"Mașină fără accidente, nu necesită investiții", ""},
+	}
+	for _, test := range tests {
+		if got := strings.Join(vehicleFlags(test.description), ","); got != test.want {
+			t.Fatalf("vehicleFlags(%q) = %q, want %q", test.description, got, test.want)
+		}
+	}
+}
+
+func TestAnalyzeDescriptionSeparatesUsefulDetailsFromDealerBoilerplate(t *testing.T) {
+	dealer := analyzeDescription(`Ne aflăm pe str. Soseaua Balcani 7A.
+VÂNZĂRI AUTO. FĂRĂ PRIMA RATĂ ÎN CREDIT. Doar cu Buletinul. GARANTĂM aprobarea 100%.
+Nu trebuie fidejusor sau persoană garant. Mai multe automobile: https://999.md/profile/Xauto.
+Данный автомобиль можно приобрести в КРЕДИТ без первого взноса, в ЛИЗИНГ или наличными.
+ГАРАНТИРУЕМ 100% ОДОБРЕНИЕ КРЕДИТА. Вам не нужен поручитель. Рабочий график: 08:30–19:00.`)
+	if dealer.MarketingPercent < 40 || dealer.UsefulWordCount >= dealer.WordCount/2 {
+		t.Fatalf("dealer boilerplate was treated as useful description: %#v", dealer)
+	}
+
+	private := analyzeDescription(`Sony PlayStation 5 Pro 2TB. 18 мес гарантии. В хорошем состоянии, включалась очень редко. Куплена 14 сентября 2025.`)
+	if private.MarketingPercent != 0 || private.UsefulWordCount != private.WordCount {
+		t.Fatalf("concise product details were treated as marketing: %#v", private)
 	}
 }
 
