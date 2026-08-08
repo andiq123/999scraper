@@ -14,7 +14,7 @@ export class UserDataService {
 
   async loadExcludedWords(): Promise<string[]> {
     const local = this.localWords();
-    if (!await this.auth.restore()) return local;
+    if (!(await this.auth.restore())) return local;
     try {
       const remote = (await this.request<Preferences>('preferences')).excludedWords;
       const merged = [...new Set([...remote, ...local])];
@@ -36,7 +36,7 @@ export class UserDataService {
   }
 
   async loadSaved(): Promise<void> {
-    if (!await this.auth.restore()) return;
+    if (!(await this.auth.restore())) return;
     const items = await this.request<SavedListing[]>('saved');
     this.saved.set(items);
     this.savedIds.set(new Set(items.map((item) => item.product.id)));
@@ -45,7 +45,10 @@ export class UserDataService {
   async toggleSaved(product: Product): Promise<boolean> {
     if (!this.auth.session()) return false;
     const saved = this.savedIds().has(product.id);
-    await this.request<void>(`saved/${encodeURIComponent(product.id)}`, saved ? { method: 'DELETE' } : { method: 'PUT', body: JSON.stringify(product) });
+    await this.request<void>(
+      `saved/${encodeURIComponent(product.id)}`,
+      saved ? { method: 'DELETE' } : { method: 'PUT', body: JSON.stringify(product) },
+    );
     if (saved) {
       this.saved.update((items) => items.filter((item) => item.product.id !== product.id));
     } else {
@@ -68,6 +71,6 @@ export class UserDataService {
     const response = await fetch(this.api + path, this.auth.withSession(init));
     if (response.status === 401) this.auth.expire();
     if (!response.ok) throw new Error(`Request failed (${response.status}).`);
-    return response.status === 204 ? undefined as T : response.json();
+    return response.status === 204 ? (undefined as T) : response.json();
   }
 }

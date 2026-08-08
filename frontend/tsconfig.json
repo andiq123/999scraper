@@ -16,10 +16,7 @@
     "target": "es2022",
     "module": "preserve",
     "ignoreDeprecations": "6.0",
-    "lib": [
-      "es2022",
-      "dom"
-    ]
+    "lib": ["es2022", "dom"]
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

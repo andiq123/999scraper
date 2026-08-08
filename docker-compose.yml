@@ -50,7 +50,6 @@ services:
       APP_ADDRESS: :8080
       DATABASE_URL: postgres://appuser:secret@db:5432/999scraper?sslmode=disable
       REDIS_URL: redis://redis:6379/0
-      FRONTEND_URL: http://localhost:${FRONTEND_PORT:?FRONTEND_PORT is required}
     volumes:
       - ./backend:/app
       - backend-build:/app/.air-tmp
@@ -76,8 +75,8 @@ services:
     restart: unless-stopped
     ports:
       - ${FRONTEND_PORT:?FRONTEND_PORT is required}:4200
-    environment:
-      API_URL: ${API_URL:?API_URL is required}
+    env_file:
+      - ./frontend/.env
     volumes:
       - ./frontend:/app
       - frontend-modules:/app/node_modules

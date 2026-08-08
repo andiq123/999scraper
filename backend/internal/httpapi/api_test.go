@@ -88,6 +88,20 @@ func TestRequestLimiterUsesConfiguredWindow(t *testing.T) {
 	}
 }
 
+func TestDecodeRejectsTrailingJSON(t *testing.T) {
+	request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"value":1}{"value":2}`))
+	response := httptest.NewRecorder()
+	var input struct {
+		Value int `json:"value"`
+	}
+	if decode(response, request, &input) {
+		t.Fatal("accepted more than one JSON value")
+	}
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("unexpected status: %d", response.Code)
+	}
+}
+
 func TestValidListingID(t *testing.T) {
 	for _, id := range []string{"1", "104789746"} {
 		if !validListingID(id) {

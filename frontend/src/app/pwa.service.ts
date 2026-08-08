@@ -19,10 +19,12 @@ export class PwaService {
   constructor() {
     if (typeof window === 'undefined') return;
 
-    const standalone = window.matchMedia('(display-mode: standalone)').matches
-      || Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
-    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent)
-      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const standalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+    const ios =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     this.installed.set(standalone);
     this.installAvailable.set(!standalone && ios);
 
@@ -44,19 +46,21 @@ export class PwaService {
     });
 
     if (this.updates.isEnabled) {
-      this.updates.versionUpdates.pipe(
-        filter((event): event is VersionReadyEvent => event.type === 'VERSION_READY'),
-        takeUntilDestroyed(this.destroyRef),
-      ).subscribe(() => this.showUpdate('A newer version is ready. Refresh when you’re ready.'));
-      this.updates.unrecoverable.pipe(
-        takeUntilDestroyed(this.destroyRef),
-      ).subscribe(() => this.showUpdate('This version needs a refresh to recover.'));
+      this.updates.versionUpdates
+        .pipe(
+          filter((event): event is VersionReadyEvent => event.type === 'VERSION_READY'),
+          takeUntilDestroyed(this.destroyRef),
+        )
+        .subscribe(() => this.showUpdate('A newer version is ready. Refresh when you’re ready.'));
+      this.updates.unrecoverable
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(() => this.showUpdate('This version needs a refresh to recover.'));
 
       // The worker checks on navigation too. A light six-hour poll keeps a long-open app fresh
       // without adding work to the initial render or repeatedly waking the browser.
-      concat(timer(15_000), interval(6 * 60 * 60 * 1_000)).pipe(
-        takeUntilDestroyed(this.destroyRef),
-      ).subscribe(() => void this.checkForUpdate());
+      concat(timer(15_000), interval(6 * 60 * 60 * 1_000))
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(() => void this.checkForUpdate());
     }
   }
 

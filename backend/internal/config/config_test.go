@@ -15,10 +15,9 @@ func TestCrossOriginConfiguration(t *testing.T) {
 	}
 }
 
-func TestAllowedOriginsUseFrontendURLAndOptionalExtras(t *testing.T) {
+func TestAllowedOriginsUseFrontendURL(t *testing.T) {
 	t.Setenv("PORT", "5103")
-	t.Setenv("FRONTEND_URL", "https://999scraper.vercel.app/")
-	t.Setenv("CORS_ALLOWED_ORIGINS", "https://preview.example,https://999scraper.vercel.app")
+	t.Setenv("FRONTEND_URL", "https://999scraper.vercel.app/,https://preview.example,https://999scraper.vercel.app")
 	values, err := loadAllowedOrigins()
 	if err != nil {
 		t.Fatal(err)
@@ -31,7 +30,6 @@ func TestAllowedOriginsUseFrontendURLAndOptionalExtras(t *testing.T) {
 func TestAllowedOriginsRequireFrontendURLWhenDeployed(t *testing.T) {
 	t.Setenv("PORT", "5103")
 	t.Setenv("FRONTEND_URL", "")
-	t.Setenv("CORS_ALLOWED_ORIGINS", "")
 	if _, err := loadAllowedOrigins(); err == nil {
 		t.Fatal("expected a deployed app without FRONTEND_URL to fail")
 	}

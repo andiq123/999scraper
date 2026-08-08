@@ -76,7 +76,9 @@ export class SearchStateService {
   readonly freshRequests = this.freshRequest.asReadonly();
   private writeTimer?: number;
 
-  snapshot(): SearchState | null { return this.cached(); }
+  snapshot(): SearchState | null {
+    return this.cached();
+  }
 
   attachToCurrentHistoryEntry(): SearchState | null {
     let id = readHistoryEntryId(window.history.state);
@@ -105,7 +107,11 @@ export class SearchStateService {
     if (this.writeTimer !== undefined) window.clearTimeout(this.writeTimer);
     this.writeTimer = undefined;
     const current = this.cached();
-    try { sessionStorage.removeItem(storageKey); } catch { /* In-memory state still works. */ }
+    try {
+      sessionStorage.removeItem(storageKey);
+    } catch {
+      /* In-memory state still works. */
+    }
     if (current && (current.searched || current.query.trim())) {
       this.lastSearch.set(current);
       writeStoredState(lastStorageKey, current);
@@ -120,7 +126,9 @@ export class SearchStateService {
     try {
       sessionStorage.removeItem(storageKey);
       sessionStorage.removeItem(lastStorageKey);
-    } catch { /* In-memory state still works. */ }
+    } catch {
+      /* In-memory state still works. */
+    }
     this.cached.set(null);
     this.lastSearch.set(null);
   }
@@ -176,7 +184,12 @@ function readHistoryEntryId(value: unknown): string | null {
 function rememberHistoryEntry(id: string): void {
   try {
     const stored: unknown = JSON.parse(sessionStorage.getItem(historyIndexKey) ?? '[]');
-    const entries = [id, ...(Array.isArray(stored) ? stored.filter((item): item is string => typeof item === 'string' && item !== id) : [])];
+    const entries = [
+      id,
+      ...(Array.isArray(stored)
+        ? stored.filter((item): item is string => typeof item === 'string' && item !== id)
+        : []),
+    ];
     for (const expired of entries.slice(maxHistoryEntries)) sessionStorage.removeItem(historyEntryPrefix + expired);
     sessionStorage.setItem(historyIndexKey, JSON.stringify(entries.slice(0, maxHistoryEntries)));
   } catch {
@@ -194,16 +207,23 @@ function readStoredState(key: string): SearchState | null {
     return {
       ...value,
       onlyWithVIN: value.onlyWithVIN ?? false,
-      fuel: choiceArray(value.fuel), transmission: choiceArray(value.transmission),
-      drivetrain: choiceArray(value.drivetrain), bodyType: choiceArray(value.bodyType),
-      registration: choiceArray(value.registration), originCountry: choiceArray(value.originCountry),
+      fuel: choiceArray(value.fuel),
+      transmission: choiceArray(value.transmission),
+      drivetrain: choiceArray(value.drivetrain),
+      bodyType: choiceArray(value.bodyType),
+      registration: choiceArray(value.registration),
+      originCountry: choiceArray(value.originCountry),
       condition: choiceArray(value.condition),
-      listingMode: choiceArray((value as unknown as { listingMode?: string | string[] }).listingMode).map((mode) => mode === 'rent' ? 'monthly' : mode) as PropertyListingMode[],
+      listingMode: choiceArray((value as unknown as { listingMode?: string | string[] }).listingMode).map((mode) =>
+        mode === 'rent' ? 'monthly' : mode,
+      ) as PropertyListingMode[],
       floorFrom: value.floorFrom ?? null,
       floorTo: value.floorTo ?? null,
       propertySector: choiceArray(value.propertySector),
-      propertyState: choiceArray(value.propertyState), housingStock: choiceArray(value.housingStock),
-      listingAuthor: choiceArray(value.listingAuthor), buildingType: choiceArray(value.buildingType),
+      propertyState: choiceArray(value.propertyState),
+      housingStock: choiceArray(value.housingStock),
+      listingAuthor: choiceArray(value.listingAuthor),
+      buildingType: choiceArray(value.buildingType),
     };
   } catch {
     sessionStorage.removeItem(key);
@@ -221,7 +241,9 @@ function writeStoredState(key: string, state: SearchState): void {
       try {
         sessionStorage.setItem(key, JSON.stringify({ ...state, products }));
         return;
-      } catch { /* Try a smaller snapshot. */ }
+      } catch {
+        /* Try a smaller snapshot. */
+      }
     }
   }
 }
@@ -230,41 +252,81 @@ function isSearchState(value: unknown): value is SearchState {
   if (!value || typeof value !== 'object') return false;
   const state = value as Partial<SearchState>;
   const raw = value as Record<string, unknown>;
-  return typeof state.query === 'string'
-    && typeof state.activeQuery === 'string'
-    && typeof state.excludedWord === 'string'
-    && (state.order === 'relevance' || state.order === 'priceAsc' || state.order === 'priceDesc')
-    && typeof state.smartCleanup === 'boolean'
-    && typeof state.excludeNegotiable === 'boolean'
-    && typeof state.onlyWithPhotos === 'boolean'
-    && (typeof state.onlyWithVIN === 'boolean' || state.onlyWithVIN === undefined)
-    && typeof state.searched === 'boolean'
-    && typeof state.updatedAt === 'number'
-    && typeof state.loadedPages === 'number'
-    && typeof state.totalPages === 'number'
-    && typeof state.scrollY === 'number'
-    && [state.yearFrom, state.yearTo, state.priceMin, state.priceMax, state.priceCurrency, state.generationFrom,
-      state.generationTo, state.storageFrom, state.storageTo, state.ramFrom, state.ramTo, state.roomsFrom,
-      state.roomsTo, state.areaFrom, state.areaTo, state.floorFrom ?? null, state.floorTo ?? null, state.screenFrom, state.screenTo].every(isNullableNumber)
-    && [state.mileageFrom, state.mileageTo, state.powerFrom, state.powerTo].every(isNullableNumber)
-    && ['fuel', 'transmission', 'drivetrain', 'bodyType', 'propertySector', 'propertyState', 'housingStock', 'listingAuthor', 'buildingType'].every((key) => isStringChoice(raw[key]))
-    && isEnumChoice(raw['registration'], ['moldova', 'other'])
-    && isEnumChoice(raw['originCountry'], ['China', 'Coreea', 'Japonia', 'SUA', 'Zona Euro', 'Altă'])
-    && isEnumChoice(raw['condition'], ['new', 'used'])
-    && isEnumChoice(raw['listingMode'], ['sale', 'rent', 'monthly', 'daily'])
-    && isStringArray(state.excludedWords)
-    && isStringArray(state.queryExclusions)
-    && isStringArray(state.deviceTags)
-    && Array.isArray(state.products)
-    && state.products.every((product) => product && typeof product.id === 'string' && typeof product.title === 'string');
+  return (
+    typeof state.query === 'string' &&
+    typeof state.activeQuery === 'string' &&
+    typeof state.excludedWord === 'string' &&
+    (state.order === 'relevance' || state.order === 'priceAsc' || state.order === 'priceDesc') &&
+    typeof state.smartCleanup === 'boolean' &&
+    typeof state.excludeNegotiable === 'boolean' &&
+    typeof state.onlyWithPhotos === 'boolean' &&
+    (typeof state.onlyWithVIN === 'boolean' || state.onlyWithVIN === undefined) &&
+    typeof state.searched === 'boolean' &&
+    typeof state.updatedAt === 'number' &&
+    typeof state.loadedPages === 'number' &&
+    typeof state.totalPages === 'number' &&
+    typeof state.scrollY === 'number' &&
+    [
+      state.yearFrom,
+      state.yearTo,
+      state.priceMin,
+      state.priceMax,
+      state.priceCurrency,
+      state.generationFrom,
+      state.generationTo,
+      state.storageFrom,
+      state.storageTo,
+      state.ramFrom,
+      state.ramTo,
+      state.roomsFrom,
+      state.roomsTo,
+      state.areaFrom,
+      state.areaTo,
+      state.floorFrom ?? null,
+      state.floorTo ?? null,
+      state.screenFrom,
+      state.screenTo,
+    ].every(isNullableNumber) &&
+    [state.mileageFrom, state.mileageTo, state.powerFrom, state.powerTo].every(isNullableNumber) &&
+    [
+      'fuel',
+      'transmission',
+      'drivetrain',
+      'bodyType',
+      'propertySector',
+      'propertyState',
+      'housingStock',
+      'listingAuthor',
+      'buildingType',
+    ].every((key) => isStringChoice(raw[key])) &&
+    isEnumChoice(raw['registration'], ['moldova', 'other']) &&
+    isEnumChoice(raw['originCountry'], ['China', 'Coreea', 'Japonia', 'SUA', 'Zona Euro', 'Altă']) &&
+    isEnumChoice(raw['condition'], ['new', 'used']) &&
+    isEnumChoice(raw['listingMode'], ['sale', 'rent', 'monthly', 'daily']) &&
+    isStringArray(state.excludedWords) &&
+    isStringArray(state.queryExclusions) &&
+    isStringArray(state.deviceTags) &&
+    Array.isArray(state.products) &&
+    state.products.every((product) => product && typeof product.id === 'string' && typeof product.title === 'string')
+  );
 }
 
-function isNullableNumber(value: unknown): value is number | null { return value === null || typeof value === 'number'; }
-function isStringArray(value: unknown): value is string[] { return Array.isArray(value) && value.every((item) => typeof item === 'string'); }
-function isStringChoice(value: unknown): boolean { return value === undefined || value === null || typeof value === 'string' || isStringArray(value); }
+function isNullableNumber(value: unknown): value is number | null {
+  return value === null || typeof value === 'number';
+}
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
+function isStringChoice(value: unknown): boolean {
+  return value === undefined || value === null || typeof value === 'string' || isStringArray(value);
+}
 function isEnumChoice(value: unknown, options: readonly string[]): boolean {
-  return value === undefined || value === null || (typeof value === 'string' && options.includes(value))
-    || (isStringArray(value) && value.every((item) => options.includes(item)));
+  return (
+    value === undefined ||
+    value === null ||
+    (typeof value === 'string' && options.includes(value)) ||
+    (isStringArray(value) && value.every((item) => options.includes(item)))
+  );
 }
 function choiceArray<T extends string>(value: T | T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : value ? [value] : [];

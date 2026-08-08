@@ -1,5 +1,12 @@
 @if (toast(); as item) {
-  <div class="toast" animate.enter="toast-enter" animate.leave="toast-leave" [class.error]="item.kind === 'error'" role="status" aria-live="polite">
+  <div
+    class="toast"
+    animate.enter="toast-enter"
+    animate.leave="toast-leave"
+    [class.error]="item.kind === 'error'"
+    role="status"
+    aria-live="polite"
+  >
     <span class="toast-mark" aria-hidden="true">{{ item.kind === 'error' ? '!' : '✓' }}</span>
     {{ item.message }}
   </div>
@@ -10,7 +17,9 @@
 @if (pwa.updateReady()) {
   <aside class="update-card" role="status" aria-live="polite" aria-atomic="true">
     <span class="update-mark" aria-hidden="true">↑</span>
-    <div><strong>Update ready</strong><small>{{ pwa.updateMessage() }}</small></div>
+    <div>
+      <strong>Update ready</strong><small>{{ pwa.updateMessage() }}</small>
+    </div>
     <button class="ui-button ui-button-primary" type="button" (click)="pwa.reloadForUpdate()">Refresh now</button>
   </aside>
 }

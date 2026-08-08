@@ -1,8 +1,145 @@
-:host { display: block; min-width: 0; }
-fieldset { display: grid; gap: .42rem; min-width: 0; padding: .55rem; border: 1px solid var(--line); border-radius: 13px; background: rgb(255 255 255 / 72%); }
-legend { display: flex; justify-content: space-between; gap: .5rem; width: 100%; padding: 0; color: var(--muted); font-size: .68rem; font-weight: 700; }
-output { overflow: hidden; color: var(--accent); font-size: .65rem; text-overflow: ellipsis; white-space: nowrap; }
-.presets { display: flex; gap: .25rem; overflow-x: auto; scrollbar-width: none; }.presets::-webkit-scrollbar { display: none; }.presets button { flex: 1 0 auto; min-height: 32px; padding: .25rem .5rem; border: 0; border-radius: 9px; color: var(--muted); background: var(--surface-soft); font-size: .65rem; font-weight: 680; cursor: pointer; }.presets button.active { color: white; background: var(--accent); }
-.dual-range { --from: 0%; --to: 100%; position: relative; height: 28px; margin-inline: 7px; background: linear-gradient(to right, var(--line-strong) 0 var(--from), var(--accent) var(--from) var(--to), var(--line-strong) var(--to) 100%) center / 100% 4px no-repeat; }.dual-range input { position: absolute; inset: 0; width: 100%; min-height: 28px; margin: 0; padding: 0; border: 0; appearance: none; background: transparent; pointer-events: none; }.dual-range input::-webkit-slider-runnable-track { height: 4px; background: transparent; }.dual-range input::-webkit-slider-thumb { width: 20px; height: 20px; margin-top: -8px; border: 3px solid white; border-radius: 50%; appearance: none; background: var(--accent); box-shadow: var(--shadow-sm); pointer-events: auto; cursor: grab; }.dual-range input::-moz-range-track { height: 4px; background: transparent; }.dual-range input::-moz-range-thumb { width: 14px; height: 14px; border: 3px solid white; border-radius: 50%; background: var(--accent); box-shadow: var(--shadow-sm); pointer-events: auto; cursor: grab; }
-.inputs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: .3rem; }.inputs input { width: 100%; min-width: 0; min-height: 40px; padding: .42rem .5rem; border: 1px solid var(--line); border-radius: 10px; outline: 0; background: var(--surface-solid); font-size: .75rem; }.inputs input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--focus); }.inputs span { color: var(--subtle); }
-@media (hover: hover) { .presets button:hover { color: var(--text); background: var(--accent-soft); }.presets button.active:hover { color: white; background: var(--accent-hover); } }
+:host {
+  display: block;
+  min-width: 0;
+}
+fieldset {
+  display: grid;
+  gap: 0.42rem;
+  min-width: 0;
+  padding: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgb(255 255 255 / 72%);
+}
+legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+output {
+  overflow: hidden;
+  color: var(--accent);
+  font-size: 0.65rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.presets {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.presets::-webkit-scrollbar {
+  display: none;
+}
+.presets button {
+  flex: 1 0 auto;
+  min-height: 32px;
+  padding: 0.25rem 0.5rem;
+  border: 0;
+  border-radius: 9px;
+  color: var(--muted);
+  background: var(--surface-soft);
+  font-size: 0.65rem;
+  font-weight: 680;
+  cursor: pointer;
+}
+.presets button.active {
+  color: white;
+  background: var(--accent);
+}
+.dual-range {
+  --from: 0%;
+  --to: 100%;
+  position: relative;
+  height: 28px;
+  margin-inline: 7px;
+  background: linear-gradient(
+      to right,
+      var(--line-strong) 0 var(--from),
+      var(--accent) var(--from) var(--to),
+      var(--line-strong) var(--to) 100%
+    )
+    center / 100% 4px no-repeat;
+}
+.dual-range input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+}
+.dual-range input::-webkit-slider-runnable-track {
+  height: 4px;
+  background: transparent;
+}
+.dual-range input::-webkit-slider-thumb {
+  width: 20px;
+  height: 20px;
+  margin-top: -8px;
+  border: 3px solid white;
+  border-radius: 50%;
+  appearance: none;
+  background: var(--accent);
+  box-shadow: var(--shadow-sm);
+  pointer-events: auto;
+  cursor: grab;
+}
+.dual-range input::-moz-range-track {
+  height: 4px;
+  background: transparent;
+}
+.dual-range input::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 3px solid white;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: var(--shadow-sm);
+  pointer-events: auto;
+  cursor: grab;
+}
+.inputs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.3rem;
+}
+.inputs input {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0.42rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  outline: 0;
+  background: var(--surface-solid);
+  font-size: 0.75rem;
+}
+.inputs input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus);
+}
+.inputs span {
+  color: var(--subtle);
+}
+@media (hover: hover) {
+  .presets button:hover {
+    color: var(--text);
+    background: var(--accent-soft);
+  }
+  .presets button.active:hover {
+    color: white;
+    background: var(--accent-hover);
+  }
+}

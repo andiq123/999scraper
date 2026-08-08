@@ -19,7 +19,7 @@ backend/           Go API, migrations, and backend container
 docker-compose.yml Local service orchestration
 start.sh           One-command local launcher and cleanup
 frontend/vercel.json Vercel project configuration
-.env               Frontend launcher configuration (ignored by Git)
+frontend/.env      Frontend and launcher configuration (ignored by Git)
 backend/.env       Backend runtime configuration (ignored by Git)
 ```
 
@@ -28,12 +28,12 @@ backend/.env       Backend runtime configuration (ignored by Git)
 Docker Desktop is the only local requirement on macOS. The launcher starts Docker when needed and brings up every service:
 
 ```sh
-cp .env.example .env # only when .env does not already exist
+cp frontend/.env.example frontend/.env # only when frontend/.env does not already exist
 cp backend/.env.example backend/.env # only when backend/.env does not exist
 ./start.sh
 ```
 
-Configuration is split by ownership and both files are ignored by Git. Root `.env` contains only `FRONTEND_PORT` and the browser-safe `API_URL`; `backend/.env` contains `JWT_SECRET` and the exact `FRONTEND_URL` allowed by CORS. `./start.sh` validates both, passes the root file explicitly to Docker Compose, and Angular compiles `API_URL` into the browser bundle. PostgreSQL and Redis local addresses are supplied automatically by Docker Compose.
+Configuration is split by service ownership and both files are ignored by Git. `frontend/.env` contains browser-safe settings (`FRONTEND_PORT`, `API_URL`, and `VIN_SEARCH_ENGINE_ID`); `backend/.env` contains backend runtime configuration and secrets such as `JWT_SECRET` and `FRONTEND_URL`. `FRONTEND_URL` is the single CORS source of truth and accepts comma-separated exact origins when local and deployed frontends must both reach the API. `./start.sh` validates both files and passes the frontend file explicitly to Docker Compose. Each container loads only its own environment file, and Angular compiles the public frontend settings into the browser bundle. PostgreSQL and Redis local addresses are supplied automatically by Docker Compose.
 
 - Frontend: <http://localhost:4200>
 - Backend health: <http://localhost:8081/api/health>
@@ -42,7 +42,7 @@ Search is public and needs no account. Log in only to save listings, sync exclud
 
 Changes under `backend/cmd/` or `backend/internal/` rebuild and restart the backend through Air. Changes under `frontend/src/` refresh through the independent Angular development server.
 
-VIN research decodes vehicle identity through NHTSA and can discover concrete auction-detail pages through Google Programmable Search. Configure an eligible Google Custom Search account with `GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_ENGINE_ID` in `backend/.env`; configure the engine with the approved auction domains used by the API. Results are restricted to HTTPS detail pages and must contain the complete VIN. Generic search pages and unverified domains are discarded. Both variables are optional, but must be supplied together.
+VIN research decodes vehicle identity through NHTSA and discovers auction-detail pages with Google's official Programmable Search Element. `VIN_SEARCH_ENGINE_ID` is a public frontend identifier; no browser secret is required. Results are restricted to allow-listed HTTPS detail pages and must contain the complete VIN in the title, snippet, or detail URL. Generic search pages, unrelated snippets, and unverified domains are discarded.
 
 Press Ctrl+C to remove the project containers, network, database and dependency/build volumes, and locally built images. The Redis search cache is intentionally ephemeral. Docker Desktop itself stays open.
 
@@ -78,7 +78,7 @@ set -a; . backend/.env; set +a
 (cd backend && air -c .air.toml)
 
 (cd frontend && npm ci)
-(cd frontend && npm start)
+(cd frontend && set -a; . ./.env; set +a; npm start)
 ```
 
 The API reads its secret from [backend/.env.example](backend/.env.example) during local development and uses platform-injected configuration in production. `./start.sh` runs the schema migration as a separate one-shot service before starting the API:
@@ -118,9 +118,10 @@ Import the repository into Vercel and set **Root Directory** to `frontend`. Its 
 
 ```text
 API_URL=https://api.example.com/api/
+VIN_SEARCH_ENGINE_ID=a752a6e9fa70d4df5
 ```
 
-`API_URL` is public build configuration, not a secret. Vercel must redeploy after it changes. The build rejects a missing value or a non-HTTPS production URL instead of publishing a broken frontend.
+Both frontend variables are public build configuration, not secrets. Vercel must redeploy after either changes. The build rejects a missing API URL or a non-HTTPS production API URL instead of publishing a broken frontend.
 
 Expose the Raspberry Pi API through a public HTTPS hostname using a secure reverse proxy or tunnel; do not point the HTTPS frontend at a private address or plain HTTP port. For the most reliable login flow, use sibling custom domains such as `app.example.com` on Vercel and `api.example.com` on the Pi. Configure the Go app with the exact frontend origin; this is the only CORS setting required for the normal production deployment:
 
@@ -128,4 +129,4 @@ Expose the Raspberry Pi API through a public HTTPS hostname using a secure rever
 FRONTEND_URL=https://999scraper.vercel.app
 ```
 
-The frontend stores the signed JWT locally and sends it as an `Authorization: Bearer` header. This avoids cross-site cookie restrictions on iOS when Vercel and the API use different domains. Use comma-separated exact origins in `CORS_ALLOWED_ORIGINS` only when a specific preview deployment also needs access; wildcard origins remain unsupported. Anonymous search is unaffected.
+The frontend stores the signed JWT locally and sends it as an `Authorization: Bearer` header. This avoids cross-site cookie restrictions on iOS when Vercel and the API use different domains. When a preview or local frontend also needs access, append its exact origin to `FRONTEND_URL` with a comma; wildcard origins remain unsupported. Anonymous search is unaffected.

@@ -15,7 +15,7 @@
       placeholder="000000"
       [value]="code()"
       (input)="updateCode($event)"
-    >
+    />
     <button class="ui-button ui-button-primary" type="submit" [disabled]="code().length !== 6 || submitting()">
       {{ submitting() ? 'Logging in…' : 'Log in' }}
     </button>

@@ -2,7 +2,10 @@ import { matchesVehicleCatalog } from './vehicle-catalog';
 
 export type SearchKind = 'generic' | 'vehicle' | 'iphone' | 'phone' | 'playstation' | 'laptop' | 'tv' | 'realEstate';
 
-export interface NumberRange { from: number | null; to: number | null }
+export interface NumberRange {
+  from: number | null;
+  to: number | null;
+}
 export type PropertyListingMode = 'sale' | 'monthly' | 'daily';
 export type VehicleOrigin = 'China' | 'Coreea' | 'Japonia' | 'SUA' | 'Zona Euro' | 'Altă';
 
@@ -37,17 +40,104 @@ export const fuelOptions = ['Benzină', 'Diesel', 'Hybrid', 'Electricitate', 'Ga
 export const transmissionOptions = ['Automată', 'Mecanică', 'Variator', 'Robotizată'] as const;
 export const drivetrainOptions = ['Din față', 'Din spate', '4x4'] as const;
 export const bodyTypeOptions = ['Sedan', 'SUV', 'Crossover', 'Hatchback', 'Universal', 'Coupe', 'Minivan'] as const;
-export const originCountryOptions: readonly VehicleOrigin[] = ['China', 'Coreea', 'Japonia', 'SUA', 'Zona Euro', 'Altă'];
+export const originCountryOptions: readonly VehicleOrigin[] = [
+  'China',
+  'Coreea',
+  'Japonia',
+  'SUA',
+  'Zona Euro',
+  'Altă',
+];
 export const storageOptions = [64, 128, 256, 512, 1024, 2048] as const;
 
-const vehicleWords = new Set(['autoturism', 'autoturisme', 'automobil', 'automobile', 'masina', 'masini', 'vehicle', 'inmatriculare', 'inmatriculat', 'inmatriculata', 'автомобиль', 'автомобили']);
-const laptopWords = new Set(['laptop', 'laptops', 'notebook', 'ultrabook', 'macbook', 'thinkpad', 'ideapad', 'chromebook', 'lenovo', 'dell', 'acer', 'asus', 'ноутбук']);
-const phoneWords = new Set(['telefon', 'telefonul', 'smartphone', 'samsung', 'galaxy', 'xiaomi', 'redmi', 'pixel', 'huawei', 'honor', 'oneplus', 'oppo', 'realme', 'телефон', 'смартфон']);
+const vehicleWords = new Set([
+  'autoturism',
+  'autoturisme',
+  'automobil',
+  'automobile',
+  'masina',
+  'masini',
+  'vehicle',
+  'inmatriculare',
+  'inmatriculat',
+  'inmatriculata',
+  'автомобиль',
+  'автомобили',
+]);
+const laptopWords = new Set([
+  'laptop',
+  'laptops',
+  'notebook',
+  'ultrabook',
+  'macbook',
+  'thinkpad',
+  'ideapad',
+  'chromebook',
+  'lenovo',
+  'dell',
+  'acer',
+  'asus',
+  'ноутбук',
+]);
+const phoneWords = new Set([
+  'telefon',
+  'telefonul',
+  'smartphone',
+  'samsung',
+  'galaxy',
+  'xiaomi',
+  'redmi',
+  'pixel',
+  'huawei',
+  'honor',
+  'oneplus',
+  'oppo',
+  'realme',
+  'телефон',
+  'смартфон',
+]);
 const tvWords = new Set(['televizor', 'televizoare', 'television', 'smarttv', 'телевизор']);
-const propertyWords = new Set(['apartament', 'apartamente', 'garsoniera', 'penthouse', 'casa', 'vila', 'teren', 'imobil', 'apartment', 'house', 'land', 'квартира', 'дом', 'участок']);
+const propertyWords = new Set([
+  'apartament',
+  'apartamente',
+  'garsoniera',
+  'penthouse',
+  'casa',
+  'vila',
+  'teren',
+  'imobil',
+  'apartment',
+  'house',
+  'land',
+  'квартира',
+  'дом',
+  'участок',
+]);
 const propertyModes: ReadonlyArray<[PropertyListingMode, readonly string[]]> = [
-  ['daily', ['de inchiriat pe zi', 'chirie pe zi', 'pe noapte', 'daily rent', 'short term rent', 'посуточно', 'на сутки']],
-  ['monthly', ['de inchiriat lunar', 'chirie lunara', 'chirie lunară', 'de inchiriat', 'inchiriere', 'chirie', 'monthly rent', 'long term rent', 'rent', 'rental', 'for rent', 'аренда', 'снять', 'сдается', 'сдаётся']],
+  [
+    'daily',
+    ['de inchiriat pe zi', 'chirie pe zi', 'pe noapte', 'daily rent', 'short term rent', 'посуточно', 'на сутки'],
+  ],
+  [
+    'monthly',
+    [
+      'de inchiriat lunar',
+      'chirie lunara',
+      'chirie lunară',
+      'de inchiriat',
+      'inchiriere',
+      'chirie',
+      'monthly rent',
+      'long term rent',
+      'rent',
+      'rental',
+      'for rent',
+      'аренда',
+      'снять',
+      'сдается',
+      'сдаётся',
+    ],
+  ],
   ['sale', ['de vanzare', 'vanzare', 'vand', 'buy', 'for sale', 'продажа', 'купить', 'продам']],
 ];
 const propertySectors: ReadonlyArray<[string, readonly string[]]> = [
@@ -81,20 +171,123 @@ const drivetrains: ReadonlyArray<[string, readonly string[]]> = [
   ['Din spate', ['rwd', 'tractiune spate', 'rear wheel drive', 'задний привод']],
 ];
 const bodyTypes: ReadonlyArray<[string, readonly string[]]> = [
-  ['Sedan', ['sedan', 'седан']], ['SUV', ['suv', 'внедорожник']], ['Crossover', ['crossover', 'кроссовер']],
-  ['Hatchback', ['hatchback', 'хэтчбек']], ['Universal', ['wagon', 'estate', 'universal', 'универсал']],
-  ['Coupe', ['coupe', 'купе']], ['Minivan', ['minivan', 'минивэн']],
+  ['Sedan', ['sedan', 'седан']],
+  ['SUV', ['suv', 'внедорожник']],
+  ['Crossover', ['crossover', 'кроссовер']],
+  ['Hatchback', ['hatchback', 'хэтчбек']],
+  ['Universal', ['wagon', 'estate', 'universal', 'универсал']],
+  ['Coupe', ['coupe', 'купе']],
+  ['Minivan', ['minivan', 'минивэн']],
 ];
 const registrations: ReadonlyArray<['moldova' | 'other', readonly string[]]> = [
-  ['other', ['alta inmatriculare', 'inmatriculare straina', 'numere straine', 'foreign registration', 'foreign plates', 'иностранная регистрация', 'иностранные номера']],
-  ['moldova', ['inmatriculata in republica moldova', 'inmatriculat in republica moldova', 'inmatriculare republica moldova', 'inmatriculata in moldova', 'inmatriculat in moldova', 'inmatriculare moldova', 'numere moldovenesti', 'moldova registration', 'registered in moldova', 'moldovan plates', 'молдавская регистрация', 'молдавские номера', 'inmatriculata', 'inmatriculat', 'inmatriculare']],
+  [
+    'other',
+    [
+      'alta inmatriculare',
+      'inmatriculare straina',
+      'numere straine',
+      'foreign registration',
+      'foreign plates',
+      'иностранная регистрация',
+      'иностранные номера',
+    ],
+  ],
+  [
+    'moldova',
+    [
+      'inmatriculata in republica moldova',
+      'inmatriculat in republica moldova',
+      'inmatriculare republica moldova',
+      'inmatriculata in moldova',
+      'inmatriculat in moldova',
+      'inmatriculare moldova',
+      'numere moldovenesti',
+      'moldova registration',
+      'registered in moldova',
+      'moldovan plates',
+      'молдавская регистрация',
+      'молдавские номера',
+      'inmatriculata',
+      'inmatriculat',
+      'inmatriculare',
+    ],
+  ],
 ];
 const originCountries: ReadonlyArray<[VehicleOrigin, readonly string[]]> = [
-  ['China', ['tara de origine china', 'origine china', 'made in china', 'din china', 'from china', 'china', 'chinezesc', 'chinezeasca', 'китай']],
-  ['Coreea', ['tara de origine coreea', 'origine coreea', 'made in korea', 'din coreea', 'from korea', 'coreea', 'korea', 'coreean', 'coreeana', 'корея']],
-  ['Japonia', ['tara de origine japonia', 'origine japonia', 'made in japan', 'din japonia', 'from japan', 'japonia', 'japan', 'japonez', 'japoneza', 'япония']],
-  ['SUA', ['tara de origine sua', 'origine sua', 'made in usa', 'din sua', 'from usa', 'sua', 'usa', 'statele unite', 'american', 'americana', 'сша']],
-  ['Zona Euro', ['tara de origine zona euro', 'origine zona euro', 'din zona euro', 'from eurozone', 'zona euro', 'eurozone', 'origine europeana', 'european origin', 'еврозона']],
+  [
+    'China',
+    [
+      'tara de origine china',
+      'origine china',
+      'made in china',
+      'din china',
+      'from china',
+      'china',
+      'chinezesc',
+      'chinezeasca',
+      'китай',
+    ],
+  ],
+  [
+    'Coreea',
+    [
+      'tara de origine coreea',
+      'origine coreea',
+      'made in korea',
+      'din coreea',
+      'from korea',
+      'coreea',
+      'korea',
+      'coreean',
+      'coreeana',
+      'корея',
+    ],
+  ],
+  [
+    'Japonia',
+    [
+      'tara de origine japonia',
+      'origine japonia',
+      'made in japan',
+      'din japonia',
+      'from japan',
+      'japonia',
+      'japan',
+      'japonez',
+      'japoneza',
+      'япония',
+    ],
+  ],
+  [
+    'SUA',
+    [
+      'tara de origine sua',
+      'origine sua',
+      'made in usa',
+      'din sua',
+      'from usa',
+      'sua',
+      'usa',
+      'statele unite',
+      'american',
+      'americana',
+      'сша',
+    ],
+  ],
+  [
+    'Zona Euro',
+    [
+      'tara de origine zona euro',
+      'origine zona euro',
+      'din zona euro',
+      'from eurozone',
+      'zona euro',
+      'eurozone',
+      'origine europeana',
+      'european origin',
+      'еврозона',
+    ],
+  ],
   ['Altă', ['alta origine', 'alta tara de origine', 'other origin', 'другая страна']],
 ];
 
@@ -119,29 +312,54 @@ export function parseSearchIntent(input: string): SearchIntent {
                 ? 'phone'
                 : 'generic';
 
-  const yearMatch = kind === 'vehicle' ? plain.match(/\b(19[5-9]\d|20[0-3]\d)(?:\s*(?:-|–|—|to|pana la)\s*(19[5-9]\d|20[0-3]\d))?\b/) : null;
-  const modelPattern = kind === 'iphone'
-    ? /\biphone\s*(\d{1,2})(?:\s*(?:-|–|—|to)\s*(\d{1,2}))?\b/
-    : kind === 'playstation'
-      ? /\b(?:playstation\s*|ps)([1-5])(?:\s*(?:-|–|—|to)\s*([1-5]))?\b/
+  const yearMatch =
+    kind === 'vehicle'
+      ? plain.match(/\b(19[5-9]\d|20[0-3]\d)(?:\s*(?:-|–|—|to|pana la)\s*(19[5-9]\d|20[0-3]\d))?\b/)
       : null;
+  const modelPattern =
+    kind === 'iphone'
+      ? /\biphone\s*(\d{1,2})(?:\s*(?:-|–|—|to)\s*(\d{1,2}))?\b/
+      : kind === 'playstation'
+        ? /\b(?:playstation\s*|ps)([1-5])(?:\s*(?:-|–|—|to)\s*([1-5]))?\b/
+        : null;
   const modelMatch = modelPattern ? plain.match(modelPattern) : null;
-  const ramMatch = kind === 'laptop' || kind === 'phone'
-    ? plain.match(/(?:\bram\s*)?(\d{1,3})(?:\s*(?:-|–|—|to)\s*(\d{1,3}))?\s*gb\s*(?:ram\b|memory\b|memorie\b)|\bram\s*(\d{1,3})\s*gb\b/)
-    : null;
+  const ramMatch =
+    kind === 'laptop' || kind === 'phone'
+      ? plain.match(
+          /(?:\bram\s*)?(\d{1,3})(?:\s*(?:-|–|—|to)\s*(\d{1,3}))?\s*gb\s*(?:ram\b|memory\b|memorie\b)|\bram\s*(\d{1,3})\s*gb\b/,
+        )
+      : null;
   const storageSource = ramMatch ? plain.replace(ramMatch[0], ' ') : plain;
   const storageMatch = ['iphone', 'phone', 'playstation', 'laptop'].includes(kind)
     ? storageSource.match(/\b(\d{1,4})\s*(gb|g|tb)?(?:\s*(?:-|–|—|to)\s*(\d{1,4}))?\s*(gb|g|tb)\b/)
     : null;
-  const roomsMatch = kind === 'realEstate' ? plain.match(/(?:^|\s)(\d{1,2})(?:\s*(?:-|–|—|to)\s*(\d{1,2}))?\s*(?:camere?|rooms?|комнат\p{L}*)(?=\s|$)/u) : null;
-  const areaMatch = kind === 'realEstate' ? plain.match(/(?:^|\s)(\d{1,4})(?:\s*(?:-|–|—|to)\s*(\d{1,4}))?\s*(?:m2|m²|mp|metri patrati|кв\.?\s*м)(?=\s|$)/u) : null;
-  const screenMatch = ['laptop', 'phone', 'tv'].includes(kind) ? plain.match(/(?:^|\s)(\d{1,3}(?:[.,]\d)?)(?:\s*(?:-|–|—|to)\s*(\d{1,3}(?:[.,]\d)?))?\s*(?:inch(?:es)?|țoli|toli|дюйм\p{L}*|")(?=\s|$)/u) : null;
-  const mileage = kind === 'vehicle' ? unitRangeIn(plain, '(?:km|kilometri?|км)', ['rulaj', 'kilometraj', 'mileage', 'odometer', 'пробег']) : emptyDetectedRange();
-  const power = kind === 'vehicle' ? unitRangeIn(plain, '(?:hp|cp|cai putere|л\\.?с\\.?)', ['putere', 'power', 'мощность']) : emptyDetectedRange();
+  const roomsMatch =
+    kind === 'realEstate'
+      ? plain.match(/(?:^|\s)(\d{1,2})(?:\s*(?:-|–|—|to)\s*(\d{1,2}))?\s*(?:camere?|rooms?|комнат\p{L}*)(?=\s|$)/u)
+      : null;
+  const areaMatch =
+    kind === 'realEstate'
+      ? plain.match(/(?:^|\s)(\d{1,4})(?:\s*(?:-|–|—|to)\s*(\d{1,4}))?\s*(?:m2|m²|mp|metri patrati|кв\.?\s*м)(?=\s|$)/u)
+      : null;
+  const screenMatch = ['laptop', 'phone', 'tv'].includes(kind)
+    ? plain.match(
+        /(?:^|\s)(\d{1,3}(?:[.,]\d)?)(?:\s*(?:-|–|—|to)\s*(\d{1,3}(?:[.,]\d)?))?\s*(?:inch(?:es)?|țoli|toli|дюйм\p{L}*|")(?=\s|$)/u,
+      )
+    : null;
+  const mileage =
+    kind === 'vehicle'
+      ? unitRangeIn(plain, '(?:km|kilometri?|км)', ['rulaj', 'kilometraj', 'mileage', 'odometer', 'пробег'])
+      : emptyDetectedRange();
+  const power =
+    kind === 'vehicle'
+      ? unitRangeIn(plain, '(?:hp|cp|cai putere|л\\.?с\\.?)', ['putere', 'power', 'мощность'])
+      : emptyDetectedRange();
   // A bare "under 120k" is a valid price expression, but not when it is
   // immediately followed by km/hp. Remove detected measurements first so the
   // same number can never become both a vehicle facet and a budget.
-  const priceSource = [mileage.match, power.match].filter(Boolean).reduce((value, match) => value.replace(match, ' '), plain);
+  const priceSource = [mileage.match, power.match]
+    .filter(Boolean)
+    .reduce((value, match) => value.replace(match, ' '), plain);
   const price = priceIn(priceSource);
   const exclusions = exclusionsIn(plain);
   const fuel = kind === 'vehicle' ? detectedChoice(plain, fuels) : null;
@@ -152,18 +370,24 @@ export function parseSearchIntent(input: string): SearchIntent {
   const originCountry = kind === 'vehicle' ? detectedPhraseChoice(plain, originCountries) : null;
   const listingMode = kind === 'realEstate' ? detectedPhraseChoice(plain, propertyModes) : null;
   const propertySector = kind === 'realEstate' ? detectedPhraseChoice(plain, propertySectors) : null;
-  const condition = kind === 'realEstate'
-    ? null
-    : tokens(plain).some((word) => ['new', 'nou', 'noua', 'sigilat', 'sealed', 'новый', 'новая'].includes(word))
-      ? 'new'
-      : tokens(plain).some((word) => ['used', 'uzat', 'rulaj', 'бу', 'подержанный'].includes(word)) || plain.includes('second hand') || plain.includes('б/у')
-        ? 'used'
-        : null;
-  const tags = kind === 'iphone'
-    ? ['pro', 'max', 'plus', 'mini', 'air'].filter((tag) => words.includes(tag))
-    : kind === 'playstation'
-      ? ['slim', 'pro', 'digital', 'disc'].filter((tag) => words.includes(tag) || (tag === 'disc' && words.includes('disk')))
-      : [];
+  const condition =
+    kind === 'realEstate'
+      ? null
+      : tokens(plain).some((word) => ['new', 'nou', 'noua', 'sigilat', 'sealed', 'новый', 'новая'].includes(word))
+        ? 'new'
+        : tokens(plain).some((word) => ['used', 'uzat', 'rulaj', 'бу', 'подержанный'].includes(word)) ||
+            plain.includes('second hand') ||
+            plain.includes('б/у')
+          ? 'used'
+          : null;
+  const tags =
+    kind === 'iphone'
+      ? ['pro', 'max', 'plus', 'mini', 'air'].filter((tag) => words.includes(tag))
+      : kind === 'playstation'
+        ? ['slim', 'pro', 'digital', 'disc'].filter(
+            (tag) => words.includes(tag) || (tag === 'disc' && words.includes('disk')),
+          )
+        : [];
 
   let sourceQuery = plain;
   if (yearMatch) sourceQuery = sourceQuery.replace(yearMatch[0], ' ');
@@ -178,25 +402,38 @@ export function parseSearchIntent(input: string): SearchIntent {
   if (price.match) sourceQuery = sourceQuery.replace(price.match, ' ');
   // Consume the complete facet before currency cleanup; otherwise
   // "Zona Euro" would leave a stray "zona" in the marketplace query.
-  if (originCountry) sourceQuery = removePhrase(sourceQuery, originCountries.find(([value]) => value === originCountry)?.[1] ?? []);
-  sourceQuery = sourceQuery.replace(/\b(?:mdl|lei|leu|леи|eur|euro|евро|usd|dolari?|dollars?|доллар(?:ов|а)?)\b|[€$]/g, ' ');
+  if (originCountry)
+    sourceQuery = removePhrase(sourceQuery, originCountries.find(([value]) => value === originCountry)?.[1] ?? []);
+  sourceQuery = sourceQuery.replace(
+    /\b(?:mdl|lei|leu|леи|eur|euro|евро|usd|dolari?|dollars?|доллар(?:ов|а)?)\b|[€$]/g,
+    ' ',
+  );
   sourceQuery = sourceQuery.replace(/(?:^|\s)(?:леи|евро|доллар(?:ов|а)?)(?=\s|$)/gu, ' ');
   for (const exclusion of exclusions) {
     sourceQuery = sourceQuery
       .replace(new RegExp(`(?:^|\\s)-${escapePattern(exclusion)}(?=\\s|$)`, 'gu'), ' ')
-      .replace(new RegExp(`(?:^|\\s)(?:without|exclude|excluding|fara|без)\\s+${escapePattern(exclusion)}(?=\\s|$)`, 'gu'), ' ');
+      .replace(
+        new RegExp(`(?:^|\\s)(?:without|exclude|excluding|fara|без)\\s+${escapePattern(exclusion)}(?=\\s|$)`, 'gu'),
+        ' ',
+      );
   }
   for (const tag of tags) sourceQuery = removeWord(sourceQuery, tag === 'disc' ? ['disc', 'disk'] : [tag]);
   if (kind === 'vehicle') {
     for (const [, aliases] of [...fuels, ...transmissions]) sourceQuery = removeWord(sourceQuery, aliases);
-    sourceQuery = removePhrase(sourceQuery, [...drivetrains, ...bodyTypes].flatMap(([, aliases]) => aliases));
-    if (registration) sourceQuery = removePhrase(sourceQuery, registrations.find(([value]) => value === registration)?.[1] ?? []);
+    sourceQuery = removePhrase(
+      sourceQuery,
+      [...drivetrains, ...bodyTypes].flatMap(([, aliases]) => aliases),
+    );
+    if (registration)
+      sourceQuery = removePhrase(sourceQuery, registrations.find(([value]) => value === registration)?.[1] ?? []);
   }
   if (kind === 'realEstate' && listingMode) {
     sourceQuery = removePhrase(sourceQuery, propertyModes.find(([mode]) => mode === listingMode)?.[1] ?? []);
   }
-  if (condition === 'new') sourceQuery = removeWord(sourceQuery, ['new', 'nou', 'noua', 'sigilat', 'sealed', 'новый', 'новая']);
-  if (condition === 'used') sourceQuery = removeWord(sourceQuery, ['used', 'uzat', 'rulaj', 'second', 'hand', 'бу', 'подержанный', 'б', 'у']);
+  if (condition === 'new')
+    sourceQuery = removeWord(sourceQuery, ['new', 'nou', 'noua', 'sigilat', 'sealed', 'новый', 'новая']);
+  if (condition === 'used')
+    sourceQuery = removeWord(sourceQuery, ['used', 'uzat', 'rulaj', 'second', 'hand', 'бу', 'подержанный', 'б', 'у']);
 
   return {
     kind,
@@ -227,7 +464,10 @@ export function parseSearchIntent(input: string): SearchIntent {
 }
 
 export function fold(value: string): string {
-  return value.toLocaleLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+  return value
+    .toLocaleLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '');
 }
 
 export function storageIn(value: string): number | null {
@@ -270,7 +510,10 @@ function detectedChoice(value: string, choices: ReadonlyArray<[string, readonly 
   return choices.find(([, aliases]) => aliases.some((alias) => tokens(value).includes(fold(alias))))?.[0] ?? null;
 }
 
-function detectedPhraseChoice<T extends string>(value: string, choices: ReadonlyArray<[T, readonly string[]]>): T | null {
+function detectedPhraseChoice<T extends string>(
+  value: string,
+  choices: ReadonlyArray<[T, readonly string[]]>,
+): T | null {
   return choices.find(([, aliases]) => aliases.some((alias) => containsWords(value, fold(alias))))?.[0] ?? null;
 }
 
@@ -279,44 +522,86 @@ function containsWords(value: string, phrase: string): boolean {
 }
 
 function removePhrase(value: string, aliases: readonly string[]): string {
-  return aliases.reduce((result, alias) => result.replace(new RegExp(`(?:^|\\s)${escapePattern(fold(alias)).replace(/ /g, '\\s+')}(?=\\s|$)`, 'gu'), ' '), value);
+  return aliases.reduce(
+    (result, alias) =>
+      result.replace(new RegExp(`(?:^|\\s)${escapePattern(fold(alias)).replace(/ /g, '\\s+')}(?=\\s|$)`, 'gu'), ' '),
+    value,
+  );
 }
 
 function priceIn(value: string): { range: NumberRange; currency: number | null; match: string } {
   const amount = String.raw`([\d.,]+(?:\s*[km](?!\p{L}))?)`;
   const unit = String.raw`(mdl|lei|leu|леи|euro|eur|евро|usd|dolari?|dollars?|доллар(?:ов|а)?|€|\$)`;
   const range = value.match(new RegExp(`${amount}\\s*(?:-|–|—|to)\\s*${amount}\\s*${unit}(?=\\s|$)`, 'u'));
-  if (range) return {
-    range: orderedRange(parseAmount(range[1]), parseAmount(range[2])),
-    currency: currencyCode(range[3]),
-    match: range[0],
+  if (range)
+    return {
+      range: orderedRange(parseAmount(range[1]), parseAmount(range[2])),
+      currency: currencyCode(range[3]),
+      match: range[0],
+    };
+  const maximum = value.match(
+    new RegExp(`(?:under|below|up to|max(?:imum)?|budget|sub|pana la|до)\\s*${amount}(?:\\s*${unit})?(?=\\s|$)`, 'u'),
+  );
+  if (maximum)
+    return {
+      range: { from: null, to: parseAmount(maximum[1]) },
+      currency: currencyCode(maximum[2]),
+      match: maximum[0],
+    };
+  const minimum = value.match(
+    new RegExp(`(?:over|above|from|min(?:imum)?|peste|de la|от)\\s*${amount}(?:\\s*${unit})?(?=\\s|$)`, 'u'),
+  );
+  if (minimum)
+    return {
+      range: { from: parseAmount(minimum[1]), to: null },
+      currency: currencyCode(minimum[2]),
+      match: minimum[0],
+    };
+  return {
+    range: { from: null, to: null },
+    currency: currencyCode(value.match(new RegExp(unit, 'u'))?.[1]),
+    match: '',
   };
-  const maximum = value.match(new RegExp(`(?:under|below|up to|max(?:imum)?|budget|sub|pana la|до)\\s*${amount}(?:\\s*${unit})?(?=\\s|$)`, 'u'));
-  if (maximum) return { range: { from: null, to: parseAmount(maximum[1]) }, currency: currencyCode(maximum[2]), match: maximum[0] };
-  const minimum = value.match(new RegExp(`(?:over|above|from|min(?:imum)?|peste|de la|от)\\s*${amount}(?:\\s*${unit})?(?=\\s|$)`, 'u'));
-  if (minimum) return { range: { from: parseAmount(minimum[1]), to: null }, currency: currencyCode(minimum[2]), match: minimum[0] };
-  return { range: { from: null, to: null }, currency: currencyCode(value.match(new RegExp(unit, 'u'))?.[1]), match: '' };
 }
 
-function emptyDetectedRange(): { range: NumberRange; match: string } { return { range: { from: null, to: null }, match: '' }; }
+function emptyDetectedRange(): { range: NumberRange; match: string } {
+  return { range: { from: null, to: null }, match: '' };
+}
 
 function unitRangeIn(value: string, unit: string, labels: readonly string[]): { range: NumberRange; match: string } {
   const amount = String.raw`([\d.,]+(?:\s*k(?!\p{L}))?)`;
   const label = labels.map(escapePattern).join('|');
-  const range = value.match(new RegExp(`(?:${label})?\\s*${amount}\\s*(?:-|–|—|to|pana la)\\s*${amount}\\s*${unit}(?=\\s|$)`, 'u'));
+  const range = value.match(
+    new RegExp(`(?:${label})?\\s*${amount}\\s*(?:-|–|—|to|pana la)\\s*${amount}\\s*${unit}(?=\\s|$)`, 'u'),
+  );
   if (range) return { range: orderedRange(parseAmount(range[1]), parseAmount(range[2])), match: range[0] };
-  const maximum = value.match(new RegExp(`(?:(?:${label})\\s*)?(?:under|below|up to|max(?:imum)?|sub|pana la|до)\\s*${amount}\\s*${unit}(?=\\s|$)`, 'u'));
+  const maximum = value.match(
+    new RegExp(
+      `(?:(?:${label})\\s*)?(?:under|below|up to|max(?:imum)?|sub|pana la|до)\\s*${amount}\\s*${unit}(?=\\s|$)`,
+      'u',
+    ),
+  );
   if (maximum) return { range: { from: null, to: parseAmount(maximum[1]) }, match: maximum[0] };
-  const minimum = value.match(new RegExp(`(?:(?:${label})\\s*)?(?:over|above|from|min(?:imum)?|peste|de la|от)\\s*${amount}\\s*${unit}(?=\\s|$)`, 'u'));
+  const minimum = value.match(
+    new RegExp(
+      `(?:(?:${label})\\s*)?(?:over|above|from|min(?:imum)?|peste|de la|от)\\s*${amount}\\s*${unit}(?=\\s|$)`,
+      'u',
+    ),
+  );
   if (minimum) return { range: { from: parseAmount(minimum[1]), to: null }, match: minimum[0] };
   const exact = value.match(new RegExp(`(?:(?:${label})\\s*)?${amount}\\s*${unit}(?=\\s|$)`, 'u'));
-  return exact ? { range: { from: parseAmount(exact[1]), to: parseAmount(exact[1]) }, match: exact[0] } : emptyDetectedRange();
+  return exact
+    ? { range: { from: parseAmount(exact[1]), to: parseAmount(exact[1]) }, match: exact[0] }
+    : emptyDetectedRange();
 }
 
 function exclusionsIn(value: string): string[] {
   const found = new Set<string>();
   for (const match of value.matchAll(/(?:^|\s)-([\p{L}\p{N}][\p{L}\p{N}-]{1,30})(?=\s|$)/gu)) found.add(match[1]);
-  for (const match of value.matchAll(/(?:^|\s)(?:without|exclude|excluding|fara|без)\s+([\p{L}\p{N}][\p{L}\p{N}-]{1,30})(?=\s|$)/gu)) found.add(match[1]);
+  for (const match of value.matchAll(
+    /(?:^|\s)(?:without|exclude|excluding|fara|без)\s+([\p{L}\p{N}][\p{L}\p{N}-]{1,30})(?=\s|$)/gu,
+  ))
+    found.add(match[1]);
   return [...found];
 }
 
@@ -324,7 +609,8 @@ function parseAmount(value: string): number {
   const compact = value.replace(/\s/g, '').toLowerCase();
   const multiplier = compact.endsWith('k') ? 1_000 : compact.endsWith('m') ? 1_000_000 : 1;
   const numeric = compact.replace(/[km]$/, '');
-  const normalized = multiplier > 1 ? numeric.replace(',', '.') : numeric.replace(/[.,](?=\d{3}(?:\D|$))/g, '').replace(',', '.');
+  const normalized =
+    multiplier > 1 ? numeric.replace(',', '.') : numeric.replace(/[.,](?=\d{3}(?:\D|$))/g, '').replace(',', '.');
   return Math.max(0, Math.round((Number(normalized) || 0) * multiplier));
 }
 
@@ -336,12 +622,22 @@ function currencyCode(value?: string): number | null {
   return 2;
 }
 
-function orderedRange(from: number, to: number): NumberRange { return from <= to ? { from, to } : { from: to, to: from }; }
-function escapePattern(value: string): string { return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
-
-function removeWord(value: string, words: readonly string[]): string {
-  return tokens(value).filter((word) => !words.includes(word)).join(' ');
+function orderedRange(from: number, to: number): NumberRange {
+  return from <= to ? { from, to } : { from: to, to: from };
+}
+function escapePattern(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function tokens(value: string): string[] { return fold(value).match(/[\p{L}\p{N}]+/gu) ?? []; }
-function clean(value: string): string { return value.replace(/\s+/g, ' ').trim(); }
+function removeWord(value: string, words: readonly string[]): string {
+  return tokens(value)
+    .filter((word) => !words.includes(word))
+    .join(' ');
+}
+
+function tokens(value: string): string[] {
+  return fold(value).match(/[\p{L}\p{N}]+/gu) ?? [];
+}
+function clean(value: string): string {
+  return value.replace(/\s+/g, ' ').trim();
+}

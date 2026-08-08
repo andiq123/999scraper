@@ -15,13 +15,19 @@ const defaults: UiPreferences = {
 export class UiPreferencesService {
   private readonly preferences = signal(readPreferences());
 
-  isOpen(panel: CollapsiblePanel): boolean { return this.preferences().panels[panel]; }
+  isOpen(panel: CollapsiblePanel): boolean {
+    return this.preferences().panels[panel];
+  }
 
   setOpen(panel: CollapsiblePanel, open: boolean): void {
     if (this.isOpen(panel) === open) return;
     const next = { panels: { ...this.preferences().panels, [panel]: open } };
     this.preferences.set(next);
-    try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* Keep the preference for this visit. */ }
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(next));
+    } catch {
+      /* Keep the preference for this visit. */
+    }
   }
 }
 

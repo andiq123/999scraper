@@ -21,16 +21,10 @@ type RedisConfig struct {
 	URL string
 }
 
-type GoogleSearchConfig struct {
-	APIKey   string
-	EngineID string
-}
-
 type Config struct {
 	Address         string
 	Database        DatabaseConfig
 	Redis           RedisConfig
-	GoogleSearch    GoogleSearchConfig
 	JWTSecret       string
 	JWTIssuer       string
 	JWTLifetime     time.Duration
@@ -82,13 +76,9 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	cfg := Config{
-		Address:  address,
-		Database: database,
-		Redis:    redisConfig,
-		GoogleSearch: GoogleSearchConfig{
-			APIKey:   strings.TrimSpace(os.Getenv("GOOGLE_SEARCH_API_KEY")),
-			EngineID: strings.TrimSpace(os.Getenv("GOOGLE_SEARCH_ENGINE_ID")),
-		},
+		Address:         address,
+		Database:        database,
+		Redis:           redisConfig,
 		JWTSecret:       strings.TrimSpace(os.Getenv("JWT_SECRET")),
 		JWTIssuer:       env("JWT_ISSUER", "999scraper"),
 		JWTLifetime:     30 * 24 * time.Hour,
@@ -103,33 +93,22 @@ func Load() (Config, error) {
 	if len(cfg.JWTSecret) < 32 {
 		return Config{}, fmt.Errorf("JWT_SECRET must contain at least 32 characters")
 	}
-	if (cfg.GoogleSearch.APIKey == "") != (cfg.GoogleSearch.EngineID == "") {
-		return Config{}, fmt.Errorf("GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_ENGINE_ID must be configured together")
-	}
 	return cfg, nil
 }
 
 func loadAllowedOrigins() ([]string, error) {
-	frontendURL := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
-	if frontendURL == "" {
+	frontendURLs := strings.TrimSpace(os.Getenv("FRONTEND_URL"))
+	if frontendURLs == "" {
 		if strings.TrimSpace(os.Getenv("PORT")) != "" {
 			return nil, fmt.Errorf("FRONTEND_URL is required when the app is deployed")
 		}
-		frontendURL = "http://localhost:4200"
+		frontendURLs = "http://localhost:4200"
 	}
-	primary, err := origins(frontendURL)
-	if err != nil || len(primary) != 1 {
-		return nil, fmt.Errorf("FRONTEND_URL must be one HTTP(S) origin without a path")
+	values, err := origins(frontendURLs)
+	if err != nil || len(values) == 0 {
+		return nil, fmt.Errorf("FRONTEND_URL must contain comma-separated HTTP(S) origins without paths")
 	}
-	values := primary
-	if extras := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS")); extras != "" {
-		additional, err := origins(extras)
-		if err != nil {
-			return nil, err
-		}
-		values = append(values, additional...)
-	}
-	return unique(values), nil
+	return values, nil
 }
 
 // listenAddress honors an explicit address locally and otherwise binds the
@@ -214,7 +193,7 @@ func origins(value string) ([]string, error) {
 		}
 		parsed, err := url.Parse(candidate)
 		if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" || (parsed.Path != "" && parsed.Path != "/") || parsed.RawQuery != "" || parsed.Fragment != "" || parsed.User != nil {
-			return nil, fmt.Errorf("CORS_ALLOWED_ORIGINS must contain only HTTP(S) origins without paths")
+			return nil, fmt.Errorf("origins must use HTTP(S) without credentials, paths, queries, or fragments")
 		}
 		origin := parsed.Scheme + "://" + parsed.Host
 		result = append(result, origin)

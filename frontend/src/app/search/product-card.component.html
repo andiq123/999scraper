@@ -1,74 +1,208 @@
-<article class="ui-surface" [class.bulk-mode]="bulkMode()" [class.bulk-selected]="bulkSelected()" [class.newly-revealed]="newlyRevealed()">
-  <a class="row-link" [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'Open ' + product().title + ' on 999.md'" (click)="recordOpen()"></a>
+<article
+  class="ui-surface"
+  [class.bulk-mode]="bulkMode()"
+  [class.bulk-selected]="bulkSelected()"
+  [class.newly-revealed]="newlyRevealed()"
+>
+  <a
+    class="row-link"
+    [href]="product().urlToProduct"
+    target="_blank"
+    rel="noopener noreferrer"
+    [attr.aria-label]="'Open ' + product().title + ' on 999.md'"
+    (click)="recordOpen()"
+  ></a>
   <div class="media">
     @if (product().thumbnailURL) {
-      <img [src]="product().thumbnailURL" alt="" aria-hidden="true" width="320" height="240" [attr.loading]="eager() ? 'eager' : 'lazy'" [attr.fetchpriority]="priority() ? 'high' : 'auto'" decoding="async">
+      <img
+        [src]="product().thumbnailURL"
+        alt=""
+        aria-hidden="true"
+        width="320"
+        height="240"
+        [attr.loading]="eager() ? 'eager' : 'lazy'"
+        [attr.fetchpriority]="priority() ? 'high' : 'auto'"
+        decoding="async"
+      />
     } @else {
       <div class="placeholder" aria-hidden="true">No image</div>
     }
     @if (bulkMode()) {
-      <button class="bulk-selector" type="button" [class.selected]="bulkSelected()" [attr.aria-pressed]="bulkSelected()" [attr.aria-label]="(bulkSelected() ? 'Remove ' : 'Select ') + product().title + ' for JSON export'" (click)="bulkSelect.emit(product())">
+      <button
+        class="bulk-selector"
+        type="button"
+        [class.selected]="bulkSelected()"
+        [attr.aria-pressed]="bulkSelected()"
+        [attr.aria-label]="(bulkSelected() ? 'Remove ' : 'Select ') + product().title + ' for JSON export'"
+        (click)="bulkSelect.emit(product())"
+      >
         <span aria-hidden="true">{{ bulkSelected() ? '✓' : '' }}</span>
       </button>
     }
     <div class="activity-badges">
-      @if (newlyRevealed()) { <span class="newly-shown">Newly shown</span> }
+      @if (newlyRevealed()) {
+        <span class="newly-shown">Newly shown</span>
+      }
       @if (openRank(); as rank) {
-        <span class="open-rank" [class.latest]="rank === 1" [attr.aria-label]="rank === 1 ? 'Most recently opened listing' : 'Opened listing number ' + rank">
-          @if (rank === 1) { Last opened } @else { Opened #{{ rank }} }
+        <span
+          class="open-rank"
+          [class.latest]="rank === 1"
+          [attr.aria-label]="rank === 1 ? 'Most recently opened listing' : 'Opened listing number ' + rank"
+        >
+          @if (rank === 1) {
+            Last opened
+          } @else {
+            Opened #{{ rank }}
+          }
         </span>
       }
       @if (copyRank(); as rank) {
-        <span class="copy-rank" [class.latest]="rank === 1" [attr.aria-label]="rank === 1 ? 'Most recently copied JSON listing' : 'Copied JSON listing number ' + rank">
-          @if (rank === 1) { Latest JSON } @else { <span class="copy-rank-wide">JSON </span>#{{ rank }} }
+        <span
+          class="copy-rank"
+          [class.latest]="rank === 1"
+          [attr.aria-label]="rank === 1 ? 'Most recently copied JSON listing' : 'Copied JSON listing number ' + rank"
+        >
+          @if (rank === 1) {
+            Latest JSON
+          } @else {
+            <span class="copy-rank-wide">JSON </span>#{{ rank }}
+          }
         </span>
       }
     </div>
-    @if (product().year) { <span class="year">{{ product().year }}</span> }
-    <button class="copy-json copy-json-image" type="button" [disabled]="copyState() === 'loading'" (click)="copyJSON()" [attr.aria-label]="copyState() === 'loading' ? 'Loading listing details' : 'Copy listing JSON information'">
+    @if (product().year) {
+      <span class="year">{{ product().year }}</span>
+    }
+    <button
+      class="copy-json copy-json-image"
+      type="button"
+      [disabled]="copyState() === 'loading'"
+      (click)="copyJSON()"
+      [attr.aria-label]="copyState() === 'loading' ? 'Loading listing details' : 'Copy listing JSON information'"
+    >
       <span class="copy-json-icon" aria-hidden="true">
-        @if (copyState() === 'loading') { <span class="mini-spinner"></span> }
-        @else if (copyState() === 'copied') { <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg> }
-        @else { <svg viewBox="0 0 24 24"><path d="M8 4H6a2 2 0 0 0-2 2v3c0 1.7-.7 3-2 3 1.3 0 2 1.3 2 3v3a2 2 0 0 0 2 2h2M16 4h2a2 2 0 0 1 2 2v3c0 1.7.7 3 2 3-1.3 0-2 1.3-2 3v3a2 2 0 0 1-2 2h-2" /></svg> }
+        @if (copyState() === 'loading') {
+          <span class="mini-spinner"></span>
+        } @else if (copyState() === 'copied') {
+          <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
+        } @else {
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M8 4H6a2 2 0 0 0-2 2v3c0 1.7-.7 3-2 3 1.3 0 2 1.3 2 3v3a2 2 0 0 0 2 2h2M16 4h2a2 2 0 0 1 2 2v3c0 1.7.7 3 2 3-1.3 0-2 1.3-2 3v3a2 2 0 0 1-2 2h-2"
+            />
+          </svg>
+        }
       </span>
-      <span class="copy-json-label">{{ copyState() === 'loading' ? 'Loading details' : copyState() === 'copied' ? 'JSON copied' : copyState() === 'ready' ? 'Copy JSON' : 'Copy JSON info' }}</span>
+      <span class="copy-json-label">{{
+        copyState() === 'loading'
+          ? 'Loading details'
+          : copyState() === 'copied'
+            ? 'JSON copied'
+            : copyState() === 'ready'
+              ? 'Copy JSON'
+              : 'Copy JSON info'
+      }}</span>
     </button>
   </div>
-  <button class="save" type="button" [class.saved]="saved()" (click)="save.emit(product())" [attr.aria-label]="saved() ? 'Remove from saved listings' : 'Save listing'" [attr.aria-pressed]="saved()"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" /></svg></span></button>
+  <button
+    class="save"
+    type="button"
+    [class.saved]="saved()"
+    (click)="save.emit(product())"
+    [attr.aria-label]="saved() ? 'Remove from saved listings' : 'Save listing'"
+    [attr.aria-pressed]="saved()"
+  >
+    <span aria-hidden="true"
+      ><svg viewBox="0 0 24 24">
+        <path
+          d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"
+        /></svg
+    ></span>
+  </button>
   <div class="copy">
     <h2 [title]="product().title">
       @for (word of titleWords(); track $index) {
-        <button type="button" [attr.popovertarget]="popoverId()" (click)="chooseWord(word)" [attr.aria-label]="'Exclude ' + word + ' from results'">{{ word }}</button>
+        <button
+          type="button"
+          [attr.popovertarget]="popoverId()"
+          (click)="chooseWord(word)"
+          [attr.aria-label]="'Exclude ' + word + ' from results'"
+        >
+          {{ word }}
+        </button>
       }
     </h2>
     <div class="card-meta">
-      @if (metadata().length) { <p class="metadata">{{ metadata().join(' · ') }}</p> }
-      <span class="listing-id" [attr.aria-label]="'Listing ID ' + product().id"><span>ID</span> {{ product().id }}</span>
+      @if (metadata().length) {
+        <p class="metadata">{{ metadata().join(' · ') }}</p>
+      }
+      <span class="listing-id" [attr.aria-label]="'Listing ID ' + product().id"
+        ><span>ID</span> {{ product().id }}</span
+      >
     </div>
     @if (product().vin; as vin) {
       <div class="vin-control">
-        <button class="vin-row" type="button" (click)="researchVIN($event)" [attr.aria-describedby]="vinTooltipId()" [attr.aria-label]="'Research VIN ' + vin">
+        <button
+          class="vin-row"
+          type="button"
+          (click)="researchVIN($event)"
+          [attr.aria-describedby]="vinTooltipId()"
+          [attr.aria-label]="'Research VIN ' + vin"
+        >
           <span class="vin-label">VIN</span>
-          <code>{{ shortVIN() }}</code>
+          <code>{{ vin }}</code>
           <span class="vin-action" aria-hidden="true">
-            <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5" /><path d="m15 15 4.5 4.5" /></svg>
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <circle cx="10.5" cy="10.5" r="5.5" />
+              <path d="m15 15 4.5 4.5" />
+            </svg>
           </span>
         </button>
-        <span class="vin-popover" role="tooltip" [id]="vinTooltipId()"><small>Open trusted VIN research</small><strong>{{ vin }}</strong></span>
+        <span class="vin-popover" role="tooltip" [id]="vinTooltipId()"
+          ><small>Open trusted VIN research</small><strong>{{ vin }}</strong></span
+        >
       </div>
     }
     <div class="footer">
-      <div class="prices"><p>{{ price() }}</p>@if (convertedPrice()) { <small>{{ convertedPrice() }}</small> }</div>
+      <div class="prices">
+        <p>{{ price() }}</p>
+        @if (convertedPrice()) {
+          <small>{{ convertedPrice() }}</small>
+        }
+      </div>
       <div class="card-actions">
-        <button class="copy-json-mobile" type="button" [disabled]="copyState() === 'loading'" (click)="copyJSON()" [attr.aria-label]="copyState() === 'loading' ? 'Loading listing details' : 'Copy listing JSON information'">
+        <button
+          class="copy-json-mobile"
+          type="button"
+          [disabled]="copyState() === 'loading'"
+          (click)="copyJSON()"
+          [attr.aria-label]="copyState() === 'loading' ? 'Loading listing details' : 'Copy listing JSON information'"
+        >
           <span aria-hidden="true">
-            @if (copyState() === 'loading') { <span class="mini-spinner"></span> }
-            @else if (copyState() === 'copied') { <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg> }
-            @else { <svg viewBox="0 0 24 24"><path d="M8 4H6a2 2 0 0 0-2 2v3c0 1.7-.7 3-2 3 1.3 0 2 1.3 2 3v3a2 2 0 0 0 2 2h2M16 4h2a2 2 0 0 1 2 2v3c0 1.7.7 3 2 3-1.3 0-2 1.3-2 3v3a2 2 0 0 1-2 2h-2" /></svg> }
+            @if (copyState() === 'loading') {
+              <span class="mini-spinner"></span>
+            } @else if (copyState() === 'copied') {
+              <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
+            } @else {
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M8 4H6a2 2 0 0 0-2 2v3c0 1.7-.7 3-2 3 1.3 0 2 1.3 2 3v3a2 2 0 0 0 2 2h2M16 4h2a2 2 0 0 1 2 2v3c0 1.7.7 3 2 3-1.3 0-2 1.3-2 3v3a2 2 0 0 1-2 2h-2"
+                />
+              </svg>
+            }
           </span>
           <span>{{ copyState() === 'loading' ? 'Loading' : copyState() === 'copied' ? 'Copied' : 'JSON' }}</span>
         </button>
-        <a class="ui-button ui-button-quiet" [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer" (click)="recordOpen()"><span>View</span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8M18 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg></a>
+        <a
+          class="ui-button ui-button-quiet"
+          [href]="product().urlToProduct"
+          target="_blank"
+          rel="noopener noreferrer"
+          (click)="recordOpen()"
+          ><span>View</span
+          ><svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M14 5h5v5M19 5l-8 8M18 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg
+        ></a>
       </div>
     </div>
   </div>

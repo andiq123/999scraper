@@ -28,6 +28,10 @@ export class SavedComponent {
     };
   });
 
-  constructor() { void this.library.loadSaved(); }
-  toggle(product: Product): void { void this.library.toggleSaved(product); }
+  constructor() {
+    void this.library.loadSaved();
+  }
+  toggle(product: Product): void {
+    void this.library.toggleSaved(product);
+  }
 }

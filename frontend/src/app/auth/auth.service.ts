@@ -15,11 +15,14 @@ export class AuthService {
 
   restore(): Promise<boolean> {
     if (this.session()) return Promise.resolve(true);
-    return this.restoreRequest ??= this.loadSession();
+    return (this.restoreRequest ??= this.loadSession());
   }
 
   async login(code: string): Promise<void> {
-    const { token, ...session } = await this.request<Session>('login', { method: 'POST', body: JSON.stringify({ code }) });
+    const { token, ...session } = await this.request<Session>('login', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
     if (!token) throw new Error('The server did not return a session token.');
     this.writeToken(token);
     this.restoreRequest = Promise.resolve(true);
@@ -67,19 +70,31 @@ export class AuthService {
       const body = await response.json().catch(() => ({}));
       throw new Error(body.error || `Request failed (${response.status}).`);
     }
-    return response.status === 204 ? undefined as T : response.json();
+    return response.status === 204 ? (undefined as T) : response.json();
   }
 
   private readToken(): string | null {
-    try { return localStorage.getItem(tokenKey); } catch { return null; }
+    try {
+      return localStorage.getItem(tokenKey);
+    } catch {
+      return null;
+    }
   }
 
   private writeToken(token: string): void {
-    try { localStorage.setItem(tokenKey, token); } catch { throw new Error('This browser could not save the login session.'); }
+    try {
+      localStorage.setItem(tokenKey, token);
+    } catch {
+      throw new Error('This browser could not save the login session.');
+    }
   }
 
   private clearSession(): void {
-    try { localStorage.removeItem(tokenKey); } catch { /* Storage can be unavailable in private browsing. */ }
+    try {
+      localStorage.removeItem(tokenKey);
+    } catch {
+      /* Storage can be unavailable in private browsing. */
+    }
     this.restoreRequest = undefined;
     this.session.set(null);
   }

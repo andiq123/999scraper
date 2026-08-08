@@ -1,4 +1,17 @@
-import { ChangeDetectionStrategy, Component, ElementRef, HostListener, OnDestroy, afterNextRender, computed, effect, inject, signal, viewChild, type WritableSignal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  signal,
+  viewChild,
+  type WritableSignal,
+} from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { Product, SortOrder } from '../models';
@@ -9,33 +22,149 @@ import { SearchState, SearchStateService } from './search-state.service';
 import { RecentSearchesService } from './recent-searches.service';
 import { UserDataService } from '../user-data.service';
 import { CurrencyService } from '../currency.service';
-import { SearchIntent, SearchKind, type PropertyListingMode, type VehicleOrigin, bodyTypeOptions, drivetrainOptions, fold, fuelOptions, generationIn, originCountryOptions, parseSearchIntent, storageIn, storageOptions, transmissionOptions } from './search-intent';
+import {
+  SearchIntent,
+  SearchKind,
+  type PropertyListingMode,
+  type VehicleOrigin,
+  bodyTypeOptions,
+  drivetrainOptions,
+  fold,
+  fuelOptions,
+  generationIn,
+  originCountryOptions,
+  parseSearchIntent,
+  storageIn,
+  storageOptions,
+  transmissionOptions,
+} from './search-intent';
 import { SearchSuggestion, completeSearchInput, marketCategories, suggestionsFor } from './search-suggestions';
 import { RangeFilterComponent, type RangePreset } from './range-filter.component';
 import { type CollapsiblePanel, UiPreferencesService } from '../ui-preferences.service';
 import { ListingSummaryService, type BulkDownloadProgress } from '../listing-summary.service';
-import { decodeSearchFilters, encodeSearchFilters, searchFiltersFromState, type SharedSearchFilters } from './search-url-state';
+import {
+  decodeSearchFilters,
+  encodeSearchFilters,
+  searchFiltersFromState,
+  type SharedSearchFilters,
+} from './search-url-state';
 import { VINResearchService } from '../vin-research.service';
 const carNoise = new Set([
-  'accesorii', 'acumulator', 'anvelope', 'capace', 'covorașe', 'covorase', 'dezmembrare', 'dezmembrări',
-  'faruri', 'huse', 'jante', 'piese', 'roți', 'scut', 'sticlă', 'sticla', 'radiator', 'radiatoare', 'adaptor',
-  'amortizator', 'amortizatoare', 'închiriere', 'inchiriere', 'chirie', 'reparație', 'reparatie', 'разборка',
-  'запчасти', 'детали', 'коврики', 'чехлы', 'диски', 'шины', 'аренда', 'ремонт',
+  'accesorii',
+  'acumulator',
+  'anvelope',
+  'capace',
+  'covorașe',
+  'covorase',
+  'dezmembrare',
+  'dezmembrări',
+  'faruri',
+  'huse',
+  'jante',
+  'piese',
+  'roți',
+  'scut',
+  'sticlă',
+  'sticla',
+  'radiator',
+  'radiatoare',
+  'adaptor',
+  'amortizator',
+  'amortizatoare',
+  'închiriere',
+  'inchiriere',
+  'chirie',
+  'reparație',
+  'reparatie',
+  'разборка',
+  'запчасти',
+  'детали',
+  'коврики',
+  'чехлы',
+  'диски',
+  'шины',
+  'аренда',
+  'ремонт',
 ]);
-const noiseWords = new Set([...carNoise, 'credit', 'leasing', 'livrare', 'rate', 'schimb', 'reparație', 'reparatie', 'доставка', 'кредит']);
+const noiseWords = new Set([
+  ...carNoise,
+  'credit',
+  'leasing',
+  'livrare',
+  'rate',
+  'schimb',
+  'reparație',
+  'reparatie',
+  'доставка',
+  'кредит',
+]);
 const ignoredSuggestionWords = new Set([
-  'pentru', 'with', 'from', 'the', 'and', 'sau', 'este', 'sunt', 'auto', 'nou', 'nouă', 'noi', 'vând',
-  'продам', 'для', 'или', 'это', 'год', 'anul',
+  'pentru',
+  'with',
+  'from',
+  'the',
+  'and',
+  'sau',
+  'este',
+  'sunt',
+  'auto',
+  'nou',
+  'nouă',
+  'noi',
+  'vând',
+  'продам',
+  'для',
+  'или',
+  'это',
+  'год',
+  'anul',
 ]);
 const deviceNoise = new Set([
-  'accesorii', 'accessories', 'cablu', 'cable', 'case', 'carcasă', 'carcasa', 'chirie', 'controller', 'husă',
-  'husa', 'joc', 'jocuri', 'repair', 'reparație', 'reparatie', 'service', 'abonament', 'subscription', 'cont',
-  'account', 'аренда', 'игры', 'ремонт', 'чехол', 'кабель', 'подписка',
+  'accesorii',
+  'accessories',
+  'cablu',
+  'cable',
+  'case',
+  'carcasă',
+  'carcasa',
+  'chirie',
+  'controller',
+  'husă',
+  'husa',
+  'joc',
+  'jocuri',
+  'repair',
+  'reparație',
+  'reparatie',
+  'service',
+  'abonament',
+  'subscription',
+  'cont',
+  'account',
+  'аренда',
+  'игры',
+  'ремонт',
+  'чехол',
+  'кабель',
+  'подписка',
 ]);
-const chisinauSectors = ['Aeroport', 'Botanica', 'Buiucani', 'Centru', 'Ciocana', 'Poșta Veche', 'Râșcani', 'Sculeni', 'Telecentru'] as const;
+const chisinauSectors = [
+  'Aeroport',
+  'Botanica',
+  'Buiucani',
+  'Centru',
+  'Ciocana',
+  'Poșta Veche',
+  'Râșcani',
+  'Sculeni',
+  'Telecentru',
+] as const;
 const housingStockOptions = ['Construcții noi', 'Secundar'] as const;
 const listingAuthorOptions = ['Persoană fizică', 'Agenție', 'Dezvoltator imobiliar', 'Bancă'] as const;
-interface FilterChip { id: string; label: string }
+interface FilterChip {
+  id: string;
+  label: string;
+}
 
 @Component({
   selector: 'app-search',
@@ -121,20 +250,54 @@ export class SearchComponent implements OnDestroy {
   readonly bodyTypeOptions = bodyTypeOptions;
   readonly originCountryOptions = originCountryOptions;
   readonly storageOptions = storageOptions;
-  readonly yearPresets: readonly RangePreset[] = [{ label: 'Any', from: null, to: null }, { label: '2010+', from: 2010, to: null }, { label: '2015+', from: 2015, to: null }, { label: '2020+', from: 2020, to: null }];
-  readonly mileagePresets: readonly RangePreset[] = [{ label: 'Any', from: null, to: null }, { label: '≤ 50k', from: null, to: 50_000 }, { label: '≤ 100k', from: null, to: 100_000 }, { label: '≤ 200k', from: null, to: 200_000 }];
-  readonly powerPresets: readonly RangePreset[] = [{ label: 'Any', from: null, to: null }, { label: '≤ 150', from: null, to: 150 }, { label: '150–250', from: 150, to: 250 }, { label: '250+', from: 250, to: null }];
-  readonly roomPresets: readonly RangePreset[] = [{ label: 'Any', from: null, to: null }, { label: '1', from: 1, to: 1 }, { label: '2', from: 2, to: 2 }, { label: '3+', from: 3, to: null }];
-  readonly areaPresets: readonly RangePreset[] = [{ label: 'Any', from: null, to: null }, { label: '≤ 50', from: null, to: 50 }, { label: '50–100', from: 50, to: 100 }, { label: '100+', from: 100, to: null }];
-  readonly floorPresets: readonly RangePreset[] = [{ label: 'Any', from: null, to: null }, { label: '1–3', from: 1, to: 3 }, { label: '4–8', from: 4, to: 8 }, { label: '9+', from: 9, to: null }];
+  readonly yearPresets: readonly RangePreset[] = [
+    { label: 'Any', from: null, to: null },
+    { label: '2010+', from: 2010, to: null },
+    { label: '2015+', from: 2015, to: null },
+    { label: '2020+', from: 2020, to: null },
+  ];
+  readonly mileagePresets: readonly RangePreset[] = [
+    { label: 'Any', from: null, to: null },
+    { label: '≤ 50k', from: null, to: 50_000 },
+    { label: '≤ 100k', from: null, to: 100_000 },
+    { label: '≤ 200k', from: null, to: 200_000 },
+  ];
+  readonly powerPresets: readonly RangePreset[] = [
+    { label: 'Any', from: null, to: null },
+    { label: '≤ 150', from: null, to: 150 },
+    { label: '150–250', from: 150, to: 250 },
+    { label: '250+', from: 250, to: null },
+  ];
+  readonly roomPresets: readonly RangePreset[] = [
+    { label: 'Any', from: null, to: null },
+    { label: '1', from: 1, to: 1 },
+    { label: '2', from: 2, to: 2 },
+    { label: '3+', from: 3, to: null },
+  ];
+  readonly areaPresets: readonly RangePreset[] = [
+    { label: 'Any', from: null, to: null },
+    { label: '≤ 50', from: null, to: 50 },
+    { label: '50–100', from: 50, to: 100 },
+    { label: '100+', from: 100, to: null },
+  ];
+  readonly floorPresets: readonly RangePreset[] = [
+    { label: 'Any', from: null, to: null },
+    { label: '1–3', from: 1, to: 3 },
+    { label: '4–8', from: 4, to: 8 },
+    { label: '9+', from: 9, to: null },
+  ];
   readonly housingStockOptions = housingStockOptions;
   readonly listingAuthorOptions = listingAuthorOptions;
   readonly marketCategories = marketCategories;
   readonly searchSuggestions = computed(() => suggestionsFor(this.query(), this.recentSearches.items()));
-  readonly deviceTagOptions = computed(() => this.searchIntent().kind === 'iphone' ? ['pro', 'max', 'plus', 'mini'] : ['slim', 'pro', 'digital', 'disc']);
+  readonly deviceTagOptions = computed(() =>
+    this.searchIntent().kind === 'iphone' ? ['pro', 'max', 'plus', 'mini'] : ['slim', 'pro', 'digital', 'disc'],
+  );
 
   readonly rawProducts = signal<Product[]>([]);
-  readonly propertySectorOptions = computed(() => facetValues(this.rawProducts(), (product) => product.sector, chisinauSectors));
+  readonly propertySectorOptions = computed(() =>
+    facetValues(this.rawProducts(), (product) => product.sector, chisinauSectors),
+  );
   readonly propertyStateOptions = computed(() => facetValues(this.rawProducts(), (product) => product.propertyState));
   readonly buildingTypeOptions = computed(() => facetValues(this.rawProducts(), (product) => product.buildingType));
   readonly loading = signal(false);
@@ -147,49 +310,122 @@ export class SearchComponent implements OnDestroy {
   readonly maxBulkSelection = 20;
   readonly loadedPages = signal(0);
   readonly totalPages = signal(0);
-  readonly progress = computed(() => this.totalPages() ? Math.round(this.loadedPages() / this.totalPages() * 100) : 0);
+  readonly progress = computed(() =>
+    this.totalPages() ? Math.round((this.loadedPages() / this.totalPages()) * 100) : 0,
+  );
   readonly searchIntent = computed(() => parseSearchIntent(this.query()));
-  readonly newSearchPending = computed(() => this.searched() && searchKey(this.searchIntent().sourceQuery) !== searchKey(this.activeQuery()));
-  readonly showSearchSuggestions = computed(() => this.suggestionsOpen() && (!this.searched() || this.newSearchPending()) && this.query().trim().length > 0 && this.searchSuggestions().length > 0);
-  readonly activeSuggestionId = computed(() => this.showSearchSuggestions() && this.activeSuggestionIndex() >= 0 ? `search-suggestion-${this.activeSuggestionIndex()}` : null);
-  readonly filterIntent = computed(() => this.newSearchPending() ? this.activeIntent() : this.searchIntent());
+  readonly newSearchPending = computed(
+    () => this.searched() && searchKey(this.searchIntent().sourceQuery) !== searchKey(this.activeQuery()),
+  );
+  readonly showSearchSuggestions = computed(
+    () =>
+      this.suggestionsOpen() &&
+      (!this.searched() || this.newSearchPending()) &&
+      this.query().trim().length > 0 &&
+      this.searchSuggestions().length > 0,
+  );
+  readonly activeSuggestionId = computed(() =>
+    this.showSearchSuggestions() && this.activeSuggestionIndex() >= 0
+      ? `search-suggestion-${this.activeSuggestionIndex()}`
+      : null,
+  );
+  readonly filterIntent = computed(() => (this.newSearchPending() ? this.activeIntent() : this.searchIntent()));
   readonly isVehicleSearch = computed(() => this.filterIntent().kind === 'vehicle');
-  readonly isDeviceSearch = computed(() => this.filterIntent().kind === 'iphone' || this.filterIntent().kind === 'playstation');
-  readonly isComputerSearch = computed(() => this.filterIntent().kind === 'laptop' || this.filterIntent().kind === 'phone');
+  readonly isDeviceSearch = computed(
+    () => this.filterIntent().kind === 'iphone' || this.filterIntent().kind === 'playstation',
+  );
+  readonly isComputerSearch = computed(
+    () => this.filterIntent().kind === 'laptop' || this.filterIntent().kind === 'phone',
+  );
   readonly isPropertySearch = computed(() => this.filterIntent().kind === 'realEstate');
   readonly isTVSearch = computed(() => this.filterIntent().kind === 'tv');
   readonly hasSmartPrompt = computed(() => this.searchIntent().kind !== 'generic' && !this.newSearchPending());
   readonly activeVehicleSearch = computed(() => this.activeIntent().kind === 'vehicle');
-  readonly smartTitle = computed(() => ({
-    vehicle: 'Smart vehicle filters', iphone: 'Smart iPhone filters', phone: 'Smart phone filters',
-    playstation: 'Smart PlayStation filters', laptop: 'Smart laptop filters', tv: 'Smart TV filters',
-    realEstate: 'Smart property filters', generic: 'Smart filters',
-  })[this.searchIntent().kind]);
+  readonly smartTitle = computed(
+    () =>
+      ({
+        vehicle: 'Smart vehicle filters',
+        iphone: 'Smart iPhone filters',
+        phone: 'Smart phone filters',
+        playstation: 'Smart PlayStation filters',
+        laptop: 'Smart laptop filters',
+        tv: 'Smart TV filters',
+        realEstate: 'Smart property filters',
+        generic: 'Smart filters',
+      })[this.searchIntent().kind],
+  );
   readonly smartSummary = computed(() => {
     const intent = this.searchIntent();
     if (intent.kind === 'vehicle') {
-      const range = this.mileageFrom() !== null || this.mileageTo() !== null ? rangeSummary('Mileage', this.mileageFrom(), this.mileageTo()).replace(/(\d+)/g, '$1 km') : rangeSummary('Model years', this.yearFrom(), this.yearTo());
-      const detail = this.originCountry().length ? `Origin: ${this.originCountry().join(', ')}` : this.registration().length ? `${this.registration().length} registration option${this.registration().length === 1 ? '' : 's'}` : '';
+      const range =
+        this.mileageFrom() !== null || this.mileageTo() !== null
+          ? rangeSummary('Mileage', this.mileageFrom(), this.mileageTo()).replace(/(\d+)/g, '$1 km')
+          : rangeSummary('Model years', this.yearFrom(), this.yearTo());
+      const detail = this.originCountry().length
+        ? `Origin: ${this.originCountry().join(', ')}`
+        : this.registration().length
+          ? `${this.registration().length} registration option${this.registration().length === 1 ? '' : 's'}`
+          : '';
       return detail ? `${range} · ${detail}` : range;
     }
-    if (intent.kind === 'iphone' || intent.kind === 'playstation') return rangeSummary(intent.kind === 'iphone' ? 'iPhone generations' : 'PlayStation generations', this.generationFrom(), this.generationTo());
-    if (intent.kind === 'realEstate') return this.propertySector().join(', ') || (this.listingMode().length === 1 ? `${this.listingMode()[0][0].toUpperCase()}${this.listingMode()[0].slice(1)} listings` : rangeSummary('Rooms', this.roomsFrom(), this.roomsTo()));
+    if (intent.kind === 'iphone' || intent.kind === 'playstation')
+      return rangeSummary(
+        intent.kind === 'iphone' ? 'iPhone generations' : 'PlayStation generations',
+        this.generationFrom(),
+        this.generationTo(),
+      );
+    if (intent.kind === 'realEstate')
+      return (
+        this.propertySector().join(', ') ||
+        (this.listingMode().length === 1
+          ? `${this.listingMode()[0][0].toUpperCase()}${this.listingMode()[0].slice(1)} listings`
+          : rangeSummary('Rooms', this.roomsFrom(), this.roomsTo()))
+      );
     if (intent.kind === 'tv') return rangeSummary('Screen size', this.screenFrom(), this.screenTo());
     return rangeSummary('RAM', this.ramFrom(), this.ramTo());
   });
-  readonly yearRangeInvalid = computed(() => this.yearFrom() !== null && this.yearTo() !== null && this.yearFrom()! > this.yearTo()!);
-  readonly generationRangeInvalid = computed(() => this.generationFrom() !== null && this.generationTo() !== null && this.generationFrom()! > this.generationTo()!);
-  readonly storageRangeInvalid = computed(() => this.storageFrom() !== null && this.storageTo() !== null && this.storageFrom()! > this.storageTo()!);
-  readonly ramRangeInvalid = computed(() => this.ramFrom() !== null && this.ramTo() !== null && this.ramFrom()! > this.ramTo()!);
-  readonly roomsRangeInvalid = computed(() => this.roomsFrom() !== null && this.roomsTo() !== null && this.roomsFrom()! > this.roomsTo()!);
-  readonly areaRangeInvalid = computed(() => this.areaFrom() !== null && this.areaTo() !== null && this.areaFrom()! > this.areaTo()!);
-  readonly floorRangeInvalid = computed(() => this.floorFrom() !== null && this.floorTo() !== null && this.floorFrom()! > this.floorTo()!);
-  readonly screenRangeInvalid = computed(() => this.screenFrom() !== null && this.screenTo() !== null && this.screenFrom()! > this.screenTo()!);
-  readonly mileageRangeInvalid = computed(() => this.mileageFrom() !== null && this.mileageTo() !== null && this.mileageFrom()! > this.mileageTo()!);
-  readonly powerRangeInvalid = computed(() => this.powerFrom() !== null && this.powerTo() !== null && this.powerFrom()! > this.powerTo()!);
-  readonly priceRangeInvalid = computed(() => this.priceMin() !== null && this.priceMax() !== null && this.priceMin()! > this.priceMax()!);
+  readonly yearRangeInvalid = computed(
+    () => this.yearFrom() !== null && this.yearTo() !== null && this.yearFrom()! > this.yearTo()!,
+  );
+  readonly generationRangeInvalid = computed(
+    () =>
+      this.generationFrom() !== null && this.generationTo() !== null && this.generationFrom()! > this.generationTo()!,
+  );
+  readonly storageRangeInvalid = computed(
+    () => this.storageFrom() !== null && this.storageTo() !== null && this.storageFrom()! > this.storageTo()!,
+  );
+  readonly ramRangeInvalid = computed(
+    () => this.ramFrom() !== null && this.ramTo() !== null && this.ramFrom()! > this.ramTo()!,
+  );
+  readonly roomsRangeInvalid = computed(
+    () => this.roomsFrom() !== null && this.roomsTo() !== null && this.roomsFrom()! > this.roomsTo()!,
+  );
+  readonly areaRangeInvalid = computed(
+    () => this.areaFrom() !== null && this.areaTo() !== null && this.areaFrom()! > this.areaTo()!,
+  );
+  readonly floorRangeInvalid = computed(
+    () => this.floorFrom() !== null && this.floorTo() !== null && this.floorFrom()! > this.floorTo()!,
+  );
+  readonly screenRangeInvalid = computed(
+    () => this.screenFrom() !== null && this.screenTo() !== null && this.screenFrom()! > this.screenTo()!,
+  );
+  readonly mileageRangeInvalid = computed(
+    () => this.mileageFrom() !== null && this.mileageTo() !== null && this.mileageFrom()! > this.mileageTo()!,
+  );
+  readonly powerRangeInvalid = computed(
+    () => this.powerFrom() !== null && this.powerTo() !== null && this.powerFrom()! > this.powerTo()!,
+  );
+  readonly priceRangeInvalid = computed(
+    () => this.priceMin() !== null && this.priceMax() !== null && this.priceMin()! > this.priceMax()!,
+  );
   private readonly productsBeforePrice = computed(() => this.filterAndSort(this.rawProducts()));
-  private readonly availablePrices = computed(() => convertedPrices(this.productsBeforePrice(), this.currency, this.priceCurrency() ?? defaultPriceCurrency(this.filterIntent())));
+  private readonly availablePrices = computed(() =>
+    convertedPrices(
+      this.productsBeforePrice(),
+      this.currency,
+      this.priceCurrency() ?? defaultPriceCurrency(this.filterIntent()),
+    ),
+  );
   private readonly observedPriceRange = computed(() => priceBounds(this.availablePrices()));
   readonly products = computed(() => {
     const min = this.priceMin();
@@ -220,21 +456,75 @@ export class SearchComponent implements OnDestroy {
     const range = minimum === maximum ? minimum : `${minimum}–${maximum}`;
     return `${converted ? '≈ ' : ''}${range} ${['MDL', 'EUR', 'USD'][target]}`;
   });
-  readonly hasCustomFilters = computed(() => this.order() !== 'relevance' || !this.smartCleanup() || this.excludeNegotiable() || this.onlyWithPhotos() || this.onlyWithVIN() || this.excludedWords().length > 0 || this.queryExclusions().length > 0 || this.yearFrom() !== null || this.yearTo() !== null || this.priceMin() !== null || this.priceMax() !== null || this.fuel().length > 0 || this.transmission().length > 0 || this.mileageFrom() !== null || this.mileageTo() !== null || this.powerFrom() !== null || this.powerTo() !== null || this.drivetrain().length > 0 || this.bodyType().length > 0 || this.registration().length > 0 || this.originCountry().length > 0 || this.generationFrom() !== null || this.generationTo() !== null || this.storageFrom() !== null || this.storageTo() !== null || this.ramFrom() !== null || this.ramTo() !== null || this.roomsFrom() !== null || this.roomsTo() !== null || this.areaFrom() !== null || this.areaTo() !== null || this.floorFrom() !== null || this.floorTo() !== null || this.propertySector().length > 0 || this.propertyState().length > 0 || this.housingStock().length > 0 || this.listingAuthor().length > 0 || this.buildingType().length > 0 || this.screenFrom() !== null || this.screenTo() !== null || this.deviceTags().length > 0 || this.condition().length > 0 || this.listingMode().length > 0);
-  private readonly singleListingMode = computed(() => this.listingMode().length === 1 ? this.listingMode()[0] : null);
+  readonly hasCustomFilters = computed(
+    () =>
+      this.order() !== 'relevance' ||
+      !this.smartCleanup() ||
+      this.excludeNegotiable() ||
+      this.onlyWithPhotos() ||
+      this.onlyWithVIN() ||
+      this.excludedWords().length > 0 ||
+      this.queryExclusions().length > 0 ||
+      this.yearFrom() !== null ||
+      this.yearTo() !== null ||
+      this.priceMin() !== null ||
+      this.priceMax() !== null ||
+      this.fuel().length > 0 ||
+      this.transmission().length > 0 ||
+      this.mileageFrom() !== null ||
+      this.mileageTo() !== null ||
+      this.powerFrom() !== null ||
+      this.powerTo() !== null ||
+      this.drivetrain().length > 0 ||
+      this.bodyType().length > 0 ||
+      this.registration().length > 0 ||
+      this.originCountry().length > 0 ||
+      this.generationFrom() !== null ||
+      this.generationTo() !== null ||
+      this.storageFrom() !== null ||
+      this.storageTo() !== null ||
+      this.ramFrom() !== null ||
+      this.ramTo() !== null ||
+      this.roomsFrom() !== null ||
+      this.roomsTo() !== null ||
+      this.areaFrom() !== null ||
+      this.areaTo() !== null ||
+      this.floorFrom() !== null ||
+      this.floorTo() !== null ||
+      this.propertySector().length > 0 ||
+      this.propertyState().length > 0 ||
+      this.housingStock().length > 0 ||
+      this.listingAuthor().length > 0 ||
+      this.buildingType().length > 0 ||
+      this.screenFrom() !== null ||
+      this.screenTo() !== null ||
+      this.deviceTags().length > 0 ||
+      this.condition().length > 0 ||
+      this.listingMode().length > 0,
+  );
+  private readonly singleListingMode = computed(() => (this.listingMode().length === 1 ? this.listingMode()[0] : null));
   readonly priceFloor = computed(() => this.observedPriceRange()?.min ?? 0);
   readonly priceCeiling = computed(() => {
     const observed = this.observedPriceRange();
     if (!observed) return priceCap(this.filterIntent(), this.priceCurrency(), this.singleListingMode());
-    return observed.max > observed.min ? observed.max : observed.min + Math.max(1, Math.round(observed.min * .1));
+    return observed.max > observed.min ? observed.max : observed.min + Math.max(1, Math.round(observed.min * 0.1));
   });
   readonly priceStep = computed(() => priceSliderStep(this.priceCeiling() - this.priceFloor()));
-  readonly pricePresets = computed(() => adaptivePricePresets(this.availablePrices(), budgetPresets(this.filterIntent(), this.priceCurrency(), this.singleListingMode())));
+  readonly pricePresets = computed(() =>
+    adaptivePricePresets(
+      this.availablePrices(),
+      budgetPresets(this.filterIntent(), this.priceCurrency(), this.singleListingMode()),
+    ),
+  );
   readonly priceCurrencyLabel = computed(() => ['MDL', 'EUR', 'USD'][this.priceCurrency() ?? -1] ?? 'listing currency');
   readonly priceFloorLabel = computed(() => formatNumber(this.priceFloor()));
   readonly priceCeilingLabel = computed(() => formatNumber(this.priceCeiling()));
-  readonly priceMinPercent = computed(() => percentage((this.priceMin() ?? this.priceFloor()) - this.priceFloor(), this.priceCeiling() - this.priceFloor()));
-  readonly priceMaxPercent = computed(() => percentage((this.priceMax() ?? this.priceCeiling()) - this.priceFloor(), this.priceCeiling() - this.priceFloor()));
+  readonly priceMinPercent = computed(() =>
+    percentage((this.priceMin() ?? this.priceFloor()) - this.priceFloor(), this.priceCeiling() - this.priceFloor()),
+  );
+  readonly priceMaxPercent = computed(() =>
+    percentage((this.priceMax() ?? this.priceCeiling()) - this.priceFloor(), this.priceCeiling() - this.priceFloor()),
+  );
   readonly priceRangeLabel = computed(() => {
     const min = this.priceMin();
     const max = this.priceMax();
@@ -245,39 +535,76 @@ export class SearchComponent implements OnDestroy {
   });
   readonly activeFilterChips = computed<FilterChip[]>(() => {
     const chips: FilterChip[] = [];
-    if (this.order() !== 'relevance') chips.push({ id: 'order', label: this.order() === 'priceAsc' ? 'Lowest price' : 'Highest price' });
+    if (this.order() !== 'relevance')
+      chips.push({ id: 'order', label: this.order() === 'priceAsc' ? 'Lowest price' : 'Highest price' });
     if (!this.smartCleanup()) chips.push({ id: 'cleanup', label: 'Cleanup off' });
     if (this.onlyWithPhotos()) chips.push({ id: 'photos', label: 'With photos' });
     if (this.onlyWithVIN()) chips.push({ id: 'vin', label: 'VIN available' });
     if (this.excludeNegotiable()) chips.push({ id: 'fixed', label: 'Fixed price' });
-    if (this.yearFrom() !== null || this.yearTo() !== null) chips.push({ id: 'year', label: rangeSummary('Year', this.yearFrom(), this.yearTo()) });
-    if (this.generationFrom() !== null || this.generationTo() !== null) chips.push({ id: 'generation', label: rangeSummary('Generation', this.generationFrom(), this.generationTo()) });
-    if (this.storageFrom() !== null || this.storageTo() !== null) chips.push({ id: 'storage', label: rangeSummary('Storage', this.storageFrom(), this.storageTo()).replace(/(\d+)/g, '$1 GB') });
-    if (this.ramFrom() !== null || this.ramTo() !== null) chips.push({ id: 'ram', label: rangeSummary('RAM', this.ramFrom(), this.ramTo()).replace(/(\d+)/g, '$1 GB') });
-    if (this.roomsFrom() !== null || this.roomsTo() !== null) chips.push({ id: 'rooms', label: rangeSummary('Rooms', this.roomsFrom(), this.roomsTo()) });
-    if (this.areaFrom() !== null || this.areaTo() !== null) chips.push({ id: 'area', label: rangeSummary('Area', this.areaFrom(), this.areaTo()).replace(/(\d+)/g, '$1 m²') });
-    if (this.floorFrom() !== null || this.floorTo() !== null) chips.push({ id: 'floor', label: rangeSummary('Floor', this.floorFrom(), this.floorTo()) });
+    if (this.yearFrom() !== null || this.yearTo() !== null)
+      chips.push({ id: 'year', label: rangeSummary('Year', this.yearFrom(), this.yearTo()) });
+    if (this.generationFrom() !== null || this.generationTo() !== null)
+      chips.push({ id: 'generation', label: rangeSummary('Generation', this.generationFrom(), this.generationTo()) });
+    if (this.storageFrom() !== null || this.storageTo() !== null)
+      chips.push({
+        id: 'storage',
+        label: rangeSummary('Storage', this.storageFrom(), this.storageTo()).replace(/(\d+)/g, '$1 GB'),
+      });
+    if (this.ramFrom() !== null || this.ramTo() !== null)
+      chips.push({ id: 'ram', label: rangeSummary('RAM', this.ramFrom(), this.ramTo()).replace(/(\d+)/g, '$1 GB') });
+    if (this.roomsFrom() !== null || this.roomsTo() !== null)
+      chips.push({ id: 'rooms', label: rangeSummary('Rooms', this.roomsFrom(), this.roomsTo()) });
+    if (this.areaFrom() !== null || this.areaTo() !== null)
+      chips.push({
+        id: 'area',
+        label: rangeSummary('Area', this.areaFrom(), this.areaTo()).replace(/(\d+)/g, '$1 m²'),
+      });
+    if (this.floorFrom() !== null || this.floorTo() !== null)
+      chips.push({ id: 'floor', label: rangeSummary('Floor', this.floorFrom(), this.floorTo()) });
     for (const value of this.propertySector()) chips.push({ id: `property-sector:${value}`, label: value });
     for (const value of this.propertyState()) chips.push({ id: `property-state:${value}`, label: value });
     for (const value of this.housingStock()) chips.push({ id: `housing-stock:${value}`, label: value });
     for (const value of this.listingAuthor()) chips.push({ id: `listing-author:${value}`, label: value });
     for (const value of this.buildingType()) chips.push({ id: `building-type:${value}`, label: value });
-    if (this.screenFrom() !== null || this.screenTo() !== null) chips.push({ id: 'screen', label: rangeSummary('Screen', this.screenFrom(), this.screenTo()).replace(/(\d+(?:\.\d+)?)/g, '$1″') });
-    if (this.priceMin() !== null || this.priceMax() !== null) chips.push({ id: 'price', label: `${this.priceRangeLabel()} ${this.priceCurrencyLabel()}` });
+    if (this.screenFrom() !== null || this.screenTo() !== null)
+      chips.push({
+        id: 'screen',
+        label: rangeSummary('Screen', this.screenFrom(), this.screenTo()).replace(/(\d+(?:\.\d+)?)/g, '$1″'),
+      });
+    if (this.priceMin() !== null || this.priceMax() !== null)
+      chips.push({ id: 'price', label: `${this.priceRangeLabel()} ${this.priceCurrencyLabel()}` });
     for (const value of this.fuel()) chips.push({ id: `fuel:${value}`, label: value });
     for (const value of this.transmission()) chips.push({ id: `transmission:${value}`, label: value });
-    if (this.mileageFrom() !== null || this.mileageTo() !== null) chips.push({ id: 'mileage', label: rangeSummary('Mileage', this.mileageFrom(), this.mileageTo()).replace(/(\d+)/g, '$1 km') });
-    if (this.powerFrom() !== null || this.powerTo() !== null) chips.push({ id: 'power', label: rangeSummary('Power', this.powerFrom(), this.powerTo()).replace(/(\d+)/g, '$1 hp') });
+    if (this.mileageFrom() !== null || this.mileageTo() !== null)
+      chips.push({
+        id: 'mileage',
+        label: rangeSummary('Mileage', this.mileageFrom(), this.mileageTo()).replace(/(\d+)/g, '$1 km'),
+      });
+    if (this.powerFrom() !== null || this.powerTo() !== null)
+      chips.push({
+        id: 'power',
+        label: rangeSummary('Power', this.powerFrom(), this.powerTo()).replace(/(\d+)/g, '$1 hp'),
+      });
     for (const value of this.drivetrain()) chips.push({ id: `drivetrain:${value}`, label: value });
     for (const value of this.bodyType()) chips.push({ id: `body-type:${value}`, label: value });
-    for (const value of this.registration()) chips.push({ id: `registration:${value}`, label: value === 'moldova' ? 'Registered in Moldova' : 'Other registration' });
+    for (const value of this.registration())
+      chips.push({
+        id: `registration:${value}`,
+        label: value === 'moldova' ? 'Registered in Moldova' : 'Other registration',
+      });
     for (const value of this.originCountry()) chips.push({ id: `origin-country:${value}`, label: `Origin: ${value}` });
-    for (const value of this.condition()) chips.push({ id: `condition:${value}`, label: value === 'new' ? 'New' : 'Used' });
-    for (const value of this.listingMode()) chips.push({ id: `listing-mode:${value}`, label: value === 'monthly' ? 'Monthly rent' : value === 'daily' ? 'Daily rent' : 'For sale' });
+    for (const value of this.condition())
+      chips.push({ id: `condition:${value}`, label: value === 'new' ? 'New' : 'Used' });
+    for (const value of this.listingMode())
+      chips.push({
+        id: `listing-mode:${value}`,
+        label: value === 'monthly' ? 'Monthly rent' : value === 'daily' ? 'Daily rent' : 'For sale',
+      });
     for (const tag of this.deviceTags()) chips.push({ id: `tag:${tag}`, label: tag[0].toUpperCase() + tag.slice(1) });
     for (const word of this.queryExclusions()) chips.push({ id: `query-exclude:${word}`, label: `Without ${word}` });
     const queryExcluded = new Set(this.queryExclusions().map(fold));
-    for (const word of this.excludedWords()) if (!queryExcluded.has(fold(word))) chips.push({ id: `exclude:${word}`, label: `Hide ${word}` });
+    for (const word of this.excludedWords())
+      if (!queryExcluded.has(fold(word))) chips.push({ id: `exclude:${word}`, label: `Hide ${word}` });
     const labels = new Set<string>();
     return chips.filter((chip) => {
       const label = fold(chip.label);
@@ -294,7 +621,14 @@ export class SearchComponent implements OnDestroy {
       for (const word of new Set(tokens(product.title))) counts.set(word, (counts.get(word) ?? 0) + 1);
     }
     return [...counts]
-      .filter(([word, count]) => !queryWords.has(word) && !current.has(word) && !ignoredSuggestionWords.has(word) && word.length > 2 && (noiseWords.has(word) || count >= Math.max(3, Math.ceil(this.rawProducts().length * .18))))
+      .filter(
+        ([word, count]) =>
+          !queryWords.has(word) &&
+          !current.has(word) &&
+          !ignoredSuggestionWords.has(word) &&
+          word.length > 2 &&
+          (noiseWords.has(word) || count >= Math.max(3, Math.ceil(this.rawProducts().length * 0.18))),
+      )
       .sort((a, b) => Number(noiseWords.has(b[0])) - Number(noiseWords.has(a[0])) || b[1] - a[1])
       .slice(0, 5)
       .map(([word]) => word);
@@ -306,7 +640,12 @@ export class SearchComponent implements OnDestroy {
     const freshEntry = this.route.snapshot.queryParamMap.get('fresh') === '1';
     if (freshEntry) {
       this.searchState.startFresh();
-      void this.router.navigate([], { relativeTo: this.route, queryParams: { filters: null, fresh: null }, replaceUrl: true, state: this.searchState.currentHistoryState() });
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { filters: null, fresh: null },
+        replaceUrl: true,
+        state: this.searchState.currentHistoryState(),
+      });
     }
     const cached = freshEntry ? null : historyCached;
     const replay = this.route.snapshot.queryParamMap.get('q')?.trim();
@@ -314,7 +653,9 @@ export class SearchComponent implements OnDestroy {
     const canRestore = cached && !sharedFilters && (!replay || replay === cached.activeQuery);
     if (canRestore) {
       this.restore(cached);
-      afterNextRender(() => window.requestAnimationFrame(() => window.scrollTo({ top: cached.scrollY, behavior: 'instant' })));
+      afterNextRender(() =>
+        window.requestAnimationFrame(() => window.scrollTo({ top: cached.scrollY, behavior: 'instant' })),
+      );
     } else if (replay) {
       this.updateQuery(replay);
       if (sharedFilters) this.applySharedFilters(sharedFilters);
@@ -350,7 +691,9 @@ export class SearchComponent implements OnDestroy {
   }
 
   @HostListener('window:pagehide')
-  cacheBeforePageExit(): void { this.searchState.save(this.snapshot(window.scrollY), true); }
+  cacheBeforePageExit(): void {
+    this.searchState.save(this.snapshot(window.scrollY), true);
+  }
 
   @HostListener('window:popstate', ['$event'])
   restoreBrowserHistory(event: PopStateEvent): void {
@@ -362,9 +705,11 @@ export class SearchComponent implements OnDestroy {
     this.bulkSelected.set(new Set());
     this.closeSearchSuggestions();
     this.restore(state);
-    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
-      window.scrollTo({ top: state.scrollY, behavior: 'instant' });
-    }));
+    window.requestAnimationFrame(() =>
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: state.scrollY, behavior: 'instant' });
+      }),
+    );
   }
 
   @HostListener('window:scroll')
@@ -388,7 +733,20 @@ export class SearchComponent implements OnDestroy {
 
     const intent = parseSearchIntent(query);
     if (this.newSearchPending()) this.applyIntentFilters(intent, true, true);
-    if (this.yearRangeInvalid() || this.mileageRangeInvalid() || this.powerRangeInvalid() || this.generationRangeInvalid() || this.storageRangeInvalid() || this.ramRangeInvalid() || this.roomsRangeInvalid() || this.areaRangeInvalid() || this.floorRangeInvalid() || this.screenRangeInvalid() || this.priceRangeInvalid()) return;
+    if (
+      this.yearRangeInvalid() ||
+      this.mileageRangeInvalid() ||
+      this.powerRangeInvalid() ||
+      this.generationRangeInvalid() ||
+      this.storageRangeInvalid() ||
+      this.ramRangeInvalid() ||
+      this.roomsRangeInvalid() ||
+      this.areaRangeInvalid() ||
+      this.floorRangeInvalid() ||
+      this.screenRangeInvalid() ||
+      this.priceRangeInvalid()
+    )
+      return;
     this.recentSearches.add(query);
 
     const routeQuery = this.route.snapshot.queryParamMap.get('q') ?? '';
@@ -425,7 +783,9 @@ export class SearchComponent implements OnDestroy {
     const controller = new AbortController();
     this.controller = controller;
     try {
-      await this.searchService.stream(intent.sourceQuery, intent.kind === 'vehicle', controller.signal, (streamEvent) => this.receive(streamEvent));
+      await this.searchService.stream(intent.sourceQuery, intent.kind === 'vehicle', controller.signal, (streamEvent) =>
+        this.receive(streamEvent),
+      );
     } catch (error) {
       if (!controller.signal.aborted) this.toast.error(error instanceof Error ? error.message : 'Search failed.');
     } finally {
@@ -465,7 +825,9 @@ export class SearchComponent implements OnDestroy {
     this.applyIntentFilters(intent, kindChanged, kindChanged || hadParsedPrice || hasParsedPrice);
   }
 
-  openSearchSuggestions(): void { this.suggestionsOpen.set(true); }
+  openSearchSuggestions(): void {
+    this.suggestionsOpen.set(true);
+  }
 
   closeSearchSuggestions(): void {
     this.suggestionsOpen.set(false);
@@ -482,7 +844,13 @@ export class SearchComponent implements OnDestroy {
       this.suggestionsOpen.set(true);
       const direction = event.key === 'ArrowDown' ? 1 : -1;
       const current = this.activeSuggestionIndex();
-      this.activeSuggestionIndex.set(current < 0 ? (direction > 0 ? 0 : suggestions.length - 1) : (current + direction + suggestions.length) % suggestions.length);
+      this.activeSuggestionIndex.set(
+        current < 0
+          ? direction > 0
+            ? 0
+            : suggestions.length - 1
+          : (current + direction + suggestions.length) % suggestions.length,
+      );
       return;
     }
     if (event.key === 'Enter' && this.showSearchSuggestions() && this.activeSuggestionIndex() >= 0) {
@@ -499,7 +867,8 @@ export class SearchComponent implements OnDestroy {
 
   private applyIntentFilters(intent: SearchIntent, adapt: boolean, resetPrice: boolean): void {
     if (adapt) this.adaptFiltersTo(intent);
-    if (this.query().trim() && (adapt || this.priceCurrency() === null)) this.priceCurrency.set(defaultPriceCurrency(intent));
+    if (this.query().trim() && (adapt || this.priceCurrency() === null))
+      this.priceCurrency.set(defaultPriceCurrency(intent));
     this.yearFrom.set(intent.year.from);
     this.yearTo.set(intent.year.to);
     this.generationFrom.set(intent.generation.from);
@@ -564,9 +933,11 @@ export class SearchComponent implements OnDestroy {
       replaceUrl: true,
       state: this.searchState.currentHistoryState(),
     });
-    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
-      window.scrollTo({ top: state.scrollY, behavior: 'instant' });
-    }));
+    window.requestAnimationFrame(() =>
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: state.scrollY, behavior: 'instant' });
+      }),
+    );
   }
 
   removeFilter(id: string): void {
@@ -575,32 +946,67 @@ export class SearchComponent implements OnDestroy {
     else if (id === 'photos') this.onlyWithPhotos.set(false);
     else if (id === 'vin') this.onlyWithVIN.set(false);
     else if (id === 'fixed') this.excludeNegotiable.set(false);
-    else if (id === 'year') { this.yearFrom.set(null); this.yearTo.set(null); }
-    else if (id === 'generation') { this.generationFrom.set(null); this.generationTo.set(null); }
-    else if (id === 'storage') { this.storageFrom.set(null); this.storageTo.set(null); }
-    else if (id === 'ram') { this.ramFrom.set(null); this.ramTo.set(null); }
-    else if (id === 'rooms') { this.roomsFrom.set(null); this.roomsTo.set(null); }
-    else if (id === 'area') { this.areaFrom.set(null); this.areaTo.set(null); }
-    else if (id === 'floor') { this.floorFrom.set(null); this.floorTo.set(null); }
-    else if (id.startsWith('property-sector:')) this.propertySector.update((values) => values.filter((value) => value !== id.slice(16)));
-    else if (id.startsWith('property-state:')) this.propertyState.update((values) => values.filter((value) => value !== id.slice(15)));
-    else if (id.startsWith('housing-stock:')) this.housingStock.update((values) => values.filter((value) => value !== id.slice(14)));
-    else if (id.startsWith('listing-author:')) this.listingAuthor.update((values) => values.filter((value) => value !== id.slice(15)));
-    else if (id.startsWith('building-type:')) this.buildingType.update((values) => values.filter((value) => value !== id.slice(14)));
-    else if (id === 'screen') { this.screenFrom.set(null); this.screenTo.set(null); }
-    else if (id === 'price') { this.priceMin.set(null); this.priceMax.set(null); }
-    else if (id.startsWith('fuel:')) this.fuel.update((values) => values.filter((value) => value !== id.slice(5)));
-    else if (id.startsWith('transmission:')) this.transmission.update((values) => values.filter((value) => value !== id.slice(13)));
-    else if (id === 'mileage') { this.mileageFrom.set(null); this.mileageTo.set(null); }
-    else if (id === 'power') { this.powerFrom.set(null); this.powerTo.set(null); }
-    else if (id.startsWith('drivetrain:')) this.drivetrain.update((values) => values.filter((value) => value !== id.slice(11)));
-    else if (id.startsWith('body-type:')) this.bodyType.update((values) => values.filter((value) => value !== id.slice(10)));
-    else if (id.startsWith('registration:')) this.registration.update((values) => values.filter((value) => value !== id.slice(13)));
-    else if (id.startsWith('origin-country:')) this.originCountry.update((values) => values.filter((value) => value !== id.slice(15)));
-    else if (id.startsWith('condition:')) this.condition.update((values) => values.filter((value) => value !== id.slice(10)));
-    else if (id.startsWith('listing-mode:')) this.listingMode.update((values) => values.filter((value) => value !== id.slice(13)));
+    else if (id === 'year') {
+      this.yearFrom.set(null);
+      this.yearTo.set(null);
+    } else if (id === 'generation') {
+      this.generationFrom.set(null);
+      this.generationTo.set(null);
+    } else if (id === 'storage') {
+      this.storageFrom.set(null);
+      this.storageTo.set(null);
+    } else if (id === 'ram') {
+      this.ramFrom.set(null);
+      this.ramTo.set(null);
+    } else if (id === 'rooms') {
+      this.roomsFrom.set(null);
+      this.roomsTo.set(null);
+    } else if (id === 'area') {
+      this.areaFrom.set(null);
+      this.areaTo.set(null);
+    } else if (id === 'floor') {
+      this.floorFrom.set(null);
+      this.floorTo.set(null);
+    } else if (id.startsWith('property-sector:'))
+      this.propertySector.update((values) => values.filter((value) => value !== id.slice(16)));
+    else if (id.startsWith('property-state:'))
+      this.propertyState.update((values) => values.filter((value) => value !== id.slice(15)));
+    else if (id.startsWith('housing-stock:'))
+      this.housingStock.update((values) => values.filter((value) => value !== id.slice(14)));
+    else if (id.startsWith('listing-author:'))
+      this.listingAuthor.update((values) => values.filter((value) => value !== id.slice(15)));
+    else if (id.startsWith('building-type:'))
+      this.buildingType.update((values) => values.filter((value) => value !== id.slice(14)));
+    else if (id === 'screen') {
+      this.screenFrom.set(null);
+      this.screenTo.set(null);
+    } else if (id === 'price') {
+      this.priceMin.set(null);
+      this.priceMax.set(null);
+    } else if (id.startsWith('fuel:')) this.fuel.update((values) => values.filter((value) => value !== id.slice(5)));
+    else if (id.startsWith('transmission:'))
+      this.transmission.update((values) => values.filter((value) => value !== id.slice(13)));
+    else if (id === 'mileage') {
+      this.mileageFrom.set(null);
+      this.mileageTo.set(null);
+    } else if (id === 'power') {
+      this.powerFrom.set(null);
+      this.powerTo.set(null);
+    } else if (id.startsWith('drivetrain:'))
+      this.drivetrain.update((values) => values.filter((value) => value !== id.slice(11)));
+    else if (id.startsWith('body-type:'))
+      this.bodyType.update((values) => values.filter((value) => value !== id.slice(10)));
+    else if (id.startsWith('registration:'))
+      this.registration.update((values) => values.filter((value) => value !== id.slice(13)));
+    else if (id.startsWith('origin-country:'))
+      this.originCountry.update((values) => values.filter((value) => value !== id.slice(15)));
+    else if (id.startsWith('condition:'))
+      this.condition.update((values) => values.filter((value) => value !== id.slice(10)));
+    else if (id.startsWith('listing-mode:'))
+      this.listingMode.update((values) => values.filter((value) => value !== id.slice(13)));
     else if (id.startsWith('tag:')) this.toggleDeviceTag(id.slice(4));
-    else if (id.startsWith('query-exclude:')) this.queryExclusions.update((words) => words.filter((word) => word !== id.slice(14)));
+    else if (id.startsWith('query-exclude:'))
+      this.queryExclusions.update((words) => words.filter((word) => word !== id.slice(14)));
     else if (id.startsWith('exclude:')) this.removeExcludedWord(id.slice(8));
   }
 
@@ -659,7 +1065,9 @@ export class SearchComponent implements OnDestroy {
   }
 
   selectVisibleForBulk(): void {
-    const ids = this.products().slice(0, this.maxBulkSelection).map((product) => product.id);
+    const ids = this.products()
+      .slice(0, this.maxBulkSelection)
+      .map((product) => product.id);
     this.bulkSelected.set(new Set(ids));
     if (this.products().length > this.maxBulkSelection) {
       this.toast.success(`Selected the first ${this.maxBulkSelection} visible listings.`);
@@ -698,16 +1106,24 @@ export class SearchComponent implements OnDestroy {
     (bound === 'from' ? this.storageFrom : this.storageTo).set(value > 0 ? value : null);
   }
 
-  setRAM(bound: 'from' | 'to', event: Event): void { this.setNumberRange(bound === 'from' ? this.ramFrom : this.ramTo, event); }
-  setRooms(bound: 'from' | 'to', event: Event): void { this.setNumberRange(bound === 'from' ? this.roomsFrom : this.roomsTo, event); }
-  setArea(bound: 'from' | 'to', event: Event): void { this.setNumberRange(bound === 'from' ? this.areaFrom : this.areaTo, event); }
-  setScreen(bound: 'from' | 'to', event: Event): void { this.setNumberRange(bound === 'from' ? this.screenFrom : this.screenTo, event); }
+  setRAM(bound: 'from' | 'to', event: Event): void {
+    this.setNumberRange(bound === 'from' ? this.ramFrom : this.ramTo, event);
+  }
+  setRooms(bound: 'from' | 'to', event: Event): void {
+    this.setNumberRange(bound === 'from' ? this.roomsFrom : this.roomsTo, event);
+  }
+  setArea(bound: 'from' | 'to', event: Event): void {
+    this.setNumberRange(bound === 'from' ? this.areaFrom : this.areaTo, event);
+  }
+  setScreen(bound: 'from' | 'to', event: Event): void {
+    this.setNumberRange(bound === 'from' ? this.screenFrom : this.screenTo, event);
+  }
   toggleDeviceTag(tag: string): void {
-    this.deviceTags.update((tags) => tags.includes(tag) ? tags.filter((item) => item !== tag) : [...tags, tag]);
+    this.deviceTags.update((tags) => (tags.includes(tag) ? tags.filter((item) => item !== tag) : [...tags, tag]));
   }
 
   toggleChoice<T>(target: WritableSignal<T[]>, value: T): void {
-    target.update((values) => values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
+    target.update((values) => (values.includes(value) ? values.filter((item) => item !== value) : [...values, value]));
   }
 
   setSmartCleanup(enabled: boolean): void {
@@ -720,7 +1136,13 @@ export class SearchComponent implements OnDestroy {
       preserveScrollPosition(scrollY);
       return;
     }
-    this.newlyRevealed.set(new Set(this.products().filter((product) => !visibleBefore.has(product.id)).map((product) => product.id)));
+    this.newlyRevealed.set(
+      new Set(
+        this.products()
+          .filter((product) => !visibleBefore.has(product.id))
+          .map((product) => product.id),
+      ),
+    );
     preserveScrollPosition(scrollY);
   }
 
@@ -732,7 +1154,11 @@ export class SearchComponent implements OnDestroy {
     this.toggleChoice(this.registration, value);
     // A session restored from an older app version has no registration facet.
     // Refresh it once; newly streamed searches continue filtering instantly.
-    if (this.registration().length && this.rawProducts().length > 0 && this.rawProducts().every((product) => product.registration === undefined)) {
+    if (
+      this.registration().length &&
+      this.rawProducts().length > 0 &&
+      this.rawProducts().every((product) => product.registration === undefined)
+    ) {
       void this.search();
     }
   }
@@ -741,7 +1167,11 @@ export class SearchComponent implements OnDestroy {
     this.toggleChoice(this.originCountry, value);
     // Old session snapshots predate this facet. Refresh only once when the
     // user actually requests origin filtering; normal toggles stay in-memory.
-    if (this.originCountry().length && this.rawProducts().length > 0 && this.rawProducts().every((product) => product.originCountry === undefined)) {
+    if (
+      this.originCountry().length &&
+      this.rawProducts().length > 0 &&
+      this.rawProducts().every((product) => product.originCountry === undefined)
+    ) {
       void this.search();
     }
   }
@@ -918,10 +1348,12 @@ export class SearchComponent implements OnDestroy {
     this.lastSyncedSearchURL = signature;
     queueMicrotask(() => {
       if (signature !== this.lastSyncedSearchURL) return;
-      const url = this.router.serializeUrl(this.router.createUrlTree([], {
-        relativeTo: this.route,
-        queryParams: { q: state.activeQuery, filters, fresh: null },
-      }));
+      const url = this.router.serializeUrl(
+        this.router.createUrlTree([], {
+          relativeTo: this.route,
+          queryParams: { q: state.activeQuery, filters, fresh: null },
+        }),
+      );
       window.history.replaceState(
         { ...window.history.state, ...this.searchState.currentHistoryState() },
         document.title,
@@ -962,23 +1394,37 @@ export class SearchComponent implements OnDestroy {
       this.storageFrom.set(null);
       this.storageTo.set(null);
     }
-    if (intent.kind !== 'laptop' && intent.kind !== 'phone') { this.ramFrom.set(null); this.ramTo.set(null); }
+    if (intent.kind !== 'laptop' && intent.kind !== 'phone') {
+      this.ramFrom.set(null);
+      this.ramTo.set(null);
+    }
     if (intent.kind !== 'realEstate') {
-      this.roomsFrom.set(null); this.roomsTo.set(null); this.areaFrom.set(null); this.areaTo.set(null);
-      this.floorFrom.set(null); this.floorTo.set(null); this.propertySector.set([]);
-      this.housingStock.set([]); this.listingAuthor.set([]); this.buildingType.set([]); this.propertyState.set([]);
+      this.roomsFrom.set(null);
+      this.roomsTo.set(null);
+      this.areaFrom.set(null);
+      this.areaTo.set(null);
+      this.floorFrom.set(null);
+      this.floorTo.set(null);
+      this.propertySector.set([]);
+      this.housingStock.set([]);
+      this.listingAuthor.set([]);
+      this.buildingType.set([]);
+      this.propertyState.set([]);
       this.listingMode.set([]);
     }
-    if (!['laptop', 'phone', 'tv'].includes(intent.kind)) { this.screenFrom.set(null); this.screenTo.set(null); }
+    if (!['laptop', 'phone', 'tv'].includes(intent.kind)) {
+      this.screenFrom.set(null);
+      this.screenTo.set(null);
+    }
   }
 
   private receive(event: SearchEvent): void {
     if (event.loadedPages != null) this.loadedPages.set(event.loadedPages);
     if (event.totalPages != null) this.totalPages.set(event.totalPages);
-	if (event.type === 'done') {
-		this.loading.set(false);
-		return;
-	}
+    if (event.type === 'done') {
+      this.loading.set(false);
+      return;
+    }
     if (event.type === 'error') {
       this.loading.set(false);
       this.toast.error(event.message || 'Search ended early.');
@@ -1062,21 +1508,58 @@ export class SearchComponent implements OnDestroy {
 
   private snapshot(scrollY: number): SearchState {
     return {
-      query: this.query(), activeQuery: this.activeQuery(), order: this.order(), smartCleanup: this.smartCleanup(),
-      excludeNegotiable: this.excludeNegotiable(), onlyWithPhotos: this.onlyWithPhotos(), onlyWithVIN: this.onlyWithVIN(), excludedWords: this.excludedWords(),
+      query: this.query(),
+      activeQuery: this.activeQuery(),
+      order: this.order(),
+      smartCleanup: this.smartCleanup(),
+      excludeNegotiable: this.excludeNegotiable(),
+      onlyWithPhotos: this.onlyWithPhotos(),
+      onlyWithVIN: this.onlyWithVIN(),
+      excludedWords: this.excludedWords(),
       excludedWord: this.excludedWord(),
       queryExclusions: this.queryExclusions(),
-      yearFrom: this.yearFrom(), yearTo: this.yearTo(), priceMin: this.priceMin(), priceMax: this.priceMax(),
-      priceCurrency: this.priceCurrency(), fuel: this.fuel(), transmission: this.transmission(),
-      generationFrom: this.generationFrom(), generationTo: this.generationTo(), storageFrom: this.storageFrom(),
-      storageTo: this.storageTo(), ramFrom: this.ramFrom(), ramTo: this.ramTo(), roomsFrom: this.roomsFrom(), roomsTo: this.roomsTo(),
-      areaFrom: this.areaFrom(), areaTo: this.areaTo(), floorFrom: this.floorFrom(), floorTo: this.floorTo(),
-      propertySector: this.propertySector(), propertyState: this.propertyState(), housingStock: this.housingStock(),
-      listingAuthor: this.listingAuthor(), buildingType: this.buildingType(), screenFrom: this.screenFrom(), screenTo: this.screenTo(),
-      mileageFrom: this.mileageFrom(), mileageTo: this.mileageTo(), powerFrom: this.powerFrom(), powerTo: this.powerTo(),
-      drivetrain: this.drivetrain(), bodyType: this.bodyType(), registration: this.registration(), originCountry: this.originCountry(),
-      deviceTags: this.deviceTags(), condition: this.condition(), listingMode: this.listingMode(), products: this.rawProducts(),
-      searched: this.searched(), loadedPages: this.loadedPages(), totalPages: this.totalPages(), scrollY,
+      yearFrom: this.yearFrom(),
+      yearTo: this.yearTo(),
+      priceMin: this.priceMin(),
+      priceMax: this.priceMax(),
+      priceCurrency: this.priceCurrency(),
+      fuel: this.fuel(),
+      transmission: this.transmission(),
+      generationFrom: this.generationFrom(),
+      generationTo: this.generationTo(),
+      storageFrom: this.storageFrom(),
+      storageTo: this.storageTo(),
+      ramFrom: this.ramFrom(),
+      ramTo: this.ramTo(),
+      roomsFrom: this.roomsFrom(),
+      roomsTo: this.roomsTo(),
+      areaFrom: this.areaFrom(),
+      areaTo: this.areaTo(),
+      floorFrom: this.floorFrom(),
+      floorTo: this.floorTo(),
+      propertySector: this.propertySector(),
+      propertyState: this.propertyState(),
+      housingStock: this.housingStock(),
+      listingAuthor: this.listingAuthor(),
+      buildingType: this.buildingType(),
+      screenFrom: this.screenFrom(),
+      screenTo: this.screenTo(),
+      mileageFrom: this.mileageFrom(),
+      mileageTo: this.mileageTo(),
+      powerFrom: this.powerFrom(),
+      powerTo: this.powerTo(),
+      drivetrain: this.drivetrain(),
+      bodyType: this.bodyType(),
+      registration: this.registration(),
+      originCountry: this.originCountry(),
+      deviceTags: this.deviceTags(),
+      condition: this.condition(),
+      listingMode: this.listingMode(),
+      products: this.rawProducts(),
+      searched: this.searched(),
+      loadedPages: this.loadedPages(),
+      totalPages: this.totalPages(),
+      scrollY,
       updatedAt: Date.now(),
     };
   }
@@ -1086,41 +1569,137 @@ export class SearchComponent implements OnDestroy {
     const queryWords = requiredQueryWords(this.activeQuery(), intent);
     const excluded = [...this.excludedWords(), ...this.queryExclusions()].map(tokens);
     const signatures = new Set<string>();
-    const vehiclePriceFloor = this.smartCleanup() && this.activeVehicleSearch() ? inferredVehiclePriceFloor(source, this.currency) : 0;
-    const devicePriceFloor = this.smartCleanup() && isDeviceIntent(intent) ? inferredDevicePriceFloor(source, this.currency) : 0;
+    const vehiclePriceFloor =
+      this.smartCleanup() && this.activeVehicleSearch() ? inferredVehiclePriceFloor(source, this.currency) : 0;
+    const devicePriceFloor =
+      this.smartCleanup() && isDeviceIntent(intent) ? inferredDevicePriceFloor(source, this.currency) : 0;
     // Property sale, monthly-rent and daily-rent prices legitimately occupy
     // very different ranges. A shared inferred floor would hide valid rentals.
-    const categoryPriceFloor = this.smartCleanup() && isStructuredIntent(intent) && intent.kind !== 'realEstate' ? inferredCategoryPriceFloor(source, this.currency, intent) : 0;
+    const categoryPriceFloor =
+      this.smartCleanup() && isStructuredIntent(intent) && intent.kind !== 'realEstate'
+        ? inferredCategoryPriceFloor(source, this.currency, intent)
+        : 0;
     const products = source.filter((product) => {
       const titleWords = tokens(product.title);
       const signature = `${titleWords.join(' ')}|${product.price ?? ''}|${product.currency}`;
-      if (this.smartCleanup() && (product.isBoosted || !containsAll(titleWords, queryWords) || signatures.has(signature))) return false;
-      if (this.smartCleanup() && this.activeVehicleSearch() && (!plausibleCar(product, titleWords) || (this.currency.convert(product, 1) ?? 0) < vehiclePriceFloor)) return false;
-      if (this.smartCleanup() && isDeviceIntent(intent) && (!plausibleDevice(product, titleWords, intent) || (this.currency.convert(product, 0) ?? 0) < devicePriceFloor)) return false;
-      if (this.smartCleanup() && isStructuredIntent(intent) && (!categoryMatches(product, intent) || (this.currency.convert(product, 0) ?? 0) < categoryPriceFloor)) return false;
+      if (
+        this.smartCleanup() &&
+        (product.isBoosted || !containsAll(titleWords, queryWords) || signatures.has(signature))
+      )
+        return false;
+      if (
+        this.smartCleanup() &&
+        this.activeVehicleSearch() &&
+        (!plausibleCar(product, titleWords) || (this.currency.convert(product, 1) ?? 0) < vehiclePriceFloor)
+      )
+        return false;
+      if (
+        this.smartCleanup() &&
+        isDeviceIntent(intent) &&
+        (!plausibleDevice(product, titleWords, intent) || (this.currency.convert(product, 0) ?? 0) < devicePriceFloor)
+      )
+        return false;
+      if (
+        this.smartCleanup() &&
+        isStructuredIntent(intent) &&
+        (!categoryMatches(product, intent) || (this.currency.convert(product, 0) ?? 0) < categoryPriceFloor)
+      )
+        return false;
       const from = this.yearFrom();
       const to = this.yearTo();
       if ((from !== null && (product.year ?? 0) < from) || (to !== null && (product.year ?? 0) > to)) return false;
       if (this.fuel().length && !this.fuel().some((value) => choiceMatches(product.fuel, value))) return false;
-      if (this.transmission().length && !this.transmission().some((value) => choiceMatches(product.transmission, value))) return false;
+      if (
+        this.transmission().length &&
+        !this.transmission().some((value) => choiceMatches(product.transmission, value))
+      )
+        return false;
       if (!inRange(product.mileage ?? null, this.mileageFrom(), this.mileageTo())) return false;
       if (!inRange(product.power ?? null, this.powerFrom(), this.powerTo())) return false;
-      if (this.drivetrain().length && !this.drivetrain().some((value) => choiceMatches(product.drivetrain, value))) return false;
-      if (this.bodyType().length && !this.bodyType().some((value) => choiceMatches(product.bodyType, value))) return false;
-      if (this.registration().length && !this.registration().some((value) => registrationMatches(product.registration, value))) return false;
-      if (this.originCountry().length && !this.originCountry().some((value) => facetMatches(product.originCountry, value))) return false;
-      if (isDeviceIntent(intent) && !matchesDeviceFilters(product, intent, this.generationFrom(), this.generationTo(), this.storageFrom(), this.storageTo(), this.deviceTags())) return false;
-      if (isStorageIntent(intent) && !inRange(storageValue(product), this.storageFrom(), this.storageTo())) return false;
-      if ((intent.kind === 'laptop' || intent.kind === 'phone') && !inRange(ramValue(product), this.ramFrom(), this.ramTo())) return false;
-      if (intent.kind === 'realEstate' && (!inRange(roomsValue(product), this.roomsFrom(), this.roomsTo()) || !inRange(areaValue(product), this.areaFrom(), this.areaTo()) || !inRange(floorValue(product), this.floorFrom(), this.floorTo()))) return false;
-      if (intent.kind === 'realEstate' && this.listingMode().length && !this.listingMode().some((value) => offerTypeMatches(product.offerType, value))) return false;
-      if (intent.kind === 'realEstate' && this.propertySector().length && !this.propertySector().some((value) => facetMatches(product.sector, value))) return false;
-      if (intent.kind === 'realEstate' && this.propertyState().length && !this.propertyState().some((value) => facetMatches(product.propertyState, value))) return false;
-      if (intent.kind === 'realEstate' && this.housingStock().length && !this.housingStock().some((value) => facetMatches(product.housingStock, value))) return false;
-      if (intent.kind === 'realEstate' && this.listingAuthor().length && !this.listingAuthor().some((value) => facetMatches(product.listingAuthor, value))) return false;
-      if (intent.kind === 'realEstate' && this.buildingType().length && !this.buildingType().some((value) => facetMatches(product.buildingType, value))) return false;
-      if ((intent.kind === 'laptop' || intent.kind === 'phone' || intent.kind === 'tv') && !inRange(screenValue(product), this.screenFrom(), this.screenTo())) return false;
-      if (this.condition().length && !this.condition().some((value) => conditionMatches(product.condition, value))) return false;
+      if (this.drivetrain().length && !this.drivetrain().some((value) => choiceMatches(product.drivetrain, value)))
+        return false;
+      if (this.bodyType().length && !this.bodyType().some((value) => choiceMatches(product.bodyType, value)))
+        return false;
+      if (
+        this.registration().length &&
+        !this.registration().some((value) => registrationMatches(product.registration, value))
+      )
+        return false;
+      if (
+        this.originCountry().length &&
+        !this.originCountry().some((value) => facetMatches(product.originCountry, value))
+      )
+        return false;
+      if (
+        isDeviceIntent(intent) &&
+        !matchesDeviceFilters(
+          product,
+          intent,
+          this.generationFrom(),
+          this.generationTo(),
+          this.storageFrom(),
+          this.storageTo(),
+          this.deviceTags(),
+        )
+      )
+        return false;
+      if (isStorageIntent(intent) && !inRange(storageValue(product), this.storageFrom(), this.storageTo()))
+        return false;
+      if (
+        (intent.kind === 'laptop' || intent.kind === 'phone') &&
+        !inRange(ramValue(product), this.ramFrom(), this.ramTo())
+      )
+        return false;
+      if (
+        intent.kind === 'realEstate' &&
+        (!inRange(roomsValue(product), this.roomsFrom(), this.roomsTo()) ||
+          !inRange(areaValue(product), this.areaFrom(), this.areaTo()) ||
+          !inRange(floorValue(product), this.floorFrom(), this.floorTo()))
+      )
+        return false;
+      if (
+        intent.kind === 'realEstate' &&
+        this.listingMode().length &&
+        !this.listingMode().some((value) => offerTypeMatches(product.offerType, value))
+      )
+        return false;
+      if (
+        intent.kind === 'realEstate' &&
+        this.propertySector().length &&
+        !this.propertySector().some((value) => facetMatches(product.sector, value))
+      )
+        return false;
+      if (
+        intent.kind === 'realEstate' &&
+        this.propertyState().length &&
+        !this.propertyState().some((value) => facetMatches(product.propertyState, value))
+      )
+        return false;
+      if (
+        intent.kind === 'realEstate' &&
+        this.housingStock().length &&
+        !this.housingStock().some((value) => facetMatches(product.housingStock, value))
+      )
+        return false;
+      if (
+        intent.kind === 'realEstate' &&
+        this.listingAuthor().length &&
+        !this.listingAuthor().some((value) => facetMatches(product.listingAuthor, value))
+      )
+        return false;
+      if (
+        intent.kind === 'realEstate' &&
+        this.buildingType().length &&
+        !this.buildingType().some((value) => facetMatches(product.buildingType, value))
+      )
+        return false;
+      if (
+        (intent.kind === 'laptop' || intent.kind === 'phone' || intent.kind === 'tv') &&
+        !inRange(screenValue(product), this.screenFrom(), this.screenTo())
+      )
+        return false;
+      if (this.condition().length && !this.condition().some((value) => conditionMatches(product.condition, value)))
+        return false;
       if (this.excludeNegotiable() && product.price == null) return false;
       if (this.onlyWithPhotos() && !product.thumbnailURL) return false;
       if (this.onlyWithVIN() && !product.vin) return false;
@@ -1130,7 +1709,8 @@ export class SearchComponent implements OnDestroy {
     });
     const direction = this.order() === 'priceDesc' ? -1 : 1;
     return products.sort((a, b) => {
-      if (this.order() === 'relevance') return relevance(b, queryWords) - relevance(a, queryWords) || this.comparePrice(a, b, 1);
+      if (this.order() === 'relevance')
+        return relevance(b, queryWords) - relevance(a, queryWords) || this.comparePrice(a, b, 1);
       return this.comparePrice(a, b, direction);
     });
   }
@@ -1144,10 +1724,18 @@ export class SearchComponent implements OnDestroy {
   }
 }
 
-function tokens(value: string): string[] { return value.toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []; }
-function searchKey(value: string): string { return fold(value).replace(/\s+/g, ' ').trim(); }
-function percentage(value: number, ceiling: number): number { return ceiling > 0 ? Math.min(100, Math.max(0, value / ceiling * 100)) : 0; }
-function formatNumber(value: number): string { return new Intl.NumberFormat('ro-MD', { maximumFractionDigits: 0 }).format(value); }
+function tokens(value: string): string[] {
+  return value.toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+}
+function searchKey(value: string): string {
+  return fold(value).replace(/\s+/g, ' ').trim();
+}
+function percentage(value: number, ceiling: number): number {
+  return ceiling > 0 ? Math.min(100, Math.max(0, (value / ceiling) * 100)) : 0;
+}
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat('ro-MD', { maximumFractionDigits: 0 }).format(value);
+}
 function convertedPrices(products: readonly Product[], currencyService: CurrencyService, target: number): number[] {
   const prices: number[] = [];
   for (const product of products) {
@@ -1161,30 +1749,60 @@ function priceBounds(prices: readonly number[]): { min: number; max: number } | 
   return prices.length ? { min: Math.floor(prices[0]), max: Math.ceil(prices[prices.length - 1]) } : null;
 }
 function adaptivePricePresets(prices: readonly number[], fallback: readonly number[]): number[] {
-  if (prices.length < 4) return fallback.filter((value) => value > (prices[0] ?? 0) && value < (prices.at(-1) ?? Number.POSITIVE_INFINITY));
-  const values = [.25, .5, .75]
+  if (prices.length < 4)
+    return fallback.filter((value) => value > (prices[0] ?? 0) && value < (prices.at(-1) ?? Number.POSITIVE_INFINITY));
+  const values = [0.25, 0.5, 0.75]
     .map((position) => niceBudget(prices[Math.floor((prices.length - 1) * position)]))
-    .filter((value, index, all) => value > prices[0] && value < prices[prices.length - 1] && all.indexOf(value) === index);
-  return values.length >= 2 ? values : fallback.filter((value) => value > prices[0] && value < prices[prices.length - 1]);
+    .filter(
+      (value, index, all) => value > prices[0] && value < prices[prices.length - 1] && all.indexOf(value) === index,
+    );
+  return values.length >= 2
+    ? values
+    : fallback.filter((value) => value > prices[0] && value < prices[prices.length - 1]);
 }
 function niceBudget(value: number): number {
-  const step = value < 100 ? 10 : value < 1_000 ? 50 : value < 10_000 ? 100 : value < 100_000 ? 1_000 : value < 1_000_000 ? 10_000 : 100_000;
+  const step =
+    value < 100
+      ? 10
+      : value < 1_000
+        ? 50
+        : value < 10_000
+          ? 100
+          : value < 100_000
+            ? 1_000
+            : value < 1_000_000
+              ? 10_000
+              : 100_000;
   return Math.max(step, Math.round(value / step) * step);
 }
-function containsAll(words: string[], required: string[]): boolean { return required.every((word) => words.includes(word)); }
-function containsPhrase(words: string[], phrase: string[]): boolean { return words.some((_, index) => phrase.every((word, offset) => words[index + offset] === word)); }
+function containsAll(words: string[], required: string[]): boolean {
+  return required.every((word) => words.includes(word));
+}
+function containsPhrase(words: string[], phrase: string[]): boolean {
+  return words.some((_, index) => phrase.every((word, offset) => words[index + offset] === word));
+}
 function plausibleCar(product: Product, titleWords: string[]): boolean {
-  if (!product.make || !product.model || !product.year || product.price == null || titleWords.some((word) => carNoise.has(word))) return false;
+  if (
+    !product.make ||
+    !product.model ||
+    !product.year ||
+    product.price == null ||
+    titleWords.some((word) => carNoise.has(word))
+  )
+    return false;
   return product.price >= (product.currency === 0 ? 5_000 : 300);
 }
 function inferredVehiclePriceFloor(products: Product[], currency: CurrencyService): number {
   const prices = products
-    .filter((product) => product.make && product.model && product.year && !tokens(product.title).some((word) => carNoise.has(word)))
+    .filter(
+      (product) =>
+        product.make && product.model && product.year && !tokens(product.title).some((word) => carNoise.has(word)),
+    )
     .map((product) => currency.convert(product, 1))
     .filter((price): price is number => price !== null && price >= 300)
     .sort((a, b) => a - b);
   if (prices.length < 4) return 300;
-  return Math.min(5_000, Math.max(500, prices[Math.floor(prices.length / 2)] * .1));
+  return Math.min(5_000, Math.max(500, prices[Math.floor(prices.length / 2)] * 0.1));
 }
 function inferredDevicePriceFloor(products: Product[], currency: CurrencyService): number {
   const prices = products
@@ -1193,24 +1811,48 @@ function inferredDevicePriceFloor(products: Product[], currency: CurrencyService
     .filter((price): price is number => price !== null && price >= 200)
     .sort((a, b) => a - b);
   if (prices.length < 4) return 200;
-  return Math.min(3_000, Math.max(500, prices[Math.floor(prices.length / 2)] * .12));
+  return Math.min(3_000, Math.max(500, prices[Math.floor(prices.length / 2)] * 0.12));
 }
 function inferredCategoryPriceFloor(products: Product[], currency: CurrencyService, intent: SearchIntent): number {
   if (intent.kind === 'realEstate') return 0;
-  const prices = products.filter((product) => categoryMatches(product, intent)).map((product) => currency.convert(product, 0))
-    .filter((price): price is number => price !== null && price >= 100).sort((a, b) => a - b);
+  const prices = products
+    .filter((product) => categoryMatches(product, intent))
+    .map((product) => currency.convert(product, 0))
+    .filter((price): price is number => price !== null && price >= 100)
+    .sort((a, b) => a - b);
   if (prices.length < 4) return 100;
-  return Math.min(3_000, Math.max(200, prices[Math.floor(prices.length / 2)] * .08));
+  return Math.min(3_000, Math.max(200, prices[Math.floor(prices.length / 2)] * 0.08));
 }
-function isDeviceIntent(intent: SearchIntent): boolean { return intent.kind === 'iphone' || intent.kind === 'playstation'; }
-function isStorageIntent(intent: SearchIntent): boolean { return intent.kind === 'laptop' || intent.kind === 'phone'; }
-function isStructuredIntent(intent: SearchIntent): boolean { return ['laptop', 'phone', 'tv', 'realEstate'].includes(intent.kind); }
+function isDeviceIntent(intent: SearchIntent): boolean {
+  return intent.kind === 'iphone' || intent.kind === 'playstation';
+}
+function isStorageIntent(intent: SearchIntent): boolean {
+  return intent.kind === 'laptop' || intent.kind === 'phone';
+}
+function isStructuredIntent(intent: SearchIntent): boolean {
+  return ['laptop', 'phone', 'tv', 'realEstate'].includes(intent.kind);
+}
 function categoryMatches(product: Product, intent: SearchIntent): boolean {
   const category = fold(product.category ?? '');
   const title = fold(product.title);
-  if (intent.kind === 'laptop') return category.includes('laptop') || Boolean(product.processor || product.gpu || (product.ram && product.screen)) || Boolean(product.condition && /\b(laptop|notebook|macbook|thinkpad|ideapad|legion)\b/.test(title));
-  if (intent.kind === 'phone') return category.includes('telefon') || Boolean(product.deviceModel || (product.brand && product.condition)) || Boolean(product.condition && /\b(telefon|smartphone|galaxy|redmi|pixel)\b/.test(title));
-  if (intent.kind === 'tv') return category.includes('televiz') || /(?:android tv|webos|vidaa)/.test(fold(product.os ?? '')) || Boolean(product.condition && /\b(televizor|television|smart tv)\b/.test(title));
+  if (intent.kind === 'laptop')
+    return (
+      category.includes('laptop') ||
+      Boolean(product.processor || product.gpu || (product.ram && product.screen)) ||
+      Boolean(product.condition && /\b(laptop|notebook|macbook|thinkpad|ideapad|legion)\b/.test(title))
+    );
+  if (intent.kind === 'phone')
+    return (
+      category.includes('telefon') ||
+      Boolean(product.deviceModel || (product.brand && product.condition)) ||
+      Boolean(product.condition && /\b(telefon|smartphone|galaxy|redmi|pixel)\b/.test(title))
+    );
+  if (intent.kind === 'tv')
+    return (
+      category.includes('televiz') ||
+      /(?:android tv|webos|vidaa)/.test(fold(product.os ?? '')) ||
+      Boolean(product.condition && /\b(televizor|television|smart tv)\b/.test(title))
+    );
   const propertyCategory = /(apart|case|casa|teren|imobil|garaj|spati)/.test(category);
   const propertyDetails = Boolean(product.rooms || product.area || product.buildingType || product.sector);
   return (propertyCategory || propertyDetails) && isPropertyOffer(product.offerType);
@@ -1221,13 +1863,31 @@ function isPropertyOffer(value: string | undefined): boolean {
 function plausibleDevice(product: Product, titleWords: string[], intent: SearchIntent): boolean {
   const model = fold(product.deviceModel ?? '');
   const expected = intent.kind === 'iphone' ? 'iphone' : 'playstation';
-  return Boolean(product.deviceModel && model.includes(expected) && product.price != null && !titleWords.some((word) => deviceNoise.has(word)));
+  return Boolean(
+    product.deviceModel &&
+    model.includes(expected) &&
+    product.price != null &&
+    !titleWords.some((word) => deviceNoise.has(word)),
+  );
 }
-function matchesDeviceFilters(product: Product, intent: SearchIntent, generationFrom: number | null, generationTo: number | null, storageFrom: number | null, storageTo: number | null, tags: string[]): boolean {
+function matchesDeviceFilters(
+  product: Product,
+  intent: SearchIntent,
+  generationFrom: number | null,
+  generationTo: number | null,
+  storageFrom: number | null,
+  storageTo: number | null,
+  tags: string[],
+): boolean {
   const generation = generationIn(`${product.deviceModel ?? ''} ${product.title}`, intent.kind);
-  if ((generationFrom !== null && (generation ?? 0) < generationFrom) || (generationTo !== null && (generation ?? 0) > generationTo)) return false;
+  if (
+    (generationFrom !== null && (generation ?? 0) < generationFrom) ||
+    (generationTo !== null && (generation ?? 0) > generationTo)
+  )
+    return false;
   const storage = storageIn(product.storage ?? product.title);
-  if ((storageFrom !== null && (storage ?? 0) < storageFrom) || (storageTo !== null && (storage ?? 0) > storageTo)) return false;
+  if ((storageFrom !== null && (storage ?? 0) < storageFrom) || (storageTo !== null && (storage ?? 0) > storageTo))
+    return false;
   const searchable = fold(`${product.deviceModel ?? ''} ${product.title}`).replace(/disk/g, 'disc');
   return tags.every((tag) => searchable.includes(tag));
 }
@@ -1235,7 +1895,9 @@ function inRange(value: number | null, from: number | null, to: number | null): 
   if (from === null && to === null) return true;
   return value !== null && (from === null || value >= from) && (to === null || value <= to);
 }
-function storageValue(product: Product): number | null { return storageIn(`${product.storage ?? ''} ${product.title}`); }
+function storageValue(product: Product): number | null {
+  return storageIn(`${product.storage ?? ''} ${product.title}`);
+}
 function ramValue(product: Product): number | null {
   const value = fold(`${product.ram ?? ''} ${product.title}`);
   const match = value.match(/(?:ram\s*)?(\d{1,3})\s*gb\s*(?:ram|memory|memorie)?|ram\s*(\d{1,3})/);
@@ -1258,7 +1920,9 @@ function floorValue(product: Product): number | null {
 }
 function screenValue(product: Product): number | null {
   const value = fold(`${product.screen ?? ''} ${product.title}`);
-  const match = value.match(/(\d{1,3}(?:[.,]\d)?)\s*(?:inch|toli|дюйм|")/u) ?? (product.screen ? value.match(/\d{1,3}(?:[.,]\d)?/) : null);
+  const match =
+    value.match(/(\d{1,3}(?:[.,]\d)?)\s*(?:inch|toli|дюйм|")/u) ??
+    (product.screen ? value.match(/\d{1,3}(?:[.,]\d)?/) : null);
   return match ? Number((match[1] ?? match[0]).replace(',', '.')) : null;
 }
 function conditionMatches(value: string | undefined, condition: 'new' | 'used'): boolean {
@@ -1270,7 +1934,11 @@ function offerTypeMatches(value: string | undefined, mode: PropertyListingMode |
   const normalized = fold(value ?? '');
   if (!normalized) return false;
   if (mode === 'daily') return /(inchiriat pe zi|chirie pe zi|pe noapte|daily|short term|posut|сут)/u.test(normalized);
-  if (mode === 'monthly') return /(inchiriat lunar|chirie lunara|monthly|long term|аренд|сда)/u.test(normalized) && !/(pe zi|daily|short term|posut|сут)/u.test(normalized);
+  if (mode === 'monthly')
+    return (
+      /(inchiriat lunar|chirie lunara|monthly|long term|аренд|сда)/u.test(normalized) &&
+      !/(pe zi|daily|short term|posut|сут)/u.test(normalized)
+    );
   return /(vand|vanzare|sale|прод|sell)/u.test(normalized);
 }
 function facetMatches(value: string | undefined, expected: string): boolean {
@@ -1298,17 +1966,53 @@ function registrationMatches(value: string | undefined, registration: 'moldova' 
 function choiceMatches(value: string | undefined, expected: string): boolean {
   const actual = fold(value ?? '');
   const choice = fold(expected);
-  return choice === 'gaz' ? actual.includes('gaz') : choice === 'hybrid' ? actual.includes('hybrid') : actual.includes(choice);
+  return choice === 'gaz'
+    ? actual.includes('gaz')
+    : choice === 'hybrid'
+      ? actual.includes('hybrid')
+      : actual.includes(choice);
 }
 function requiredQueryWords(value: string, intent: SearchIntent): string[] {
   const ignoredByKind: Partial<Record<SearchKind, string[]>> = {
-    vehicle: ['autoturism', 'autoturisme', 'automobil', 'automobile', 'masina', 'masini', 'vehicle', 'автомобиль', 'автомобили'],
-    iphone: ['iphone'], playstation: ['playstation'], laptop: ['laptop', 'laptops', 'notebook', 'ultrabook', 'ноутбук'],
-    phone: ['telefon', 'smartphone', 'телефон', 'смартфон'], tv: ['tv', 'televizor', 'televizoare', 'television', 'телевизор'],
-    realEstate: ['apartament', 'apartamente', 'apartment', 'casa', 'house', 'teren', 'land', 'квартира', 'дом', 'участок'],
+    vehicle: [
+      'autoturism',
+      'autoturisme',
+      'automobil',
+      'automobile',
+      'masina',
+      'masini',
+      'vehicle',
+      'автомобиль',
+      'автомобили',
+    ],
+    iphone: ['iphone'],
+    playstation: ['playstation'],
+    laptop: ['laptop', 'laptops', 'notebook', 'ultrabook', 'ноутбук'],
+    phone: ['telefon', 'smartphone', 'телефон', 'смартфон'],
+    tv: ['tv', 'televizor', 'televizoare', 'television', 'телевизор'],
+    realEstate: [
+      'apartament',
+      'apartamente',
+      'apartment',
+      'casa',
+      'house',
+      'teren',
+      'land',
+      'квартира',
+      'дом',
+      'участок',
+    ],
   };
-  const ignored = new Set(['gb', 'tb', ...(ignoredByKind[intent.kind] ?? []), ...intent.tags, ...tokens(intent.propertySector ?? '')]);
-  return tokens(value).filter((word) => !ignored.has(word) && !/^ps[1-5]$/.test(word) && (!isDeviceIntent(intent) || !/^\d{1,4}$/.test(word)));
+  const ignored = new Set([
+    'gb',
+    'tb',
+    ...(ignoredByKind[intent.kind] ?? []),
+    ...intent.tags,
+    ...tokens(intent.propertySector ?? ''),
+  ]);
+  return tokens(value).filter(
+    (word) => !ignored.has(word) && !/^ps[1-5]$/.test(word) && (!isDeviceIntent(intent) || !/^\d{1,4}$/.test(word)),
+  );
 }
 function rangeSummary(label: string, from: number | null, to: number | null): string {
   if (from !== null && to !== null) return from === to ? `${label}: ${from}` : `${label}: ${from}–${to}`;
@@ -1319,26 +2023,60 @@ function rangeSummary(label: string, from: number | null, to: number | null): st
 function relevance(product: Product, queryWords: string[]): number {
   const title = tokens(product.title);
   const exact = title.join(' ') === queryWords.join(' ') ? 100 : 0;
-  return exact + (containsAll(title, queryWords) ? 40 : 0) + (product.make && product.model ? 20 : 0) + (product.isBoosted ? 0 : 5);
+  return (
+    exact +
+    (containsAll(title, queryWords) ? 40 : 0) +
+    (product.make && product.model ? 20 : 0) +
+    (product.isBoosted ? 0 : 5)
+  );
 }
-function defaultPriceCurrency(intent: SearchIntent): number { return intent.kind === 'vehicle' || intent.kind === 'realEstate' ? 1 : 0; }
+function defaultPriceCurrency(intent: SearchIntent): number {
+  return intent.kind === 'vehicle' || intent.kind === 'realEstate' ? 1 : 0;
+}
 function priceCap(intent: SearchIntent, currency: number | null, listingMode: PropertyListingMode | null): number {
   if (intent.kind === 'realEstate' && (listingMode === 'monthly' || listingMode === 'daily')) {
     if (currency === 0) return listingMode === 'daily' ? 20_000 : 100_000;
     return listingMode === 'daily' ? 1_000 : 5_000;
   }
-  if (currency === 0) return intent.kind === 'vehicle' || intent.kind === 'realEstate' ? 10_000_000 : isTechIntent(intent) ? 100_000 : 500_000;
-  if (currency === 1 || currency === 2) return intent.kind === 'realEstate' ? 500_000 : intent.kind === 'vehicle' ? 50_000 : isTechIntent(intent) ? 5_000 : 10_000;
+  if (currency === 0)
+    return intent.kind === 'vehicle' || intent.kind === 'realEstate'
+      ? 10_000_000
+      : isTechIntent(intent)
+        ? 100_000
+        : 500_000;
+  if (currency === 1 || currency === 2)
+    return intent.kind === 'realEstate'
+      ? 500_000
+      : intent.kind === 'vehicle'
+        ? 50_000
+        : isTechIntent(intent)
+          ? 5_000
+          : 10_000;
   return intent.kind === 'realEstate' ? 500_000 : intent.kind === 'vehicle' ? 50_000 : 100_000;
 }
-function budgetPresets(intent: SearchIntent, currency: number | null, listingMode: PropertyListingMode | null): number[] {
-  if (intent.kind === 'realEstate' && listingMode === 'monthly') return currency === 0 ? [5_000, 10_000, 20_000] : [300, 500, 1_000];
-  if (intent.kind === 'realEstate' && listingMode === 'daily') return currency === 0 ? [1_000, 2_000, 5_000] : [50, 100, 250];
-  if (currency === 0) return intent.kind === 'realEstate' ? [1_000_000, 5_000_000, 10_000_000] : intent.kind === 'vehicle' ? [100_000, 500_000, 1_000_000] : isTechIntent(intent) ? [25_000, 50_000, 100_000] : [50_000, 100_000, 500_000];
+function budgetPresets(
+  intent: SearchIntent,
+  currency: number | null,
+  listingMode: PropertyListingMode | null,
+): number[] {
+  if (intent.kind === 'realEstate' && listingMode === 'monthly')
+    return currency === 0 ? [5_000, 10_000, 20_000] : [300, 500, 1_000];
+  if (intent.kind === 'realEstate' && listingMode === 'daily')
+    return currency === 0 ? [1_000, 2_000, 5_000] : [50, 100, 250];
+  if (currency === 0)
+    return intent.kind === 'realEstate'
+      ? [1_000_000, 5_000_000, 10_000_000]
+      : intent.kind === 'vehicle'
+        ? [100_000, 500_000, 1_000_000]
+        : isTechIntent(intent)
+          ? [25_000, 50_000, 100_000]
+          : [50_000, 100_000, 500_000];
   if (intent.kind === 'realEstate') return [50_000, 100_000, 250_000];
   return isTechIntent(intent) ? [1_000, 2_500, 5_000] : [5_000, 10_000, 50_000];
 }
-function isTechIntent(intent: SearchIntent): boolean { return ['iphone', 'phone', 'playstation', 'laptop', 'tv'].includes(intent.kind); }
+function isTechIntent(intent: SearchIntent): boolean {
+  return ['iphone', 'phone', 'playstation', 'laptop', 'tv'].includes(intent.kind);
+}
 function preserveScrollPosition(top: number): void {
   window.requestAnimationFrame(() => {
     if (Math.abs(window.scrollY - top) > 1) window.scrollTo({ top, behavior: 'instant' });

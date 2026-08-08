@@ -8,7 +8,10 @@
   @if (items().length) {
     <ol animate.enter="reveal-enter" animate.leave="reveal-leave">
       @for (item of items(); track item.id) {
-        <li class="ui-surface" animate.leave="reveal-leave"><a routerLink="/" [queryParams]="{q: item.query}">{{ item.query }}</a><time [attr.datetime]="item.searchedAt">{{ item.searchedAt | date:'medium' }}</time></li>
+        <li class="ui-surface" animate.leave="reveal-leave">
+          <a routerLink="/" [queryParams]="{ q: item.query }">{{ item.query }}</a
+          ><time [attr.datetime]="item.searchedAt">{{ item.searchedAt | date: 'medium' }}</time>
+        </li>
       }
     </ol>
   } @else {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -31,17 +32,16 @@ type API struct {
 	summaries  *loginLimiter
 	vinChecks  *loginLimiter
 	vinDecoder *vinDecoder
-	vinSearch  *vinSearcher
 	rates      *currency.Service
 	origins    map[string]struct{}
 }
 
-func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, rates *currency.Service, googleSearchKey, googleSearchEngineID string, allowedOrigins []string, logger *slog.Logger) http.Handler {
+func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, rates *currency.Service, allowedOrigins []string, logger *slog.Logger) http.Handler {
 	origins := make(map[string]struct{}, len(allowedOrigins))
 	for _, origin := range allowedOrigins {
 		origins[origin] = struct{}{}
 	}
-	api := &API{store: s, auth: a, scraper: sc, cache: c, rates: rates, origins: origins, logger: logger, queries: newQueryGate(), logins: newLoginLimiter(), summaries: newRequestLimiter(60, time.Minute), vinChecks: newRequestLimiter(30, time.Minute), vinDecoder: newVINDecoder(), vinSearch: newVINSearcher(googleSearchKey, googleSearchEngineID)}
+	api := &API{store: s, auth: a, scraper: sc, cache: c, rates: rates, origins: origins, logger: logger, queries: newQueryGate(), logins: newLoginLimiter(), summaries: newRequestLimiter(60, time.Minute), vinChecks: newRequestLimiter(30, time.Minute), vinDecoder: newVINDecoder()}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", api.health)
 	mux.HandleFunc("GET /api/health", api.health)
@@ -482,9 +482,10 @@ type loginLimiter struct {
 	window  time.Duration
 }
 
+const maxRateLimitClients = 4096
+
 func newLoginLimiter() *loginLimiter {
 	return newRequestLimiter(6, time.Minute)
-
 }
 
 func newRequestLimiter(limit int, window time.Duration) *loginLimiter {
@@ -494,6 +495,19 @@ func newRequestLimiter(limit int, window time.Duration) *loginLimiter {
 func (l *loginLimiter) allow(client string, now time.Time) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if _, exists := l.windows[client]; !exists && len(l.windows) >= maxRateLimitClients {
+		for key, candidate := range l.windows {
+			if now.After(candidate.until) {
+				delete(l.windows, key)
+			}
+		}
+		if len(l.windows) >= maxRateLimitClients {
+			for key := range l.windows {
+				delete(l.windows, key)
+				break
+			}
+		}
+	}
 	window := l.windows[client]
 	if now.After(window.until) {
 		window = loginWindow{until: now.Add(l.window)}
@@ -604,6 +618,10 @@ func decode(w http.ResponseWriter, r *http.Request, dst any) bool {
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(dst); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
+		return false
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		writeError(w, http.StatusBadRequest, "request body must contain one JSON value")
 		return false
 	}
 	return true

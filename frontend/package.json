@@ -5,7 +5,9 @@
     "ng": "ng",
     "start": "node scripts/start.mjs",
     "build": "node scripts/build.mjs",
-    "watch": "node scripts/build.mjs --watch --configuration development"
+    "watch": "node scripts/build.mjs --watch --configuration development",
+    "format": "prettier --write \"src/**/*.{ts,html,scss}\" \"scripts/*.mjs\" \"*.json\"",
+    "format:check": "prettier --check \"src/**/*.{ts,html,scss}\" \"scripts/*.mjs\" \"*.json\""
   },
   "private": true,
   "overrides": {
@@ -26,6 +28,7 @@
     "@angular/build": "22.1.2",
     "@angular/cli": "22.1.2",
     "@angular/compiler-cli": "22.1.0",
+    "prettier": "3.9.6",
     "sass": "1.102.0",
     "typescript": "6.0.2"
   }

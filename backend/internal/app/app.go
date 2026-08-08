@@ -46,7 +46,7 @@ func New(ctx context.Context, logger *slog.Logger) (*http.Server, func(), error)
 		MaxRetries:     cfg.ScraperRetries,
 		RequestTimeout: 20 * time.Second,
 	})
-	handler := httpapi.New(db, auth.New(cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTLifetime), scrape, redisCache, currency.New(), cfg.GoogleSearch.APIKey, cfg.GoogleSearch.EngineID, cfg.AllowedOrigins, logger)
+	handler := httpapi.New(db, auth.New(cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTLifetime), scrape, redisCache, currency.New(), cfg.AllowedOrigins, logger)
 	server := &http.Server{Addr: cfg.Address, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 30 * time.Second, WriteTimeout: 5 * time.Minute, IdleTimeout: 2 * time.Minute}
 	return server, func() { redisCache.Close(); dbPool.Close() }, nil
 }

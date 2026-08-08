@@ -1,5 +1,6 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { environment } from '../environments/environment';
+import { GoogleVINSearchService } from './google-vin-search.service';
 
 export interface VINEvidenceFact {
   label: string;
@@ -8,7 +9,6 @@ export interface VINEvidenceFact {
 
 export interface VINEvidence {
   id: string;
-  kind: 'auction';
   source: string;
   title: string;
   summary?: string;
@@ -38,10 +38,9 @@ export interface VINVehicle {
 }
 
 interface VINResearchEvent {
-  type: 'start' | 'evidence' | 'vehicle' | 'warning' | 'done';
+  type: 'start' | 'vehicle' | 'warning' | 'done';
   vin?: string;
   message?: string;
-  evidence?: VINEvidence;
   vehicle?: VINVehicle;
 }
 
@@ -54,6 +53,7 @@ interface CachedResearch {
 
 @Injectable({ providedIn: 'root' })
 export class VINResearchService {
+  private readonly webSearch = inject(GoogleVINSearchService);
   private readonly cache = new Map<string, CachedResearch>();
   private controller?: AbortController;
 
@@ -126,20 +126,39 @@ export class VINResearchService {
     this.vehicle.set(null);
 
     try {
-      const response = await fetch(`${environment.apiUrl}vin/${encodeURIComponent(vin)}/stream`, {
-        headers: { Accept: 'text/event-stream' },
-        signal: controller.signal,
-      });
-      if (!response.ok) throw new Error(await responseError(response));
-      if (!response.body || !response.headers.get('content-type')?.toLowerCase().startsWith('text/event-stream')) {
-        throw new Error('VIN research streaming is unavailable.');
-      }
-      await this.readStream(response.body, controller.signal);
+      const [identityResult, evidenceResult] = await Promise.allSettled([
+        this.loadIdentity(vin, controller.signal),
+        this.webSearch.search(vin, controller.signal),
+      ]);
       if (controller.signal.aborted) return;
+
+      const warnings: string[] = [];
+      if (identityResult.status === 'rejected') warnings.push('Official vehicle identity is temporarily unavailable.');
+      if (evidenceResult.status === 'fulfilled') this.evidence.set(evidenceResult.value);
+      else warnings.push('Exact VIN evidence search is temporarily unavailable.');
+      if (identityResult.status === 'rejected' && evidenceResult.status === 'rejected') {
+        throw new Error('VIN research is temporarily unavailable.');
+      }
+
+      this.warning.set(warnings.join(' '));
       this.status.set('done');
-      if (!this.message()) this.message.set('VIN research complete');
+      const count = this.evidence().length;
+      this.message.set(
+        count === 1
+          ? '1 exact VIN record found'
+          : count > 1
+            ? `${count} exact VIN records found`
+            : this.vehicle()
+              ? 'Vehicle identity decoded'
+              : 'No exact VIN record found',
+      );
       if (this.cache.size >= 50) this.cache.delete(this.cache.keys().next().value!);
-      this.cache.set(vin, { evidence: this.evidence(), vehicle: this.vehicle(), warning: this.warning(), message: this.message() });
+      this.cache.set(vin, {
+        evidence: this.evidence(),
+        vehicle: this.vehicle(),
+        warning: this.warning(),
+        message: this.message(),
+      });
     } catch (error) {
       if (controller.signal.aborted) return;
       this.status.set('error');
@@ -147,6 +166,18 @@ export class VINResearchService {
     } finally {
       if (this.controller === controller) this.controller = undefined;
     }
+  }
+
+  private async loadIdentity(vin: string, signal: AbortSignal): Promise<void> {
+    const response = await fetch(`${environment.apiUrl}vin/${encodeURIComponent(vin)}/stream`, {
+      headers: { Accept: 'text/event-stream' },
+      signal,
+    });
+    if (!response.ok) throw new Error(await responseError(response));
+    if (!response.body || !response.headers.get('content-type')?.toLowerCase().startsWith('text/event-stream')) {
+      throw new Error('VIN identity streaming is unavailable.');
+    }
+    await this.readStream(response.body, signal);
   }
 
   private async readStream(stream: ReadableStream<Uint8Array>, signal: AbortSignal): Promise<void> {
@@ -169,16 +200,22 @@ export class VINResearchService {
   }
 
   private receive(frame: string): void {
-    const data = frame.split('\n').filter((line) => line.startsWith('data:')).map((line) => line.slice(5).trimStart()).join('\n');
+    const data = frame
+      .split('\n')
+      .filter((line) => line.startsWith('data:'))
+      .map((line) => line.slice(5).trimStart())
+      .join('\n');
     if (!data) return;
     const event = JSON.parse(data) as VINResearchEvent;
     if (event.type === 'start') this.message.set(event.message || 'Researching VIN…');
-    if (event.type === 'evidence' && event.evidence) {
-      this.evidence.update((items) => items.some((item) => item.id === event.evidence!.id) ? items : [...items, event.evidence!]);
-    }
     if (event.type === 'vehicle' && event.vehicle) this.vehicle.set(event.vehicle);
     if (event.type === 'warning') this.warning.set(event.message || 'Some vehicle details are unavailable.');
-    if (event.type === 'done') this.message.set(event.message || 'Research ready');
+    if (event.type === 'done') {
+      const message = event.message || 'Research ready';
+      this.message.set(
+        message.toLowerCase().includes('unavailable') && this.vehicle() ? 'Vehicle identity decoded' : message,
+      );
+    }
   }
 
   private applyCached(vin: string, cached: CachedResearch): void {
@@ -192,7 +229,10 @@ export class VINResearchService {
 }
 
 function cleanVIN(value: string): string {
-  return value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 17);
+  return value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 17);
 }
 
 function validVIN(value: string): boolean {

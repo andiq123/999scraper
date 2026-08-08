@@ -1,5 +1,8 @@
 <fieldset>
-  <legend><span>{{ label() }}</span><output>{{ summary() }}</output></legend>
+  <legend>
+    <span>{{ label() }}</span
+    ><output>{{ summary() }}</output>
+  </legend>
   @if (presets().length) {
     <div class="presets" [attr.aria-label]="label() + ' presets'">
       @for (preset of presets(); track preset.label) {
@@ -8,12 +11,46 @@
     </div>
   }
   <div class="dual-range" [style.--from.%]="fromPercent()" [style.--to.%]="toPercent()">
-    <input type="range" [min]="min()" [max]="max()" [step]="step()" [value]="from() ?? min()" (input)="setSlider('from', $event)" [attr.aria-label]="'Minimum ' + label()">
-    <input type="range" [min]="min()" [max]="max()" [step]="step()" [value]="to() ?? max()" (input)="setSlider('to', $event)" [attr.aria-label]="'Maximum ' + label()">
+    <input
+      type="range"
+      [min]="min()"
+      [max]="max()"
+      [step]="step()"
+      [value]="from() ?? min()"
+      (input)="setSlider('from', $event)"
+      [attr.aria-label]="'Minimum ' + label()"
+    />
+    <input
+      type="range"
+      [min]="min()"
+      [max]="max()"
+      [step]="step()"
+      [value]="to() ?? max()"
+      (input)="setSlider('to', $event)"
+      [attr.aria-label]="'Maximum ' + label()"
+    />
   </div>
   <div class="inputs">
-    <input type="number" inputmode="numeric" [min]="min()" [step]="step()" [placeholder]="'Min' + (unit() ? ' ' + unit() : '')" [value]="from() ?? ''" (input)="setInput('from', $event)" [attr.aria-label]="'Minimum ' + label()">
+    <input
+      type="number"
+      inputmode="numeric"
+      [min]="min()"
+      [step]="step()"
+      [placeholder]="'Min' + (unit() ? ' ' + unit() : '')"
+      [value]="from() ?? ''"
+      (input)="setInput('from', $event)"
+      [attr.aria-label]="'Minimum ' + label()"
+    />
     <span>–</span>
-    <input type="number" inputmode="numeric" [min]="min()" [step]="step()" [placeholder]="'Max' + (unit() ? ' ' + unit() : '')" [value]="to() ?? ''" (input)="setInput('to', $event)" [attr.aria-label]="'Maximum ' + label()">
+    <input
+      type="number"
+      inputmode="numeric"
+      [min]="min()"
+      [step]="step()"
+      [placeholder]="'Max' + (unit() ? ' ' + unit() : '')"
+      [value]="to() ?? ''"
+      (input)="setInput('to', $event)"
+      [attr.aria-label]="'Maximum ' + label()"
+    />
   </div>
 </fieldset>

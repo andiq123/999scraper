@@ -4,7 +4,9 @@
       <h1>Your login code</h1>
       <p>Save these six digits. They are shown once.</p>
       <code aria-label="Your six-digit login code">{{ code() }}</code>
-      <button class="ui-button ui-button-primary" type="button" (click)="copy()">{{ copied() ? 'Copied' : 'Copy code' }}</button>
+      <button class="ui-button ui-button-primary" type="button" (click)="copy()">
+        {{ copied() ? 'Copied' : 'Copy code' }}
+      </button>
       <a routerLink="/login">Go to login</a>
     </section>
   } @else {

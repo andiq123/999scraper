@@ -52,7 +52,7 @@ export class SettingsComponent {
         cache: 'no-store',
         signal: request.signal,
       });
-      const body = await response.json() as HealthStatus;
+      const body = (await response.json()) as HealthStatus;
       if (!body.services || typeof body.services.backend !== 'boolean') throw new Error('Invalid health response');
       this.health.set(body);
       this.unavailable.set(false);

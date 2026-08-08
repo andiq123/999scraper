@@ -6,11 +6,24 @@
   <section class="summary ui-surface" [class.degraded]="unavailable() || health()?.status === 'degraded'">
     <span class="summary-light" aria-hidden="true"></span>
     <div>
-      <strong>{{ unavailable() ? 'Backend unavailable' : checking() && !health() ? 'Checking services' : health()?.status === 'ok' ? 'All systems available' : 'Some services need attention' }}</strong>
+      <strong>{{
+        unavailable()
+          ? 'Backend unavailable'
+          : checking() && !health()
+            ? 'Checking services'
+            : health()?.status === 'ok'
+              ? 'All systems available'
+              : 'Some services need attention'
+      }}</strong>
       <small>
-        @if (lastChecked(); as checked) { Last checked {{ checked.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'}) }} }
-        @else { Running the first check… }
-        @if (latency(); as value) { · {{ value }} ms }
+        @if (lastChecked(); as checked) {
+          Last checked {{ checked.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }}
+        } @else {
+          Running the first check…
+        }
+        @if (latency(); as value) {
+          · {{ value }} ms
+        }
       </small>
     </div>
     <button class="ui-button ui-button-quiet" type="button" (click)="refresh()" [disabled]="checking()">
@@ -36,5 +49,8 @@
     </article>
   </section>
 
-  <p class="privacy-note">Health checks contain only availability flags and timestamps. Connection addresses, credentials and internal errors are never returned.</p>
+  <p class="privacy-note">
+    Health checks contain only availability flags and timestamps. Connection addresses, credentials and internal errors
+    are never returned.
+  </p>
 </main>

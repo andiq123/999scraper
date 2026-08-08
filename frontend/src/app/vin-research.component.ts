@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  computed,
+  effect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { ToastService } from './toast.service';
 import { VINResearchService } from './vin-research.service';
 
@@ -22,7 +31,12 @@ export class VINResearchComponent {
   readonly vehicleFacts = computed(() => {
     const vehicle = this.research.vehicle();
     if (!vehicle) return [];
-    const engine = [vehicle.displacementL && `${vehicle.displacementL} L`, vehicle.engineCylinders && `${vehicle.engineCylinders} cyl.`].filter(Boolean).join(' · ');
+    const engine = [
+      vehicle.displacementL && `${vehicle.displacementL} L`,
+      vehicle.engineCylinders && `${vehicle.engineCylinders} cyl.`,
+    ]
+      .filter(Boolean)
+      .join(' · ');
     return [
       { label: 'Body', value: vehicle.bodyClass || vehicle.vehicleType },
       { label: 'Drive', value: vehicle.driveType },
@@ -34,7 +48,9 @@ export class VINResearchComponent {
   });
   readonly decodeWarning = computed(() => {
     const vehicle = this.research.vehicle();
-    return vehicle?.errorCode && vehicle.errorCode !== '0' ? vehicle.errorText || 'NHTSA returned a partial decode.' : '';
+    return vehicle?.errorCode && vehicle.errorCode !== '0'
+      ? vehicle.errorText || 'NHTSA returned a partial decode.'
+      : '';
   });
 
   constructor() {

@@ -78,19 +78,20 @@ export class ListingSummaryService {
       }
     };
 
-    await Promise.all(Array.from(
-      { length: Math.min(bulkRequestConcurrency, ids.length) },
-      () => worker(),
-    ));
+    await Promise.all(Array.from({ length: Math.min(bulkRequestConcurrency, ids.length) }, () => worker()));
     if (failure !== undefined) throw failure;
 
     const exportedAt = new Date();
-    const json = JSON.stringify({
-      source: '999.md',
-      exportedAt: exportedAt.toISOString(),
-      count: listings.length,
-      listings,
-    }, null, 2);
+    const json = JSON.stringify(
+      {
+        source: '999.md',
+        exportedAt: exportedAt.toISOString(),
+        count: listings.length,
+        listings,
+      },
+      null,
+      2,
+    );
     downloadJSON(json, `999-listings-${fileTimestamp(exportedAt)}.json`);
   }
 

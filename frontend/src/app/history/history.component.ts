@@ -16,7 +16,9 @@ export class HistoryComponent {
   private readonly auth = inject(AuthService);
   readonly items = signal<SearchHistory[]>([]);
 
-  constructor() { void this.load(); }
+  constructor() {
+    void this.load();
+  }
 
   private async load(): Promise<void> {
     const response = await fetch(environment.apiUrl + 'history', this.auth.withSession());

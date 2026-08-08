@@ -1,14 +1,70 @@
 <main class="search-page">
   <form class="search-form ui-surface" (submit)="search($event)">
     <label class="sr-only" for="search-query">Search 999.md</label>
-    <input #searchInput id="search-query" autofocus autocomplete="off" enterkeyhint="search" role="combobox" aria-autocomplete="list" aria-controls="search-suggestions" [attr.aria-expanded]="showSearchSuggestions()" [attr.aria-activedescendant]="activeSuggestionId()" placeholder="Try ‘Corolla automatic under 10k EUR -piese’" [value]="query()" (focus)="openSearchSuggestions()" (blur)="closeSearchSuggestions()" (input)="updateQuery($any($event.target).value)" (keydown)="handleSearchKeys($event)">
-    <button class="ui-button ui-button-primary" type="submit" [disabled]="!query().trim() || (loading() && !newSearchPending()) || (!newSearchPending() && (yearRangeInvalid() || mileageRangeInvalid() || powerRangeInvalid() || generationRangeInvalid() || storageRangeInvalid() || ramRangeInvalid() || roomsRangeInvalid() || areaRangeInvalid() || floorRangeInvalid() || screenRangeInvalid() || priceRangeInvalid()))">{{ newSearchPending() ? 'Update' : 'Search' }}</button>
+    <input
+      #searchInput
+      id="search-query"
+      autofocus
+      autocomplete="off"
+      enterkeyhint="search"
+      role="combobox"
+      aria-autocomplete="list"
+      aria-controls="search-suggestions"
+      [attr.aria-expanded]="showSearchSuggestions()"
+      [attr.aria-activedescendant]="activeSuggestionId()"
+      placeholder="Try ‘Corolla automatic under 10k EUR -piese’"
+      [value]="query()"
+      (focus)="openSearchSuggestions()"
+      (blur)="closeSearchSuggestions()"
+      (input)="updateQuery($any($event.target).value)"
+      (keydown)="handleSearchKeys($event)"
+    />
+    <button
+      class="ui-button ui-button-primary"
+      type="submit"
+      [disabled]="
+        !query().trim() ||
+        (loading() && !newSearchPending()) ||
+        (!newSearchPending() &&
+          (yearRangeInvalid() ||
+            mileageRangeInvalid() ||
+            powerRangeInvalid() ||
+            generationRangeInvalid() ||
+            storageRangeInvalid() ||
+            ramRangeInvalid() ||
+            roomsRangeInvalid() ||
+            areaRangeInvalid() ||
+            floorRangeInvalid() ||
+            screenRangeInvalid() ||
+            priceRangeInvalid()))
+      "
+    >
+      {{ newSearchPending() ? 'Update' : 'Search' }}
+    </button>
     @if (showSearchSuggestions()) {
       <ul id="search-suggestions" class="search-suggestions" role="listbox" aria-label="Search suggestions">
         @for (suggestion of searchSuggestions(); track suggestion.value; let index = $index) {
-          <li [id]="'search-suggestion-' + index" role="option" [attr.aria-selected]="activeSuggestionIndex() === index">
-            <button type="button" [class.active]="activeSuggestionIndex() === index" (pointerdown)="$event.preventDefault()" (mouseenter)="activeSuggestionIndex.set(index)" (click)="chooseSuggestion(suggestion)">
-              <span class="suggestion-icon" aria-hidden="true">{{ suggestion.kind === 'recent' ? '↺' : suggestion.kind === 'refine' ? '＋' : suggestion.kind === 'direct' ? '→' : '⌕' }}</span>
+          <li
+            [id]="'search-suggestion-' + index"
+            role="option"
+            [attr.aria-selected]="activeSuggestionIndex() === index"
+          >
+            <button
+              type="button"
+              [class.active]="activeSuggestionIndex() === index"
+              (pointerdown)="$event.preventDefault()"
+              (mouseenter)="activeSuggestionIndex.set(index)"
+              (click)="chooseSuggestion(suggestion)"
+            >
+              <span class="suggestion-icon" aria-hidden="true">{{
+                suggestion.kind === 'recent'
+                  ? '↺'
+                  : suggestion.kind === 'refine'
+                    ? '＋'
+                    : suggestion.kind === 'direct'
+                      ? '→'
+                      : '⌕'
+              }}</span>
               <strong>{{ suggestion.label }}</strong>
               <small>{{ suggestion.hint }}</small>
             </button>
@@ -20,173 +76,654 @@
 
   @if (searchAssist()) {
     <aside class="search-update" animate.enter="reveal-enter" animate.leave="reveal-leave" role="status">
-      <span aria-hidden="true">✓</span><p><small>{{ searchAssist() }}</small></p>
+      <span aria-hidden="true">✓</span>
+      <p>
+        <small>{{ searchAssist() }}</small>
+      </p>
     </aside>
   }
 
   @if (newSearchPending()) {
     <aside class="search-update" animate.enter="reveal-enter" animate.leave="reveal-leave" role="status">
       <span aria-hidden="true">↻</span>
-      <p><strong>New search not submitted</strong><small>Results below are still for “{{ activeQuery() }}”. Press Update or Enter.</small></p>
+      <p>
+        <strong>New search not submitted</strong
+        ><small>Results below are still for “{{ activeQuery() }}”. Press Update or Enter.</small>
+      </p>
     </aside>
   }
 
   @if (hasSmartPrompt()) {
-    <details class="smart-prompt ui-surface" animate.enter="reveal-enter" animate.leave="reveal-leave" aria-live="polite" [open]="uiPreferences.isOpen('smartRefinement')" (toggle)="rememberPanel('smartRefinement', $event)">
+    <details
+      class="smart-prompt ui-surface"
+      animate.enter="reveal-enter"
+      animate.leave="reveal-leave"
+      aria-live="polite"
+      [open]="uiPreferences.isOpen('smartRefinement')"
+      (toggle)="rememberPanel('smartRefinement', $event)"
+    >
       <summary>
         <span class="smart-icon" aria-hidden="true">✦</span>
-        <span class="smart-copy"><strong>{{ smartTitle() }}</strong><small>{{ smartSummary() }}</small></span>
+        <span class="smart-copy"
+          ><strong>{{ smartTitle() }}</strong
+          ><small>{{ smartSummary() }}</small></span
+        >
         <span class="refine-label">Smart filters</span>
       </summary>
 
       <div class="smart-controls">
-      @if (isVehicleSearch()) {
-        <div class="vehicle-ranges">
-          <app-range-filter label="Year" [min]="1950" [max]="2027" [from]="yearFrom()" [to]="yearTo()" [presets]="yearPresets" (fromChange)="yearFrom.set($event)" (toChange)="yearTo.set($event)" />
-          <app-range-filter label="Mileage" unit="km" [min]="0" [max]="500000" [step]="5000" [from]="mileageFrom()" [to]="mileageTo()" [presets]="mileagePresets" (fromChange)="mileageFrom.set($event)" (toChange)="mileageTo.set($event)" />
-          <app-range-filter label="Power" unit="hp" [min]="0" [max]="1000" [step]="10" [from]="powerFrom()" [to]="powerTo()" [presets]="powerPresets" (fromChange)="powerFrom.set($event)" (toChange)="powerTo.set($event)" />
-        </div>
-        <div class="smart-choice">
-          <span>Fuel</span>
-          <div class="choice-chips">
-            <button type="button" [class.active]="fuel().length === 0" [attr.aria-pressed]="fuel().length === 0" (click)="fuel.set([])">Any</button>
-            @for (option of fuelOptions; track option) { <button type="button" [class.active]="fuel().includes(option)" [attr.aria-pressed]="fuel().includes(option)" (click)="toggleChoice(fuel, option)">{{ option }}</button> }
+        @if (isVehicleSearch()) {
+          <div class="vehicle-ranges">
+            <app-range-filter
+              label="Year"
+              [min]="1950"
+              [max]="2027"
+              [from]="yearFrom()"
+              [to]="yearTo()"
+              [presets]="yearPresets"
+              (fromChange)="yearFrom.set($event)"
+              (toChange)="yearTo.set($event)"
+            />
+            <app-range-filter
+              label="Mileage"
+              unit="km"
+              [min]="0"
+              [max]="500000"
+              [step]="5000"
+              [from]="mileageFrom()"
+              [to]="mileageTo()"
+              [presets]="mileagePresets"
+              (fromChange)="mileageFrom.set($event)"
+              (toChange)="mileageTo.set($event)"
+            />
+            <app-range-filter
+              label="Power"
+              unit="hp"
+              [min]="0"
+              [max]="1000"
+              [step]="10"
+              [from]="powerFrom()"
+              [to]="powerTo()"
+              [presets]="powerPresets"
+              (fromChange)="powerFrom.set($event)"
+              (toChange)="powerTo.set($event)"
+            />
           </div>
-        </div>
-        <div class="smart-choice">
-          <span>Gearbox</span>
-          <div class="choice-chips">
-            <button type="button" [class.active]="transmission().length === 0" [attr.aria-pressed]="transmission().length === 0" (click)="transmission.set([])">Any</button>
-            @for (option of transmissionOptions; track option) { <button type="button" [class.active]="transmission().includes(option)" [attr.aria-pressed]="transmission().includes(option)" (click)="toggleChoice(transmission, option)">{{ option }}</button> }
+          <div class="smart-choice">
+            <span>Fuel</span>
+            <div class="choice-chips">
+              <button
+                type="button"
+                [class.active]="fuel().length === 0"
+                [attr.aria-pressed]="fuel().length === 0"
+                (click)="fuel.set([])"
+              >
+                Any
+              </button>
+              @for (option of fuelOptions; track option) {
+                <button
+                  type="button"
+                  [class.active]="fuel().includes(option)"
+                  [attr.aria-pressed]="fuel().includes(option)"
+                  (click)="toggleChoice(fuel, option)"
+                >
+                  {{ option }}
+                </button>
+              }
+            </div>
           </div>
-        </div>
-        <div class="smart-choice">
-          <span>Drivetrain</span>
-          <div class="choice-chips">
-            <button type="button" [class.active]="drivetrain().length === 0" [attr.aria-pressed]="drivetrain().length === 0" (click)="drivetrain.set([])">Any</button>
-            @for (option of drivetrainOptions; track option) { <button type="button" [class.active]="drivetrain().includes(option)" [attr.aria-pressed]="drivetrain().includes(option)" (click)="toggleChoice(drivetrain, option)">{{ option }}</button> }
+          <div class="smart-choice">
+            <span>Gearbox</span>
+            <div class="choice-chips">
+              <button
+                type="button"
+                [class.active]="transmission().length === 0"
+                [attr.aria-pressed]="transmission().length === 0"
+                (click)="transmission.set([])"
+              >
+                Any
+              </button>
+              @for (option of transmissionOptions; track option) {
+                <button
+                  type="button"
+                  [class.active]="transmission().includes(option)"
+                  [attr.aria-pressed]="transmission().includes(option)"
+                  (click)="toggleChoice(transmission, option)"
+                >
+                  {{ option }}
+                </button>
+              }
+            </div>
           </div>
-        </div>
-        <div class="smart-choice">
-          <span>Body</span>
-          <div class="choice-chips">
-            <button type="button" [class.active]="bodyType().length === 0" [attr.aria-pressed]="bodyType().length === 0" (click)="bodyType.set([])">Any</button>
-            @for (option of bodyTypeOptions; track option) { <button type="button" [class.active]="bodyType().includes(option)" [attr.aria-pressed]="bodyType().includes(option)" (click)="toggleChoice(bodyType, option)">{{ option }}</button> }
+          <div class="smart-choice">
+            <span>Drivetrain</span>
+            <div class="choice-chips">
+              <button
+                type="button"
+                [class.active]="drivetrain().length === 0"
+                [attr.aria-pressed]="drivetrain().length === 0"
+                (click)="drivetrain.set([])"
+              >
+                Any
+              </button>
+              @for (option of drivetrainOptions; track option) {
+                <button
+                  type="button"
+                  [class.active]="drivetrain().includes(option)"
+                  [attr.aria-pressed]="drivetrain().includes(option)"
+                  (click)="toggleChoice(drivetrain, option)"
+                >
+                  {{ option }}
+                </button>
+              }
+            </div>
           </div>
-        </div>
-        <div class="smart-choice">
-          <span>Înmatriculare</span>
-          <div class="choice-chips">
-            <button type="button" [class.active]="registration().length === 0" [attr.aria-pressed]="registration().length === 0" (click)="registration.set([])">Any</button>
-            <button type="button" [class.active]="registration().includes('moldova')" [attr.aria-pressed]="registration().includes('moldova')" (click)="toggleRegistration('moldova')">Republica Moldova</button>
-            <button type="button" [class.active]="registration().includes('other')" [attr.aria-pressed]="registration().includes('other')" (click)="toggleRegistration('other')">Altă</button>
+          <div class="smart-choice">
+            <span>Body</span>
+            <div class="choice-chips">
+              <button
+                type="button"
+                [class.active]="bodyType().length === 0"
+                [attr.aria-pressed]="bodyType().length === 0"
+                (click)="bodyType.set([])"
+              >
+                Any
+              </button>
+              @for (option of bodyTypeOptions; track option) {
+                <button
+                  type="button"
+                  [class.active]="bodyType().includes(option)"
+                  [attr.aria-pressed]="bodyType().includes(option)"
+                  (click)="toggleChoice(bodyType, option)"
+                >
+                  {{ option }}
+                </button>
+              }
+            </div>
           </div>
-        </div>
-        <div class="smart-choice">
-          <span>Țara de origine</span>
-          <div class="choice-chips" aria-label="Țara de origine">
-            <button type="button" [class.active]="originCountry().length === 0" [attr.aria-pressed]="originCountry().length === 0" (click)="originCountry.set([])">Any</button>
-            @for (option of originCountryOptions; track option) { <button type="button" [class.active]="originCountry().includes(option)" [attr.aria-pressed]="originCountry().includes(option)" (click)="toggleOriginCountry(option)">{{ option }}</button> }
+          <div class="smart-choice">
+            <span>Înmatriculare</span>
+            <div class="choice-chips">
+              <button
+                type="button"
+                [class.active]="registration().length === 0"
+                [attr.aria-pressed]="registration().length === 0"
+                (click)="registration.set([])"
+              >
+                Any
+              </button>
+              <button
+                type="button"
+                [class.active]="registration().includes('moldova')"
+                [attr.aria-pressed]="registration().includes('moldova')"
+                (click)="toggleRegistration('moldova')"
+              >
+                Republica Moldova
+              </button>
+              <button
+                type="button"
+                [class.active]="registration().includes('other')"
+                [attr.aria-pressed]="registration().includes('other')"
+                (click)="toggleRegistration('other')"
+              >
+                Altă
+              </button>
+            </div>
           </div>
-        </div>
-        @if (yearRangeInvalid() || mileageRangeInvalid() || powerRangeInvalid()) { <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">The lower value must come before the upper value.</p> }
-      } @else if (isDeviceSearch()) {
-        <div class="smart-fields device-ranges">
-          <div class="compact-range">
-            <label>Generation from <input type="number" inputmode="numeric" [min]="searchIntent().kind === 'iphone' ? 3 : 1" [max]="searchIntent().kind === 'iphone' ? 20 : 5" placeholder="Any" [value]="generationFrom() ?? ''" (input)="setGeneration('from', $event)"></label>
+          <div class="smart-choice">
+            <span>Țara de origine</span>
+            <div class="choice-chips" aria-label="Țara de origine">
+              <button
+                type="button"
+                [class.active]="originCountry().length === 0"
+                [attr.aria-pressed]="originCountry().length === 0"
+                (click)="originCountry.set([])"
+              >
+                Any
+              </button>
+              @for (option of originCountryOptions; track option) {
+                <button
+                  type="button"
+                  [class.active]="originCountry().includes(option)"
+                  [attr.aria-pressed]="originCountry().includes(option)"
+                  (click)="toggleOriginCountry(option)"
+                >
+                  {{ option }}
+                </button>
+              }
+            </div>
+          </div>
+          @if (yearRangeInvalid() || mileageRangeInvalid() || powerRangeInvalid()) {
+            <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">
+              The lower value must come before the upper value.
+            </p>
+          }
+        } @else if (isDeviceSearch()) {
+          <div class="smart-fields device-ranges">
+            <div class="compact-range">
+              <label
+                >Generation from
+                <input
+                  type="number"
+                  inputmode="numeric"
+                  [min]="searchIntent().kind === 'iphone' ? 3 : 1"
+                  [max]="searchIntent().kind === 'iphone' ? 20 : 5"
+                  placeholder="Any"
+                  [value]="generationFrom() ?? ''"
+                  (input)="setGeneration('from', $event)"
+              /></label>
+              <span>–</span>
+              <label
+                >To
+                <input
+                  type="number"
+                  inputmode="numeric"
+                  [min]="searchIntent().kind === 'iphone' ? 3 : 1"
+                  [max]="searchIntent().kind === 'iphone' ? 20 : 5"
+                  placeholder="Any"
+                  [value]="generationTo() ?? ''"
+                  (input)="setGeneration('to', $event)"
+              /></label>
+            </div>
+            <div class="compact-range storage-range">
+              <label
+                >Storage from
+                <select [value]="storageFrom() ?? ''" (change)="setStorage('from', $event)">
+                  <option value="">Any</option>
+                  @for (size of storageOptions; track size) {
+                    <option [value]="size">{{ size >= 1024 ? size / 1024 + ' TB' : size + ' GB' }}</option>
+                  }
+                </select></label
+              >
+              <span>–</span>
+              <label
+                >To
+                <select [value]="storageTo() ?? ''" (change)="setStorage('to', $event)">
+                  <option value="">Any</option>
+                  @for (size of storageOptions; track size) {
+                    <option [value]="size">{{ size >= 1024 ? size / 1024 + ' TB' : size + ' GB' }}</option>
+                  }
+                </select></label
+              >
+            </div>
+          </div>
+          <div class="smart-choice device-choice">
+            <span>Edition</span>
+            <div class="choice-chips">
+              @for (tag of deviceTagOptions(); track tag) {
+                <button
+                  type="button"
+                  [class.active]="deviceTags().includes(tag)"
+                  [attr.aria-pressed]="deviceTags().includes(tag)"
+                  (click)="toggleDeviceTag(tag)"
+                >
+                  {{ tag === 'disc' ? 'Disc' : tag[0].toUpperCase() + tag.slice(1) }}
+                </button>
+              }
+            </div>
+          </div>
+          @if (generationRangeInvalid() || storageRangeInvalid()) {
+            <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">
+              The lower value must come before the upper value.
+            </p>
+          }
+        } @else if (isComputerSearch()) {
+          <div class="smart-fields device-ranges">
+            <div class="compact-range">
+              <label
+                >RAM from
+                <input
+                  type="number"
+                  inputmode="numeric"
+                  min="1"
+                  max="256"
+                  placeholder="Any"
+                  [value]="ramFrom() ?? ''"
+                  (input)="setRAM('from', $event)"
+              /></label>
+              <span>–</span>
+              <label
+                >To
+                <input
+                  type="number"
+                  inputmode="numeric"
+                  min="1"
+                  max="256"
+                  placeholder="Any"
+                  [value]="ramTo() ?? ''"
+                  (input)="setRAM('to', $event)"
+              /></label>
+            </div>
+            <div class="compact-range storage-range">
+              <label
+                >Storage from
+                <select [value]="storageFrom() ?? ''" (change)="setStorage('from', $event)">
+                  <option value="">Any</option>
+                  @for (size of storageOptions; track size) {
+                    <option [value]="size">{{ size >= 1024 ? size / 1024 + ' TB' : size + ' GB' }}</option>
+                  }
+                </select></label
+              >
+              <span>–</span>
+              <label
+                >To
+                <select [value]="storageTo() ?? ''" (change)="setStorage('to', $event)">
+                  <option value="">Any</option>
+                  @for (size of storageOptions; track size) {
+                    <option [value]="size">{{ size >= 1024 ? size / 1024 + ' TB' : size + ' GB' }}</option>
+                  }
+                </select></label
+              >
+            </div>
+            <div class="compact-range">
+              <label
+                >Screen from
+                <input
+                  type="number"
+                  inputmode="decimal"
+                  min="3"
+                  max="100"
+                  step="0.1"
+                  placeholder="Any"
+                  [value]="screenFrom() ?? ''"
+                  (input)="setScreen('from', $event)"
+              /></label>
+              <span>–</span>
+              <label
+                >To
+                <input
+                  type="number"
+                  inputmode="decimal"
+                  min="3"
+                  max="100"
+                  step="0.1"
+                  placeholder="Any"
+                  [value]="screenTo() ?? ''"
+                  (input)="setScreen('to', $event)"
+              /></label>
+            </div>
+          </div>
+          @if (ramRangeInvalid() || storageRangeInvalid() || screenRangeInvalid()) {
+            <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">
+              The lower value must come before the upper value.
+            </p>
+          }
+        } @else if (isPropertySearch()) {
+          <div class="smart-choice">
+            <span>Offer</span>
+            <div class="choice-chips">
+              <button
+                type="button"
+                [class.active]="listingMode().length === 0"
+                [attr.aria-pressed]="listingMode().length === 0"
+                (click)="clearPropertyListingMode()"
+              >
+                Any
+              </button>
+              <button
+                type="button"
+                [class.active]="listingMode().includes('sale')"
+                [attr.aria-pressed]="listingMode().includes('sale')"
+                (click)="togglePropertyListingMode('sale')"
+              >
+                For sale
+              </button>
+              <button
+                type="button"
+                [class.active]="listingMode().includes('monthly')"
+                [attr.aria-pressed]="listingMode().includes('monthly')"
+                (click)="togglePropertyListingMode('monthly')"
+              >
+                Monthly rent
+              </button>
+              <button
+                type="button"
+                [class.active]="listingMode().includes('daily')"
+                [attr.aria-pressed]="listingMode().includes('daily')"
+                (click)="togglePropertyListingMode('daily')"
+              >
+                Daily rent
+              </button>
+            </div>
+          </div>
+          <div class="smart-choice">
+            <span>Sector</span>
+            <div class="choice-chips" aria-label="Property sector">
+              <button
+                type="button"
+                [class.active]="propertySector().length === 0"
+                [attr.aria-pressed]="propertySector().length === 0"
+                (click)="propertySector.set([])"
+              >
+                Any
+              </button>
+              @for (sector of propertySectorOptions(); track sector) {
+                <button
+                  type="button"
+                  [class.active]="propertySector().includes(sector)"
+                  [attr.aria-pressed]="propertySector().includes(sector)"
+                  (click)="toggleChoice(propertySector, sector)"
+                >
+                  {{ sector }}
+                </button>
+              }
+            </div>
+          </div>
+          <div class="property-ranges">
+            <app-range-filter
+              label="Rooms"
+              [min]="1"
+              [max]="20"
+              [from]="roomsFrom()"
+              [to]="roomsTo()"
+              [presets]="roomPresets"
+              (fromChange)="roomsFrom.set($event)"
+              (toChange)="roomsTo.set($event)"
+            />
+            <app-range-filter
+              label="Area"
+              unit="m²"
+              [min]="1"
+              [max]="1000"
+              [step]="5"
+              [from]="areaFrom()"
+              [to]="areaTo()"
+              [presets]="areaPresets"
+              (fromChange)="areaFrom.set($event)"
+              (toChange)="areaTo.set($event)"
+            />
+            <app-range-filter
+              label="Floor"
+              [min]="0"
+              [max]="50"
+              [from]="floorFrom()"
+              [to]="floorTo()"
+              [presets]="floorPresets"
+              (fromChange)="floorFrom.set($event)"
+              (toChange)="floorTo.set($event)"
+            />
+          </div>
+          <div class="smart-choice">
+            <span>Housing stock</span>
+            <div class="choice-chips">
+              <button
+                type="button"
+                [class.active]="housingStock().length === 0"
+                [attr.aria-pressed]="housingStock().length === 0"
+                (click)="housingStock.set([])"
+              >
+                Any
+              </button>
+              @for (option of housingStockOptions; track option) {
+                <button
+                  type="button"
+                  [class.active]="housingStock().includes(option)"
+                  [attr.aria-pressed]="housingStock().includes(option)"
+                  (click)="toggleChoice(housingStock, option)"
+                >
+                  {{ option }}
+                </button>
+              }
+            </div>
+          </div>
+          <div class="smart-choice">
+            <span>Listed by</span>
+            <div class="choice-chips">
+              <button
+                type="button"
+                [class.active]="listingAuthor().length === 0"
+                [attr.aria-pressed]="listingAuthor().length === 0"
+                (click)="listingAuthor.set([])"
+              >
+                Any
+              </button>
+              @for (option of listingAuthorOptions; track option) {
+                <button
+                  type="button"
+                  [class.active]="listingAuthor().includes(option)"
+                  [attr.aria-pressed]="listingAuthor().includes(option)"
+                  (click)="toggleChoice(listingAuthor, option)"
+                >
+                  {{ option }}
+                </button>
+              }
+            </div>
+          </div>
+          <div class="smart-choice">
+            <span>Condition</span>
+            <div class="choice-chips">
+              <button
+                type="button"
+                [class.active]="propertyState().length === 0"
+                [attr.aria-pressed]="propertyState().length === 0"
+                (click)="propertyState.set([])"
+              >
+                Any
+              </button>
+              @for (option of propertyStateOptions(); track option) {
+                <button
+                  type="button"
+                  [class.active]="propertyState().includes(option)"
+                  [attr.aria-pressed]="propertyState().includes(option)"
+                  (click)="toggleChoice(propertyState, option)"
+                >
+                  {{ option }}
+                </button>
+              }
+            </div>
+          </div>
+          <div class="smart-choice">
+            <span>Building type</span>
+            <div class="choice-chips">
+              <button
+                type="button"
+                [class.active]="buildingType().length === 0"
+                [attr.aria-pressed]="buildingType().length === 0"
+                (click)="buildingType.set([])"
+              >
+                Any
+              </button>
+              @for (option of buildingTypeOptions(); track option) {
+                <button
+                  type="button"
+                  [class.active]="buildingType().includes(option)"
+                  [attr.aria-pressed]="buildingType().includes(option)"
+                  (click)="toggleChoice(buildingType, option)"
+                >
+                  {{ option }}
+                </button>
+              }
+            </div>
+          </div>
+          @if (roomsRangeInvalid() || areaRangeInvalid() || floorRangeInvalid()) {
+            <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">
+              The lower value must come before the upper value.
+            </p>
+          }
+        } @else if (isTVSearch()) {
+          <div class="smart-fields">
+            <label
+              >Screen from
+              <input
+                type="number"
+                inputmode="decimal"
+                min="10"
+                max="150"
+                step="0.1"
+                placeholder="Any"
+                [value]="screenFrom() ?? ''"
+                (input)="setScreen('from', $event)"
+            /></label>
             <span>–</span>
-            <label>To <input type="number" inputmode="numeric" [min]="searchIntent().kind === 'iphone' ? 3 : 1" [max]="searchIntent().kind === 'iphone' ? 20 : 5" placeholder="Any" [value]="generationTo() ?? ''" (input)="setGeneration('to', $event)"></label>
+            <label
+              >Screen to
+              <input
+                type="number"
+                inputmode="decimal"
+                min="10"
+                max="150"
+                step="0.1"
+                placeholder="Any"
+                [value]="screenTo() ?? ''"
+                (input)="setScreen('to', $event)"
+            /></label>
           </div>
-          <div class="compact-range storage-range">
-            <label>Storage from <select [value]="storageFrom() ?? ''" (change)="setStorage('from', $event)"><option value="">Any</option>@for (size of storageOptions; track size) { <option [value]="size">{{ size >= 1024 ? size / 1024 + ' TB' : size + ' GB' }}</option> }</select></label>
-            <span>–</span>
-            <label>To <select [value]="storageTo() ?? ''" (change)="setStorage('to', $event)"><option value="">Any</option>@for (size of storageOptions; track size) { <option [value]="size">{{ size >= 1024 ? size / 1024 + ' TB' : size + ' GB' }}</option> }</select></label>
-          </div>
-        </div>
-        <div class="smart-choice device-choice">
-          <span>Edition</span>
-          <div class="choice-chips">
-            @for (tag of deviceTagOptions(); track tag) { <button type="button" [class.active]="deviceTags().includes(tag)" [attr.aria-pressed]="deviceTags().includes(tag)" (click)="toggleDeviceTag(tag)">{{ tag === 'disc' ? 'Disc' : (tag[0].toUpperCase() + tag.slice(1)) }}</button> }
-          </div>
-        </div>
-        @if (generationRangeInvalid() || storageRangeInvalid()) { <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">The lower value must come before the upper value.</p> }
-      } @else if (isComputerSearch()) {
-        <div class="smart-fields device-ranges">
-          <div class="compact-range">
-            <label>RAM from <input type="number" inputmode="numeric" min="1" max="256" placeholder="Any" [value]="ramFrom() ?? ''" (input)="setRAM('from', $event)"></label>
-            <span>–</span>
-            <label>To <input type="number" inputmode="numeric" min="1" max="256" placeholder="Any" [value]="ramTo() ?? ''" (input)="setRAM('to', $event)"></label>
-          </div>
-          <div class="compact-range storage-range">
-            <label>Storage from <select [value]="storageFrom() ?? ''" (change)="setStorage('from', $event)"><option value="">Any</option>@for (size of storageOptions; track size) { <option [value]="size">{{ size >= 1024 ? size / 1024 + ' TB' : size + ' GB' }}</option> }</select></label>
-            <span>–</span>
-            <label>To <select [value]="storageTo() ?? ''" (change)="setStorage('to', $event)"><option value="">Any</option>@for (size of storageOptions; track size) { <option [value]="size">{{ size >= 1024 ? size / 1024 + ' TB' : size + ' GB' }}</option> }</select></label>
-          </div>
-          <div class="compact-range">
-            <label>Screen from <input type="number" inputmode="decimal" min="3" max="100" step="0.1" placeholder="Any" [value]="screenFrom() ?? ''" (input)="setScreen('from', $event)"></label>
-            <span>–</span>
-            <label>To <input type="number" inputmode="decimal" min="3" max="100" step="0.1" placeholder="Any" [value]="screenTo() ?? ''" (input)="setScreen('to', $event)"></label>
-          </div>
-        </div>
-        @if (ramRangeInvalid() || storageRangeInvalid() || screenRangeInvalid()) { <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">The lower value must come before the upper value.</p> }
-      } @else if (isPropertySearch()) {
-        <div class="smart-choice">
-          <span>Offer</span>
-          <div class="choice-chips">
-            <button type="button" [class.active]="listingMode().length === 0" [attr.aria-pressed]="listingMode().length === 0" (click)="clearPropertyListingMode()">Any</button>
-            <button type="button" [class.active]="listingMode().includes('sale')" [attr.aria-pressed]="listingMode().includes('sale')" (click)="togglePropertyListingMode('sale')">For sale</button>
-            <button type="button" [class.active]="listingMode().includes('monthly')" [attr.aria-pressed]="listingMode().includes('monthly')" (click)="togglePropertyListingMode('monthly')">Monthly rent</button>
-            <button type="button" [class.active]="listingMode().includes('daily')" [attr.aria-pressed]="listingMode().includes('daily')" (click)="togglePropertyListingMode('daily')">Daily rent</button>
-          </div>
-        </div>
-        <div class="smart-choice"><span>Sector</span><div class="choice-chips" aria-label="Property sector"><button type="button" [class.active]="propertySector().length === 0" [attr.aria-pressed]="propertySector().length === 0" (click)="propertySector.set([])">Any</button>@for (sector of propertySectorOptions(); track sector) { <button type="button" [class.active]="propertySector().includes(sector)" [attr.aria-pressed]="propertySector().includes(sector)" (click)="toggleChoice(propertySector, sector)">{{ sector }}</button> }</div></div>
-        <div class="property-ranges">
-          <app-range-filter label="Rooms" [min]="1" [max]="20" [from]="roomsFrom()" [to]="roomsTo()" [presets]="roomPresets" (fromChange)="roomsFrom.set($event)" (toChange)="roomsTo.set($event)" />
-          <app-range-filter label="Area" unit="m²" [min]="1" [max]="1000" [step]="5" [from]="areaFrom()" [to]="areaTo()" [presets]="areaPresets" (fromChange)="areaFrom.set($event)" (toChange)="areaTo.set($event)" />
-          <app-range-filter label="Floor" [min]="0" [max]="50" [from]="floorFrom()" [to]="floorTo()" [presets]="floorPresets" (fromChange)="floorFrom.set($event)" (toChange)="floorTo.set($event)" />
-        </div>
-        <div class="smart-choice">
-          <span>Housing stock</span>
-          <div class="choice-chips">
-            <button type="button" [class.active]="housingStock().length === 0" [attr.aria-pressed]="housingStock().length === 0" (click)="housingStock.set([])">Any</button>
-            @for (option of housingStockOptions; track option) { <button type="button" [class.active]="housingStock().includes(option)" [attr.aria-pressed]="housingStock().includes(option)" (click)="toggleChoice(housingStock, option)">{{ option }}</button> }
-          </div>
-        </div>
-        <div class="smart-choice">
-          <span>Listed by</span>
-          <div class="choice-chips">
-            <button type="button" [class.active]="listingAuthor().length === 0" [attr.aria-pressed]="listingAuthor().length === 0" (click)="listingAuthor.set([])">Any</button>
-            @for (option of listingAuthorOptions; track option) { <button type="button" [class.active]="listingAuthor().includes(option)" [attr.aria-pressed]="listingAuthor().includes(option)" (click)="toggleChoice(listingAuthor, option)">{{ option }}</button> }
-          </div>
-        </div>
-        <div class="smart-choice"><span>Condition</span><div class="choice-chips"><button type="button" [class.active]="propertyState().length === 0" [attr.aria-pressed]="propertyState().length === 0" (click)="propertyState.set([])">Any</button>@for (option of propertyStateOptions(); track option) { <button type="button" [class.active]="propertyState().includes(option)" [attr.aria-pressed]="propertyState().includes(option)" (click)="toggleChoice(propertyState, option)">{{ option }}</button> }</div></div>
-        <div class="smart-choice"><span>Building type</span><div class="choice-chips"><button type="button" [class.active]="buildingType().length === 0" [attr.aria-pressed]="buildingType().length === 0" (click)="buildingType.set([])">Any</button>@for (option of buildingTypeOptions(); track option) { <button type="button" [class.active]="buildingType().includes(option)" [attr.aria-pressed]="buildingType().includes(option)" (click)="toggleChoice(buildingType, option)">{{ option }}</button> }</div></div>
-        @if (roomsRangeInvalid() || areaRangeInvalid() || floorRangeInvalid()) { <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">The lower value must come before the upper value.</p> }
-      } @else if (isTVSearch()) {
-        <div class="smart-fields">
-          <label>Screen from <input type="number" inputmode="decimal" min="10" max="150" step="0.1" placeholder="Any" [value]="screenFrom() ?? ''" (input)="setScreen('from', $event)"></label>
-          <span>–</span>
-          <label>Screen to <input type="number" inputmode="decimal" min="10" max="150" step="0.1" placeholder="Any" [value]="screenTo() ?? ''" (input)="setScreen('to', $event)"></label>
-        </div>
-        @if (screenRangeInvalid()) { <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">The lower value must come before the upper value.</p> }
-      }
+          @if (screenRangeInvalid()) {
+            <p class="range-error" animate.enter="reveal-enter" animate.leave="reveal-leave">
+              The lower value must come before the upper value.
+            </p>
+          }
+        }
 
-      @if (!isPropertySearch()) { <div class="smart-choice condition-choice">
-        <span>Condition</span>
-        <div class="choice-chips">
-          <button type="button" [class.active]="condition().length === 0" [attr.aria-pressed]="condition().length === 0" (click)="condition.set([])">Any</button>
-          <button type="button" [class.active]="condition().includes('new')" [attr.aria-pressed]="condition().includes('new')" (click)="toggleChoice(condition, 'new')">New</button>
-          <button type="button" [class.active]="condition().includes('used')" [attr.aria-pressed]="condition().includes('used')" (click)="toggleChoice(condition, 'used')">Used</button>
-        </div>
-      </div> }
+        @if (!isPropertySearch()) {
+          <div class="smart-choice condition-choice">
+            <span>Condition</span>
+            <div class="choice-chips">
+              <button
+                type="button"
+                [class.active]="condition().length === 0"
+                [attr.aria-pressed]="condition().length === 0"
+                (click)="condition.set([])"
+              >
+                Any
+              </button>
+              <button
+                type="button"
+                [class.active]="condition().includes('new')"
+                [attr.aria-pressed]="condition().includes('new')"
+                (click)="toggleChoice(condition, 'new')"
+              >
+                New
+              </button>
+              <button
+                type="button"
+                [class.active]="condition().includes('used')"
+                [attr.aria-pressed]="condition().includes('used')"
+                (click)="toggleChoice(condition, 'used')"
+              >
+                Used
+              </button>
+            </div>
+          </div>
+        }
       </div>
     </details>
   }
 
   <div class="workspace">
-    <details class="filters ui-surface" [open]="uiPreferences.isOpen('filters')" (toggle)="rememberPanel('filters', $event)">
-      <summary><span class="filters-title"><i aria-hidden="true"></i>More filters</span><small>{{ activeFilterChips().length ? activeFilterChips().length + ' active' : 'Price · cleanup · words' }}</small></summary>
-      <label>Order
+    <details
+      class="filters ui-surface"
+      [open]="uiPreferences.isOpen('filters')"
+      (toggle)="rememberPanel('filters', $event)"
+    >
+      <summary>
+        <span class="filters-title"><i aria-hidden="true"></i>More filters</span
+        ><small>{{
+          activeFilterChips().length ? activeFilterChips().length + ' active' : 'Price · cleanup · words'
+        }}</small>
+      </summary>
+      <label
+        >Order
         <select [value]="order()" (change)="order.set($any($event.target).value)">
           <option value="relevance">Best match</option>
           <option value="priceAsc">Lowest price</option>
@@ -194,7 +731,9 @@
         </select>
       </label>
       <fieldset class="price-filter">
-        <legend><span>Price</span><output>{{ priceRangeLabel() }}</output></legend>
+        <legend>
+          <span>Price</span><output>{{ priceRangeLabel() }}</output>
+        </legend>
         <select aria-label="Price currency" [value]="priceCurrency() ?? ''" (change)="setCurrency($event)">
           <option value="">Original prices</option>
           <option value="0">MDL</option>
@@ -202,37 +741,132 @@
           <option value="2">USD</option>
         </select>
         <div class="budget-presets" aria-label="Quick maximum price">
-          @for (value of pricePresets(); track value) { <button type="button" [class.active]="priceMax() === value" (click)="setPricePreset(value)">{{ value < 1000 ? value : value >= 1000000 ? value / 1000000 + 'm' : value / 1000 + 'k' }}</button> }
+          @for (value of pricePresets(); track value) {
+            <button type="button" [class.active]="priceMax() === value" (click)="setPricePreset(value)">
+              {{ value < 1000 ? value : value >= 1000000 ? value / 1000000 + 'm' : value / 1000 + 'k' }}
+            </button>
+          }
         </div>
         <div class="dual-range" [style.--from.%]="priceMinPercent()" [style.--to.%]="priceMaxPercent()">
-          <input type="range" [min]="priceFloor()" [max]="priceCeiling()" [step]="priceStep()" [value]="priceMin() ?? priceFloor()" (input)="setPriceSlider('min', $event)" aria-label="Minimum price slider">
-          <input type="range" [min]="priceFloor()" [max]="priceCeiling()" [step]="priceStep()" [value]="priceMax() ?? priceCeiling()" (input)="setPriceSlider('max', $event)" aria-label="Maximum price slider">
+          <input
+            type="range"
+            [min]="priceFloor()"
+            [max]="priceCeiling()"
+            [step]="priceStep()"
+            [value]="priceMin() ?? priceFloor()"
+            (input)="setPriceSlider('min', $event)"
+            aria-label="Minimum price slider"
+          />
+          <input
+            type="range"
+            [min]="priceFloor()"
+            [max]="priceCeiling()"
+            [step]="priceStep()"
+            [value]="priceMax() ?? priceCeiling()"
+            (input)="setPriceSlider('max', $event)"
+            aria-label="Maximum price slider"
+          />
         </div>
         <div class="price-inputs">
-          <input type="number" inputmode="numeric" min="0" placeholder="Min" aria-label="Minimum price" [value]="priceMin() ?? ''" (input)="setPrice('min', $event)">
+          <input
+            type="number"
+            inputmode="numeric"
+            min="0"
+            placeholder="Min"
+            aria-label="Minimum price"
+            [value]="priceMin() ?? ''"
+            (input)="setPrice('min', $event)"
+          />
           <span>–</span>
-          <input type="number" inputmode="numeric" min="0" placeholder="Max" aria-label="Maximum price" [value]="priceMax() ?? ''" (input)="setPrice('max', $event)">
+          <input
+            type="number"
+            inputmode="numeric"
+            min="0"
+            placeholder="Max"
+            aria-label="Maximum price"
+            [value]="priceMax() ?? ''"
+            (input)="setPrice('max', $event)"
+          />
         </div>
-        <p class="price-help">@if (priceRangeUpdating()) { <span class="stream-dot" aria-hidden="true"></span> Updating } @else { Results } {{ priceFloorLabel() }}–{{ priceCeilingLabel() }} {{ priceCurrencyLabel() }} · type any amount</p>
-        @if (priceRangeInvalid()) { <small>Minimum must be below maximum.</small> }
+        <p class="price-help">
+          @if (priceRangeUpdating()) {
+            <span class="stream-dot" aria-hidden="true"></span> Updating
+          } @else {
+            Results
+          }
+          {{ priceFloorLabel() }}–{{ priceCeilingLabel() }} {{ priceCurrencyLabel() }} · type any amount
+        </p>
+        @if (priceRangeInvalid()) {
+          <small>Minimum must be below maximum.</small>
+        }
       </fieldset>
       <div class="quick-filters">
-        <label class="switch"><span><b>Smart cleanup</b><small>Instant · parts, ads and fake prices</small></span><input role="switch" type="checkbox" [checked]="smartCleanup()" (change)="setSmartCleanup($any($event.target).checked)"></label>
-        <label class="switch"><span>With photos</span><input role="switch" type="checkbox" [checked]="onlyWithPhotos()" (change)="onlyWithPhotos.set($any($event.target).checked)"></label>
+        <label class="switch"
+          ><span><b>Smart cleanup</b><small>Instant · parts, ads and fake prices</small></span
+          ><input
+            role="switch"
+            type="checkbox"
+            [checked]="smartCleanup()"
+            (change)="setSmartCleanup($any($event.target).checked)"
+        /></label>
+        <label class="switch"
+          ><span>With photos</span
+          ><input
+            role="switch"
+            type="checkbox"
+            [checked]="onlyWithPhotos()"
+            (change)="onlyWithPhotos.set($any($event.target).checked)"
+        /></label>
         @if (isVehicleSearch()) {
-          <label class="switch vin-filter"><span><b>VIN available</b><small>Only listings with a detected VIN</small></span><input role="switch" type="checkbox" [checked]="onlyWithVIN()" (change)="onlyWithVIN.set($any($event.target).checked)"></label>
+          <label class="switch vin-filter"
+            ><span><b>VIN available</b><small>Only listings with a detected VIN</small></span
+            ><input
+              role="switch"
+              type="checkbox"
+              [checked]="onlyWithVIN()"
+              (change)="onlyWithVIN.set($any($event.target).checked)"
+          /></label>
         }
-        <label class="switch"><span>Fixed price</span><input role="switch" type="checkbox" [checked]="excludeNegotiable()" (change)="excludeNegotiable.set($any($event.target).checked)"></label>
+        <label class="switch"
+          ><span>Fixed price</span
+          ><input
+            role="switch"
+            type="checkbox"
+            [checked]="excludeNegotiable()"
+            (change)="excludeNegotiable.set($any($event.target).checked)"
+        /></label>
       </div>
-      <details class="word-filters" [open]="uiPreferences.isOpen('wordCleanup')" (toggle)="rememberPanel('wordCleanup', $event)">
-        <summary>Word cleanup <small>{{ excludedWords().length || '' }}</small></summary>
-        <label>Exclude words
-          <input autocomplete="off" enterkeyhint="done" placeholder="Type and press Enter" [value]="excludedWord()" (input)="excludedWord.set($any($event.target).value)" (keydown)="addExcludedWord($event)">
+      <details
+        class="word-filters"
+        [open]="uiPreferences.isOpen('wordCleanup')"
+        (toggle)="rememberPanel('wordCleanup', $event)"
+      >
+        <summary>
+          Word cleanup <small>{{ excludedWords().length || '' }}</small>
+        </summary>
+        <label
+          >Exclude words
+          <input
+            autocomplete="off"
+            enterkeyhint="done"
+            placeholder="Type and press Enter"
+            [value]="excludedWord()"
+            (input)="excludedWord.set($any($event.target).value)"
+            (keydown)="addExcludedWord($event)"
+          />
         </label>
         @if (excludedWords().length) {
           <div class="tags">
             @for (word of excludedWords(); track word) {
-              <button type="button" animate.enter="reveal-enter" animate.leave="reveal-leave" (click)="removeExcludedWord(word)" [attr.aria-label]="'Remove ' + word">{{ word }} ×</button>
+              <button
+                type="button"
+                animate.enter="reveal-enter"
+                animate.leave="reveal-leave"
+                (click)="removeExcludedWord(word)"
+                [attr.aria-label]="'Remove ' + word"
+              >
+                {{ word }} ×
+              </button>
             }
           </div>
         }
@@ -247,23 +881,47 @@
           </div>
         }
       </details>
-      <button class="clear-all-filters" type="button" (click)="resetFilters()" [disabled]="!hasCustomFilters()">Clear all filters</button>
+      <button class="clear-all-filters" type="button" (click)="resetFilters()" [disabled]="!hasCustomFilters()">
+        Clear all filters
+      </button>
     </details>
 
     <section class="result-feed" aria-label="Search results">
       @if (loading()) {
-        <div class="status ui-surface" animate.enter="reveal-enter" animate.leave="reveal-leave" role="status" aria-live="polite">
-          <div><strong>Page {{ loadedPages() || 1 }} of {{ totalPages() || '?' }}</strong><span>{{ products().length }} matches</span></div>
+        <div
+          class="status ui-surface"
+          animate.enter="reveal-enter"
+          animate.leave="reveal-leave"
+          role="status"
+          aria-live="polite"
+        >
+          <div>
+            <strong>Page {{ loadedPages() || 1 }} of {{ totalPages() || '?' }}</strong
+            ><span>{{ products().length }} matches</span>
+          </div>
           <progress [value]="progress()" max="100"></progress>
           <button type="button" (click)="cancel()">Cancel</button>
         </div>
       }
 
       @if (activeFilterChips().length) {
-        <div class="active-filters" animate.enter="reveal-enter" animate.leave="reveal-leave" aria-label="Active filters">
+        <div
+          class="active-filters"
+          animate.enter="reveal-enter"
+          animate.leave="reveal-leave"
+          aria-label="Active filters"
+        >
           <div>
             @for (filter of activeFilterChips(); track filter.id) {
-              <button type="button" animate.enter="reveal-enter" animate.leave="reveal-leave" (click)="removeFilter(filter.id)" [attr.aria-label]="'Remove ' + filter.label">{{ filter.label }} <span aria-hidden="true">×</span></button>
+              <button
+                type="button"
+                animate.enter="reveal-enter"
+                animate.leave="reveal-leave"
+                (click)="removeFilter(filter.id)"
+                [attr.aria-label]="'Remove ' + filter.label"
+              >
+                {{ filter.label }} <span aria-hidden="true">×</span>
+              </button>
             }
           </div>
           <button class="clear-filters" type="button" (click)="resetFilters()">Clear</button>
@@ -272,20 +930,85 @@
 
       @if (products().length) {
         <div class="result-bar" animate.enter="reveal-enter" animate.leave="reveal-leave">
-          <p><strong>{{ products().length }}</strong> shown @if (newlyRevealed().size) { <span>· {{ newlyRevealed().size }} newly shown</span> } @else if (hiddenCount()) { <span>· {{ hiddenCount() }} cleaned</span> }</p>
-          @if (visiblePriceSummary()) { <p class="visible-price" aria-label="Visible result price range"><small>Price</small><strong>{{ visiblePriceSummary() }}</strong></p> }
-          @if (activeVehicleSearch()) { <button class="vin-research-trigger" type="button" (click)="vinResearch.open()"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5" /><path d="m15 15 4.5 4.5M8 10.5h5" /></svg> VIN research</button> }
-          <button class="bulk-trigger" type="button" (click)="toggleBulkMode()" [disabled]="bulkDownloading()" [attr.aria-pressed]="bulkMode()"><span aria-hidden="true">JSON</span> {{ bulkMode() ? 'Cancel' : 'Bulk JSON' }}</button>
-          <button class="restart-search" type="button" (click)="startOver()" aria-label="Clear this search and start over"><span aria-hidden="true">×</span> Start over</button>
+          <p>
+            <strong>{{ products().length }}</strong> shown
+            @if (newlyRevealed().size) {
+              <span>· {{ newlyRevealed().size }} newly shown</span>
+            } @else if (hiddenCount()) {
+              <span>· {{ hiddenCount() }} cleaned</span>
+            }
+          </p>
+          @if (visiblePriceSummary()) {
+            <p class="visible-price" aria-label="Visible result price range">
+              <small>Price</small><strong>{{ visiblePriceSummary() }}</strong>
+            </p>
+          }
+          @if (activeVehicleSearch()) {
+            <button class="vin-research-trigger" type="button" (click)="vinResearch.open()">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <circle cx="10.5" cy="10.5" r="5.5" />
+                <path d="m15 15 4.5 4.5M8 10.5h5" />
+              </svg>
+              VIN research
+            </button>
+          }
+          <button
+            class="bulk-trigger"
+            type="button"
+            (click)="toggleBulkMode()"
+            [disabled]="bulkDownloading()"
+            [attr.aria-pressed]="bulkMode()"
+          >
+            <span aria-hidden="true">JSON</span> {{ bulkMode() ? 'Cancel' : 'Bulk JSON' }}
+          </button>
+          <button
+            class="restart-search"
+            type="button"
+            (click)="startOver()"
+            aria-label="Clear this search and start over"
+          >
+            <span aria-hidden="true">×</span> Start over
+          </button>
         </div>
         @if (bulkMode()) {
-          <div class="bulk-toolbar" animate.enter="reveal-enter" animate.leave="reveal-leave" role="region" aria-label="Bulk JSON export" [attr.aria-busy]="bulkDownloading()">
-            <div class="bulk-count" aria-live="polite"><strong>{{ bulkSelected().size }}</strong><span>selected · max {{ maxBulkSelection }}</span></div>
-            <button class="bulk-secondary" type="button" (click)="selectVisibleForBulk()" [disabled]="bulkDownloading()">Select visible</button>
-            <button class="bulk-secondary" type="button" (click)="clearBulkSelection()" [disabled]="bulkSelected().size === 0 || bulkDownloading()">Clear</button>
-            <button class="bulk-download" type="button" (click)="downloadBulkJSON()" [disabled]="bulkSelected().size === 0 || bulkDownloading()">
+          <div
+            class="bulk-toolbar"
+            animate.enter="reveal-enter"
+            animate.leave="reveal-leave"
+            role="region"
+            aria-label="Bulk JSON export"
+            [attr.aria-busy]="bulkDownloading()"
+          >
+            <div class="bulk-count" aria-live="polite">
+              <strong>{{ bulkSelected().size }}</strong
+              ><span>selected · max {{ maxBulkSelection }}</span>
+            </div>
+            <button
+              class="bulk-secondary"
+              type="button"
+              (click)="selectVisibleForBulk()"
+              [disabled]="bulkDownloading()"
+            >
+              Select visible
+            </button>
+            <button
+              class="bulk-secondary"
+              type="button"
+              (click)="clearBulkSelection()"
+              [disabled]="bulkSelected().size === 0 || bulkDownloading()"
+            >
+              Clear
+            </button>
+            <button
+              class="bulk-download"
+              type="button"
+              (click)="downloadBulkJSON()"
+              [disabled]="bulkSelected().size === 0 || bulkDownloading()"
+            >
               @if (bulkDownloading()) {
-                <span class="bulk-spinner" aria-hidden="true"></span> Preparing {{ bulkProgress().completed }}/{{ bulkProgress().total }}
+                <span class="bulk-spinner" aria-hidden="true"></span> Preparing {{ bulkProgress().completed }}/{{
+                  bulkProgress().total
+                }}
               } @else {
                 <span aria-hidden="true">↓</span> Download JSON
               }
@@ -293,32 +1016,76 @@
           </div>
         }
         <div class="grid">
-          @for (product of products(); track product.id; let index = $index) { <app-product-card animate.enter="reveal-enter" [product]="product" [saved]="library.savedIds().has(product.id)" [eager]="index < 6" [priority]="index === 0" [convertedPrice]="currency.label(product, priceCurrency())" [bulkMode]="bulkMode()" [bulkSelected]="bulkSelected().has(product.id)" [newlyRevealed]="newlyRevealed().has(product.id)" (bulkSelect)="toggleBulkSelection($event)" (save)="toggleSaved($event)" (exclude)="addExclusion($event)" /> }
+          @for (product of products(); track product.id; let index = $index) {
+            <app-product-card
+              animate.enter="reveal-enter"
+              [product]="product"
+              [saved]="library.savedIds().has(product.id)"
+              [eager]="index < 6"
+              [priority]="index === 0"
+              [convertedPrice]="currency.label(product, priceCurrency())"
+              [bulkMode]="bulkMode()"
+              [bulkSelected]="bulkSelected().has(product.id)"
+              [newlyRevealed]="newlyRevealed().has(product.id)"
+              (bulkSelect)="toggleBulkSelection($event)"
+              (save)="toggleSaved($event)"
+              (exclude)="addExclusion($event)"
+            />
+          }
         </div>
       } @else if (searched() && !loading()) {
-        <div class="empty empty-state" animate.enter="reveal-enter" animate.leave="reveal-leave"><h2>No products found</h2><p>Try a broader search or fewer filters.</p><div class="empty-actions">@if (hasCustomFilters()) { <button class="ui-button ui-button-primary" type="button" (click)="resetFilters()">Show broader results</button> }<button class="ui-button ui-button-quiet" type="button" (click)="startOver()">Start over</button></div></div>
+        <div class="empty empty-state" animate.enter="reveal-enter" animate.leave="reveal-leave">
+          <h2>No products found</h2>
+          <p>Try a broader search or fewer filters.</p>
+          <div class="empty-actions">
+            @if (hasCustomFilters()) {
+              <button class="ui-button ui-button-primary" type="button" (click)="resetFilters()">
+                Show broader results
+              </button>
+            }
+            <button class="ui-button ui-button-quiet" type="button" (click)="startOver()">Start over</button>
+          </div>
+        </div>
       } @else if (loading()) {
         <div class="spinner" animate.enter="reveal-enter" animate.leave="reveal-leave" aria-label="Loading"></div>
       } @else {
         <div class="welcome">
           <div class="intro-brand" aria-label="999 Search"><span>999</span><strong>Search</strong></div>
           <h2>Search the marketplace</h2>
-          <p>Browse without an account. Log in only when you want to save a listing or keep your cleanup preferences.</p>
+          <p>
+            Browse without an account. Log in only when you want to save a listing or keep your cleanup preferences.
+          </p>
           @if (searchState.lastSearch(); as last) {
-            <button class="resume-search" type="button" (click)="resumeLastSearch()" aria-label="Return to your last search">
+            <button
+              class="resume-search"
+              type="button"
+              (click)="resumeLastSearch()"
+              aria-label="Return to your last search"
+            >
               <span aria-hidden="true">↶</span>
-              <span><strong>Back to last search</strong><small>{{ last.query || last.activeQuery }} · {{ last.products.length }} cached</small></span>
+              <span
+                ><strong>Back to last search</strong
+                ><small>{{ last.query || last.activeQuery }} · {{ last.products.length }} cached</small></span
+              >
               <span aria-hidden="true">›</span>
             </button>
           }
           @if (recentSearches.items().length) {
             <div class="recent-searches">
               <span>Recent</span>
-              <div>@for (item of recentSearches.items(); track item) { <button type="button" (click)="runRecent(item)">{{ item }}</button> }</div>
+              <div>
+                @for (item of recentSearches.items(); track item) {
+                  <button type="button" (click)="runRecent(item)">{{ item }}</button>
+                }
+              </div>
               <button class="clear-recent" type="button" (click)="recentSearches.clear()">Clear</button>
             </div>
           }
-          <details class="category-browser" [open]="uiPreferences.isOpen('categories')" (toggle)="rememberPanel('categories', $event)">
+          <details
+            class="category-browser"
+            [open]="uiPreferences.isOpen('categories')"
+            (toggle)="rememberPanel('categories', $event)"
+          >
             <summary>Browse all 999 categories</summary>
             <div>
               @for (category of marketCategories; track category.label) {

@@ -4,8 +4,8 @@ import { AuthService } from '../auth.service';
 import { ToastService } from '../../toast.service';
 
 @Component({
-	selector: 'app-register',
-	changeDetection: ChangeDetectionStrategy.OnPush,
+  selector: 'app-register',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink],
   templateUrl: './register.component.html',
   styleUrl: '../auth.scss',
@@ -19,14 +19,14 @@ export class RegisterComponent {
   readonly copied = signal(false);
 
   async create(): Promise<void> {
-		this.creating.set(true);
-		try {
-			this.code.set((await this.auth.register()).code);
-		} catch (error) {
-			this.toast.error(error instanceof Error ? error.message : 'Registration failed');
-		} finally {
-			this.creating.set(false);
-		}
+    this.creating.set(true);
+    try {
+      this.code.set((await this.auth.register()).code);
+    } catch (error) {
+      this.toast.error(error instanceof Error ? error.message : 'Registration failed');
+    } finally {
+      this.creating.set(false);
+    }
   }
 
   async copy(): Promise<void> {

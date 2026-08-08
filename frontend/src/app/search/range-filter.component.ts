@@ -1,6 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 
-export interface RangePreset { label: string; from: number | null; to: number | null }
+export interface RangePreset {
+  label: string;
+  from: number | null;
+  to: number | null;
+}
 
 @Component({
   selector: 'app-range-filter',
@@ -45,11 +49,13 @@ export class RangeFilterComponent {
     this.toChange.emit(preset.to);
   }
 
-  selected(preset: RangePreset): boolean { return this.from() === preset.from && this.to() === preset.to; }
+  selected(preset: RangePreset): boolean {
+    return this.from() === preset.from && this.to() === preset.to;
+  }
 }
 
 function percent(value: number, min: number, max: number): number {
-  return max > min ? Math.min(100, Math.max(0, (value - min) / (max - min) * 100)) : 0;
+  return max > min ? Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100)) : 0;
 }
 
 function formatRange(from: number | null, to: number | null, unit: string): string {
@@ -60,4 +66,6 @@ function formatRange(from: number | null, to: number | null, unit: string): stri
   return `${format(from)}–${format(to)}${suffix}`;
 }
 
-function format(value: number): string { return new Intl.NumberFormat('ro-MD', { maximumFractionDigits: 1 }).format(value); }
+function format(value: number): string {
+  return new Intl.NumberFormat('ro-MD', { maximumFractionDigits: 1 }).format(value);
+}
