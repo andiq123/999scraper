@@ -42,6 +42,8 @@ Search is public and needs no account. Log in only to save listings, sync exclud
 
 Changes under `backend/cmd/` or `backend/internal/` rebuild and restart the backend through Air. Changes under `frontend/src/` refresh through the independent Angular development server.
 
+VIN research decodes vehicle identity through NHTSA and can discover concrete auction-detail pages through Google Programmable Search. Configure an eligible Google Custom Search account with `GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_ENGINE_ID` in `backend/.env`; configure the engine with the approved auction domains used by the API. Results are restricted to HTTPS detail pages and must contain the complete VIN. Generic search pages and unverified domains are discarded. Both variables are optional, but must be supplied together.
+
 Press Ctrl+C to remove the project containers, network, database and dependency/build volumes, and locally built images. The Redis search cache is intentionally ephemeral. Docker Desktop itself stays open.
 
 For non-local use, inject production backend configuration through the deployment platform. Login uses a bearer JWT stored by the frontend, so it works across the Vercel frontend and a separate HTTPS API origin without cookies.

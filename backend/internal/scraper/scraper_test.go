@@ -166,11 +166,35 @@ func TestProductPreservesSmartFacets(t *testing.T) {
 	ad.Drivetrain.Value = json.RawMessage(`{"translated":"4x4"}`)
 	ad.Registration.Value.Translated = "Republica Moldova"
 	ad.OriginCountry.Value.Translated = "Japonia"
+	ad.VIN.Value = json.RawMessage(`"jt2bg22k1v0093427"`)
 	ad.Condition.Value.Translated = "Cu rulaj"
 	ad.OfferType.Value = json.RawMessage(`{"translated":"Vând","value":1}`)
 	product := New("https://999.md", Options{}).product(ad)
-	if product.Year != 2010 || product.Fuel != "Benzină" || product.Transmission != "Automată" || product.BodyType != "Crossover" || product.Mileage != 75000 || product.Power != 174 || product.Drivetrain != "4x4" || product.Registration != "Republica Moldova" || product.OriginCountry != "Japonia" || product.Condition != "Cu rulaj" || product.OfferType != "Vând" {
+	if product.Year != 2010 || product.Fuel != "Benzină" || product.Transmission != "Automată" || product.BodyType != "Crossover" || product.Mileage != 75000 || product.Power != 174 || product.Drivetrain != "4x4" || product.Registration != "Republica Moldova" || product.OriginCountry != "Japonia" || product.VIN != "JT2BG22K1V0093427" || product.Condition != "Cu rulaj" || product.OfferType != "Vând" {
 		t.Fatalf("smart facets were not preserved: %#v", product)
+	}
+}
+
+func TestNormalizeVINRejectsPlaceholderValues(t *testing.T) {
+	for _, value := range []string{"", "-", "unknown", "JT2BG22K1V009342I"} {
+		if got := normalizeVIN(value); got != "" {
+			t.Fatalf("normalizeVIN(%q) = %q, want empty", value, got)
+		}
+	}
+}
+
+func TestVINFallsBackToDescription(t *testing.T) {
+	ad := advert{ID: "104943211", Title: "Tesla Model Y"}
+	ad.Body.Value = json.RawMessage(`{"translated":"2022 TESLA MODEL Y\nVIN: 7SAYGDEF3NF464219\nLA COMANDĂ"}`)
+	product := New("https://999.md", Options{}).product(ad)
+	if product.VIN != "7SAYGDEF3NF464219" {
+		t.Fatalf("description VIN was not extracted: %#v", product)
+	}
+}
+
+func TestDescriptionVINRequiresLabel(t *testing.T) {
+	if got := vinFromDescription("Reference 7SAYGDEF3NF464219"); got != "" {
+		t.Fatalf("unlabelled identifier was treated as VIN: %q", got)
 	}
 }
 

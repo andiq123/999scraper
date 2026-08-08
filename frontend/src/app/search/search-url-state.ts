@@ -1,7 +1,7 @@
 import { type SearchState } from './search-state.service';
 
 export type SharedSearchFilters = Pick<SearchState,
-  'order' | 'smartCleanup' | 'excludeNegotiable' | 'onlyWithPhotos' | 'excludedWords' | 'queryExclusions'
+  'order' | 'smartCleanup' | 'excludeNegotiable' | 'onlyWithPhotos' | 'onlyWithVIN' | 'excludedWords' | 'queryExclusions'
   | 'yearFrom' | 'yearTo' | 'priceMin' | 'priceMax' | 'priceCurrency' | 'fuel' | 'transmission'
   | 'generationFrom' | 'generationTo' | 'storageFrom' | 'storageTo' | 'ramFrom' | 'ramTo'
   | 'roomsFrom' | 'roomsTo' | 'areaFrom' | 'areaTo' | 'floorFrom' | 'floorTo' | 'propertySector'
@@ -16,6 +16,7 @@ const filterFields: readonly (keyof SharedSearchFilters)[] = [
   'areaTo', 'floorFrom', 'floorTo', 'propertySector', 'propertyState', 'housingStock', 'listingAuthor',
   'buildingType', 'screenFrom', 'screenTo', 'mileageFrom', 'mileageTo', 'powerFrom', 'powerTo',
   'drivetrain', 'bodyType', 'registration', 'originCountry', 'deviceTags', 'condition', 'listingMode',
+  'onlyWithVIN',
 ];
 
 const nullableNumbers: readonly (keyof SharedSearchFilters)[] = [
@@ -29,14 +30,14 @@ const multiSelectFields: readonly (keyof SharedSearchFilters)[] = [
 ];
 
 export function encodeSearchFilters(filters: SharedSearchFilters): string {
-  const bytes = new TextEncoder().encode(JSON.stringify([2, ...filterFields.map((key) => filters[key])]));
+  const bytes = new TextEncoder().encode(JSON.stringify([3, ...filterFields.map((key) => filters[key])]));
   return btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
 }
 
 export function searchFiltersFromState(state: SearchState): SharedSearchFilters {
   return {
     order: state.order, smartCleanup: state.smartCleanup, excludeNegotiable: state.excludeNegotiable,
-    onlyWithPhotos: state.onlyWithPhotos, excludedWords: state.excludedWords, queryExclusions: state.queryExclusions,
+    onlyWithPhotos: state.onlyWithPhotos, onlyWithVIN: state.onlyWithVIN, excludedWords: state.excludedWords, queryExclusions: state.queryExclusions,
     yearFrom: state.yearFrom, yearTo: state.yearTo, priceMin: state.priceMin, priceMax: state.priceMax,
     priceCurrency: state.priceCurrency, fuel: state.fuel, transmission: state.transmission,
     generationFrom: state.generationFrom, generationTo: state.generationTo, storageFrom: state.storageFrom,
@@ -57,8 +58,12 @@ export function decodeSearchFilters(value: string | null): SharedSearchFilters |
     const base64 = value.replaceAll('-', '+').replaceAll('_', '/').padEnd(Math.ceil(value.length / 4) * 4, '=');
     const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
     const payload: unknown = JSON.parse(new TextDecoder().decode(bytes));
-    if (!Array.isArray(payload) || payload.length !== filterFields.length + 1 || (payload[0] !== 1 && payload[0] !== 2)) return null;
-    const filters = Object.fromEntries(filterFields.map((key, index) => [key, payload[index + 1]]));
+    if (!Array.isArray(payload) || (payload[0] !== 1 && payload[0] !== 2 && payload[0] !== 3)) return null;
+    const legacy = payload[0] === 1 || payload[0] === 2;
+    const fields = legacy ? filterFields.slice(0, -1) : filterFields;
+    if (payload.length !== fields.length + 1) return null;
+    const filters = Object.fromEntries(fields.map((key, index) => [key, payload[index + 1]]));
+    if (legacy) filters['onlyWithVIN'] = false;
     if (payload[0] === 1) {
       for (const key of multiSelectFields) filters[key] = filters[key] === null ? [] : [filters[key]];
     }
@@ -75,6 +80,7 @@ function isSharedSearchFilters(value: unknown): value is SharedSearchFilters {
     && typeof filters.smartCleanup === 'boolean'
     && typeof filters.excludeNegotiable === 'boolean'
     && typeof filters.onlyWithPhotos === 'boolean'
+    && typeof filters.onlyWithVIN === 'boolean'
     && isStringArray(filters.excludedWords)
     && isStringArray(filters.queryExclusions)
     && nullableNumbers.every((key) => isNullableFiniteNumber(filters[key]))

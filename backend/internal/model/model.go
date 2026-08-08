@@ -51,6 +51,7 @@ type Product struct {
 	Drivetrain    string `json:"drivetrain,omitempty"`
 	Registration  string `json:"registration,omitempty"`
 	OriginCountry string `json:"originCountry,omitempty"`
+	VIN           string `json:"vin,omitempty"`
 	DeviceModel   string `json:"deviceModel,omitempty"`
 	Storage       string `json:"storage,omitempty"`
 	Brand         string `json:"brand,omitempty"`

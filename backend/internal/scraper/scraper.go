@@ -9,6 +9,7 @@ import (
 	"io"
 	"math/rand/v2"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -22,7 +23,7 @@ const (
 	maxResponseSize = 10 << 20
 )
 
-const searchQuery = `query SearchAds($input: Ads_SearchInput!) {
+const searchQuery = `query SearchAds($input: Ads_SearchInput!, $includeDescriptionVIN: Boolean!) {
   searchAds(input: $input) {
     ads {
       id
@@ -41,6 +42,8 @@ const searchQuery = `query SearchAds($input: Ads_SearchInput!) {
       fuel: feature(id: 151) { value }
       registration: feature(id: 775) { value }
       originCountry: feature(id: 1763) { value }
+      vinCode: feature(id: 2512) { value }
+      body: feature(id: 13) @include(if: $includeDescriptionVIN) { value }
       phoneModel: feature(id: 590) { value }
       consoleModel: feature(id: 694) { value }
       phoneStorage: feature(id: 1265) { value }
@@ -195,6 +198,8 @@ type advert struct {
 	Fuel             choiceFeature `json:"fuel"`
 	Registration     choiceFeature `json:"registration"`
 	OriginCountry    choiceFeature `json:"originCountry"`
+	VIN              rawFeature    `json:"vinCode"`
+	Body             rawFeature    `json:"body"`
 	PhoneModel       choiceFeature `json:"phoneModel"`
 	ConsoleModel     choiceFeature `json:"consoleModel"`
 	PhoneStorage     choiceFeature `json:"phoneStorage"`
@@ -251,6 +256,10 @@ type priceValue struct {
 	Value   int    `json:"value"`
 }
 
+type SearchOptions struct {
+	ExtractVINFromDescription bool
+}
+
 type pageResult struct {
 	page     int
 	products []model.Product
@@ -303,6 +312,10 @@ func (s *Scraper) Search(ctx context.Context, query string) ([]model.Product, er
 	return s.SearchStream(ctx, query, nil)
 }
 
+func (s *Scraper) SearchStreamWithOptions(ctx context.Context, query string, options SearchOptions, yield func(Batch) error) ([]model.Product, error) {
+	return s.searchStream(ctx, query, options, yield)
+}
+
 // ListingSummary reads the public detail page data and returns only useful,
 // labelled values. It shares the scraper's concurrency and request pacing.
 func (s *Scraper) ListingSummary(ctx context.Context, id string) (model.ListingSummary, error) {
@@ -341,6 +354,10 @@ func (s *Scraper) ListingSummary(ctx context.Context, id string) (model.ListingS
 // remaining pages with bounded concurrency. Request starts are globally spaced
 // across all searches handled by this Scraper instance.
 func (s *Scraper) SearchStream(ctx context.Context, query string, yield func(Batch) error) ([]model.Product, error) {
+	return s.searchStream(ctx, query, SearchOptions{}, yield)
+}
+
+func (s *Scraper) searchStream(ctx context.Context, query string, options SearchOptions, yield func(Batch) error) ([]model.Product, error) {
 	select {
 	case s.searchSlots <- struct{}{}:
 		defer func() { <-s.searchSlots }()
@@ -348,7 +365,7 @@ func (s *Scraper) SearchStream(ctx context.Context, query string, yield func(Bat
 		return nil, ctx.Err()
 	}
 	query = strings.TrimSpace(query)
-	first, count, err := s.pageWithRetry(ctx, query, 0, pageSize)
+	first, count, err := s.pageWithRetry(ctx, query, 0, pageSize, options)
 	if err != nil {
 		return nil, err
 	}
@@ -382,7 +399,7 @@ func (s *Scraper) SearchStream(ctx context.Context, query string, yield func(Bat
 		go func() {
 			defer wg.Done()
 			for page := range jobs {
-				items, _, err := s.pageWithRetry(workCtx, query, page*pageSize, pageSize)
+				items, _, err := s.pageWithRetry(workCtx, query, page*pageSize, pageSize, options)
 				select {
 				case results <- pageResult{page: page + 1, products: items, err: err}:
 				case <-workCtx.Done():
@@ -429,13 +446,13 @@ func (s *Scraper) SearchStream(ctx context.Context, query string, yield func(Bat
 	return products, nil
 }
 
-func (s *Scraper) pageWithRetry(ctx context.Context, query string, skip, limit int) ([]model.Product, int, error) {
+func (s *Scraper) pageWithRetry(ctx context.Context, query string, skip, limit int, options SearchOptions) ([]model.Product, int, error) {
 	var lastErr error
 	for attempt := 0; attempt <= s.options.MaxRetries; attempt++ {
 		if err := s.waitForSlot(ctx); err != nil {
 			return nil, 0, err
 		}
-		products, count, retryAfter, err := s.page(ctx, query, skip, limit)
+		products, count, retryAfter, err := s.page(ctx, query, skip, limit, options)
 		if err == nil {
 			return products, count, nil
 		}
@@ -466,12 +483,15 @@ func (s *Scraper) waitForSlot(ctx context.Context) error {
 	return wait(ctx, time.Until(start))
 }
 
-func (s *Scraper) page(ctx context.Context, query string, skip, limit int) ([]model.Product, int, time.Duration, error) {
+func (s *Scraper) page(ctx context.Context, query string, skip, limit int, options SearchOptions) ([]model.Product, int, time.Duration, error) {
 	payload, err := json.Marshal(graphQLRequest{
 		OperationName: "SearchAds",
-		Variables: map[string]any{"input": map[string]any{
-			"query": query, "pagination": map[string]int{"limit": limit, "skip": skip},
-		}},
+		Variables: map[string]any{
+			"input": map[string]any{
+				"query": query, "pagination": map[string]int{"limit": limit, "skip": skip},
+			},
+			"includeDescriptionVIN": options.ExtractVINFromDescription,
+		},
 		Query: searchQuery,
 	})
 	if err != nil {
@@ -755,6 +775,7 @@ func (s *Scraper) product(ad advert) model.Product {
 		Drivetrain:    featureText(ad.Drivetrain.Value),
 		Registration:  strings.TrimSpace(ad.Registration.Value.Translated),
 		OriginCountry: strings.TrimSpace(ad.OriginCountry.Value.Translated),
+		VIN:           firstText(normalizeVIN(featureText(ad.VIN.Value)), vinFromDescription(featureText(ad.Body.Value))),
 		DeviceModel:   strings.TrimSpace(deviceModel),
 		Storage:       strings.TrimSpace(storage),
 		Brand:         brand,
@@ -776,6 +797,32 @@ func (s *Scraper) product(ad advert) model.Product {
 		Condition:     strings.TrimSpace(ad.Condition.Value.Translated),
 		URLToProduct:  s.baseURL + "/ro/" + ad.ID,
 	}
+}
+
+func normalizeVIN(value string) string {
+	vin := strings.ToUpper(strings.TrimSpace(value))
+	if len(vin) != 17 {
+		return ""
+	}
+	for _, character := range vin {
+		if (character < '0' || character > '9') && (character < 'A' || character > 'Z') {
+			return ""
+		}
+		if character == 'I' || character == 'O' || character == 'Q' {
+			return ""
+		}
+	}
+	return vin
+}
+
+var descriptionVINPattern = regexp.MustCompile(`(?i)\bVIN(?:[[:space:]-]*(?:CODE|COD|КОД))?[[:space:]:#-]{0,12}([A-HJ-NPR-Z0-9]{17})\b`)
+
+func vinFromDescription(description string) string {
+	match := descriptionVINPattern.FindStringSubmatch(description)
+	if len(match) != 2 {
+		return ""
+	}
+	return normalizeVIN(match[1])
 }
 
 func featureText(raw json.RawMessage) string {

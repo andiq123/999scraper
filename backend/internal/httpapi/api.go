@@ -21,24 +21,27 @@ import (
 )
 
 type API struct {
-	store     *store.Store
-	auth      *auth.Service
-	scraper   *scraper.Scraper
-	cache     *cache.Cache
-	logger    *slog.Logger
-	queries   *queryGate
-	logins    *loginLimiter
-	summaries *loginLimiter
-	rates     *currency.Service
-	origins   map[string]struct{}
+	store      *store.Store
+	auth       *auth.Service
+	scraper    *scraper.Scraper
+	cache      *cache.Cache
+	logger     *slog.Logger
+	queries    *queryGate
+	logins     *loginLimiter
+	summaries  *loginLimiter
+	vinChecks  *loginLimiter
+	vinDecoder *vinDecoder
+	vinSearch  *vinSearcher
+	rates      *currency.Service
+	origins    map[string]struct{}
 }
 
-func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, rates *currency.Service, allowedOrigins []string, logger *slog.Logger) http.Handler {
+func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, rates *currency.Service, googleSearchKey, googleSearchEngineID string, allowedOrigins []string, logger *slog.Logger) http.Handler {
 	origins := make(map[string]struct{}, len(allowedOrigins))
 	for _, origin := range allowedOrigins {
 		origins[origin] = struct{}{}
 	}
-	api := &API{store: s, auth: a, scraper: sc, cache: c, rates: rates, origins: origins, logger: logger, queries: newQueryGate(), logins: newLoginLimiter(), summaries: newRequestLimiter(60, time.Minute)}
+	api := &API{store: s, auth: a, scraper: sc, cache: c, rates: rates, origins: origins, logger: logger, queries: newQueryGate(), logins: newLoginLimiter(), summaries: newRequestLimiter(60, time.Minute), vinChecks: newRequestLimiter(30, time.Minute), vinDecoder: newVINDecoder(), vinSearch: newVINSearcher(googleSearchKey, googleSearchEngineID)}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", api.health)
 	mux.HandleFunc("GET /api/health", api.health)
@@ -48,6 +51,7 @@ func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, r
 	mux.Handle("GET /api/account/current", a.OptionalMiddleware(http.HandlerFunc(api.currentAccount)))
 	mux.Handle("POST /api/products/stream", a.OptionalMiddleware(http.HandlerFunc(api.productsStream)))
 	mux.HandleFunc("GET /api/products/{id}/summary", api.listingSummary)
+	mux.HandleFunc("GET /api/vin/{vin}/stream", api.vinResearchStream)
 	mux.Handle("GET /api/history", a.Middleware(http.HandlerFunc(api.history)))
 	mux.Handle("GET /api/preferences", a.Middleware(http.HandlerFunc(api.preferences)))
 	mux.Handle("PUT /api/preferences", a.Middleware(http.HandlerFunc(api.savePreferences)))
@@ -316,7 +320,8 @@ type searchEvent struct {
 }
 
 type productSearchRequest struct {
-	ProductSearchCriteria string `json:"productSearchCriteria"`
+	ProductSearchCriteria     string `json:"productSearchCriteria"`
+	ExtractVINFromDescription bool   `json:"extractVINFromDescription"`
 }
 
 func (a *API) productsStream(w http.ResponseWriter, r *http.Request) {
@@ -344,22 +349,25 @@ func (a *API) productsStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if cached, ok := a.cachedSearch(r.Context(), query); ok {
+	cacheQuery := searchCacheQuery(query, request.ExtractVINFromDescription)
+	if cached, ok := a.cachedSearch(r.Context(), cacheQuery); ok {
 		a.streamCached(w, flusher, cached)
 		return
 	}
-	release, err := a.queries.acquire(r.Context(), query)
+	release, err := a.queries.acquire(r.Context(), cacheQuery)
 	if err != nil {
 		return
 	}
 	defer release()
-	if cached, ok := a.cachedSearch(r.Context(), query); ok {
+	if cached, ok := a.cachedSearch(r.Context(), cacheQuery); ok {
 		a.streamCached(w, flusher, cached)
 		return
 	}
 	var writer *streamWriter
 	loadedPages := 0
-	products, err := a.scraper.SearchStream(r.Context(), query, func(batch scraper.Batch) error {
+	products, err := a.scraper.SearchStreamWithOptions(r.Context(), query, scraper.SearchOptions{
+		ExtractVINFromDescription: request.ExtractVINFromDescription,
+	}, func(batch scraper.Batch) error {
 		if writer == nil {
 			writer = beginStream(w, flusher)
 			if err := writer.write(searchEvent{Type: "start", TotalPages: batch.TotalPages}); err != nil {
@@ -394,7 +402,14 @@ func (a *API) productsStream(w http.ResponseWriter, r *http.Request) {
 	// cache instead of scraping again.
 	cacheCtx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 2*time.Second)
 	defer cancel()
-	a.cache.SetSearch(cacheCtx, query, model.ProductsContainer{Products: products})
+	a.cache.SetSearch(cacheCtx, cacheQuery, model.ProductsContainer{Products: products})
+}
+
+func searchCacheQuery(query string, extractVINFromDescription bool) string {
+	if extractVINFromDescription {
+		return query + "\n[description-vin]"
+	}
+	return query
 }
 
 func (a *API) cachedSearch(ctx context.Context, query string) (model.ProductsContainer, bool) {
@@ -435,11 +450,15 @@ func beginStream(w http.ResponseWriter, flusher http.Flusher) *streamWriter {
 }
 
 func (w *streamWriter) write(event searchEvent) error {
+	return w.writeEvent(event.Type, event)
+}
+
+func (w *streamWriter) writeEvent(eventType string, event any) error {
 	payload, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w.writer, "event: %s\ndata: %s\n\n", event.Type, payload); err != nil {
+	if _, err := fmt.Fprintf(w.writer, "event: %s\ndata: %s\n\n", eventType, payload); err != nil {
 		return err
 	}
 	w.flusher.Flush()

@@ -15,6 +15,7 @@ import { RangeFilterComponent, type RangePreset } from './range-filter.component
 import { type CollapsiblePanel, UiPreferencesService } from '../ui-preferences.service';
 import { ListingSummaryService, type BulkDownloadProgress } from '../listing-summary.service';
 import { decodeSearchFilters, encodeSearchFilters, searchFiltersFromState, type SharedSearchFilters } from './search-url-state';
+import { VINResearchService } from '../vin-research.service';
 const carNoise = new Set([
   'accesorii', 'acumulator', 'anvelope', 'capace', 'covorașe', 'covorase', 'dezmembrare', 'dezmembrări',
   'faruri', 'huse', 'jante', 'piese', 'roți', 'scut', 'sticlă', 'sticla', 'radiator', 'radiatoare', 'adaptor',
@@ -55,6 +56,7 @@ export class SearchComponent implements OnDestroy {
   readonly library = inject(UserDataService);
   readonly currency = inject(CurrencyService);
   readonly uiPreferences = inject(UiPreferencesService);
+  readonly vinResearch = inject(VINResearchService);
   private readonly ids = new Set<string>();
   private controller?: AbortController;
   private draftKind: SearchKind = 'generic';
@@ -71,6 +73,7 @@ export class SearchComponent implements OnDestroy {
   readonly smartCleanup = signal(true);
   readonly excludeNegotiable = signal(false);
   readonly onlyWithPhotos = signal(false);
+  readonly onlyWithVIN = signal(false);
   readonly excludedWords = signal<string[]>([]);
   readonly excludedWord = signal('');
   readonly queryExclusions = signal<string[]>([]);
@@ -217,7 +220,7 @@ export class SearchComponent implements OnDestroy {
     const range = minimum === maximum ? minimum : `${minimum}–${maximum}`;
     return `${converted ? '≈ ' : ''}${range} ${['MDL', 'EUR', 'USD'][target]}`;
   });
-  readonly hasCustomFilters = computed(() => this.order() !== 'relevance' || !this.smartCleanup() || this.excludeNegotiable() || this.onlyWithPhotos() || this.excludedWords().length > 0 || this.queryExclusions().length > 0 || this.yearFrom() !== null || this.yearTo() !== null || this.priceMin() !== null || this.priceMax() !== null || this.fuel().length > 0 || this.transmission().length > 0 || this.mileageFrom() !== null || this.mileageTo() !== null || this.powerFrom() !== null || this.powerTo() !== null || this.drivetrain().length > 0 || this.bodyType().length > 0 || this.registration().length > 0 || this.originCountry().length > 0 || this.generationFrom() !== null || this.generationTo() !== null || this.storageFrom() !== null || this.storageTo() !== null || this.ramFrom() !== null || this.ramTo() !== null || this.roomsFrom() !== null || this.roomsTo() !== null || this.areaFrom() !== null || this.areaTo() !== null || this.floorFrom() !== null || this.floorTo() !== null || this.propertySector().length > 0 || this.propertyState().length > 0 || this.housingStock().length > 0 || this.listingAuthor().length > 0 || this.buildingType().length > 0 || this.screenFrom() !== null || this.screenTo() !== null || this.deviceTags().length > 0 || this.condition().length > 0 || this.listingMode().length > 0);
+  readonly hasCustomFilters = computed(() => this.order() !== 'relevance' || !this.smartCleanup() || this.excludeNegotiable() || this.onlyWithPhotos() || this.onlyWithVIN() || this.excludedWords().length > 0 || this.queryExclusions().length > 0 || this.yearFrom() !== null || this.yearTo() !== null || this.priceMin() !== null || this.priceMax() !== null || this.fuel().length > 0 || this.transmission().length > 0 || this.mileageFrom() !== null || this.mileageTo() !== null || this.powerFrom() !== null || this.powerTo() !== null || this.drivetrain().length > 0 || this.bodyType().length > 0 || this.registration().length > 0 || this.originCountry().length > 0 || this.generationFrom() !== null || this.generationTo() !== null || this.storageFrom() !== null || this.storageTo() !== null || this.ramFrom() !== null || this.ramTo() !== null || this.roomsFrom() !== null || this.roomsTo() !== null || this.areaFrom() !== null || this.areaTo() !== null || this.floorFrom() !== null || this.floorTo() !== null || this.propertySector().length > 0 || this.propertyState().length > 0 || this.housingStock().length > 0 || this.listingAuthor().length > 0 || this.buildingType().length > 0 || this.screenFrom() !== null || this.screenTo() !== null || this.deviceTags().length > 0 || this.condition().length > 0 || this.listingMode().length > 0);
   private readonly singleListingMode = computed(() => this.listingMode().length === 1 ? this.listingMode()[0] : null);
   readonly priceFloor = computed(() => this.observedPriceRange()?.min ?? 0);
   readonly priceCeiling = computed(() => {
@@ -245,6 +248,7 @@ export class SearchComponent implements OnDestroy {
     if (this.order() !== 'relevance') chips.push({ id: 'order', label: this.order() === 'priceAsc' ? 'Lowest price' : 'Highest price' });
     if (!this.smartCleanup()) chips.push({ id: 'cleanup', label: 'Cleanup off' });
     if (this.onlyWithPhotos()) chips.push({ id: 'photos', label: 'With photos' });
+    if (this.onlyWithVIN()) chips.push({ id: 'vin', label: 'VIN available' });
     if (this.excludeNegotiable()) chips.push({ id: 'fixed', label: 'Fixed price' });
     if (this.yearFrom() !== null || this.yearTo() !== null) chips.push({ id: 'year', label: rangeSummary('Year', this.yearFrom(), this.yearTo()) });
     if (this.generationFrom() !== null || this.generationTo() !== null) chips.push({ id: 'generation', label: rangeSummary('Generation', this.generationFrom(), this.generationTo()) });
@@ -421,7 +425,7 @@ export class SearchComponent implements OnDestroy {
     const controller = new AbortController();
     this.controller = controller;
     try {
-      await this.searchService.stream(intent.sourceQuery, controller.signal, (streamEvent) => this.receive(streamEvent));
+      await this.searchService.stream(intent.sourceQuery, intent.kind === 'vehicle', controller.signal, (streamEvent) => this.receive(streamEvent));
     } catch (error) {
       if (!controller.signal.aborted) this.toast.error(error instanceof Error ? error.message : 'Search failed.');
     } finally {
@@ -569,6 +573,7 @@ export class SearchComponent implements OnDestroy {
     if (id === 'order') this.order.set('relevance');
     else if (id === 'cleanup') this.setSmartCleanup(true);
     else if (id === 'photos') this.onlyWithPhotos.set(false);
+    else if (id === 'vin') this.onlyWithVIN.set(false);
     else if (id === 'fixed') this.excludeNegotiable.set(false);
     else if (id === 'year') { this.yearFrom.set(null); this.yearTo.set(null); }
     else if (id === 'generation') { this.generationFrom.set(null); this.generationTo.set(null); }
@@ -788,6 +793,7 @@ export class SearchComponent implements OnDestroy {
     this.newlyRevealed.set(new Set());
     this.excludeNegotiable.set(false);
     this.onlyWithPhotos.set(false);
+    this.onlyWithVIN.set(false);
     if (clearSavedWords) this.excludedWords.set([]);
     this.queryExclusions.set([]);
     this.yearFrom.set(null);
@@ -862,6 +868,7 @@ export class SearchComponent implements OnDestroy {
     this.smartCleanup.set(filters.smartCleanup);
     this.excludeNegotiable.set(filters.excludeNegotiable);
     this.onlyWithPhotos.set(filters.onlyWithPhotos);
+    this.onlyWithVIN.set(filters.onlyWithVIN);
     this.excludedWords.set(filters.excludedWords);
     this.queryExclusions.set(filters.queryExclusions);
     this.yearFrom.set(filters.yearFrom);
@@ -999,6 +1006,7 @@ export class SearchComponent implements OnDestroy {
     this.smartCleanup.set(state.smartCleanup);
     this.excludeNegotiable.set(state.excludeNegotiable);
     this.onlyWithPhotos.set(state.onlyWithPhotos);
+    this.onlyWithVIN.set(state.onlyWithVIN);
     this.excludedWords.set(state.excludedWords);
     this.excludedWord.set(state.excludedWord);
     this.queryExclusions.set(state.queryExclusions);
@@ -1055,7 +1063,7 @@ export class SearchComponent implements OnDestroy {
   private snapshot(scrollY: number): SearchState {
     return {
       query: this.query(), activeQuery: this.activeQuery(), order: this.order(), smartCleanup: this.smartCleanup(),
-      excludeNegotiable: this.excludeNegotiable(), onlyWithPhotos: this.onlyWithPhotos(), excludedWords: this.excludedWords(),
+      excludeNegotiable: this.excludeNegotiable(), onlyWithPhotos: this.onlyWithPhotos(), onlyWithVIN: this.onlyWithVIN(), excludedWords: this.excludedWords(),
       excludedWord: this.excludedWord(),
       queryExclusions: this.queryExclusions(),
       yearFrom: this.yearFrom(), yearTo: this.yearTo(), priceMin: this.priceMin(), priceMax: this.priceMax(),
@@ -1115,6 +1123,7 @@ export class SearchComponent implements OnDestroy {
       if (this.condition().length && !this.condition().some((value) => conditionMatches(product.condition, value))) return false;
       if (this.excludeNegotiable() && product.price == null) return false;
       if (this.onlyWithPhotos() && !product.thumbnailURL) return false;
+      if (this.onlyWithVIN() && !product.vin) return false;
       if (excluded.some((phrase) => containsPhrase(titleWords, phrase))) return false;
       if (this.smartCleanup()) signatures.add(signature);
       return true;

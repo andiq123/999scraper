@@ -17,6 +17,7 @@ export interface SearchState {
   smartCleanup: boolean;
   excludeNegotiable: boolean;
   onlyWithPhotos: boolean;
+  onlyWithVIN: boolean;
   excludedWords: string[];
   excludedWord: string;
   queryExclusions: string[];
@@ -192,6 +193,7 @@ function readStoredState(key: string): SearchState | null {
     }
     return {
       ...value,
+      onlyWithVIN: value.onlyWithVIN ?? false,
       fuel: choiceArray(value.fuel), transmission: choiceArray(value.transmission),
       drivetrain: choiceArray(value.drivetrain), bodyType: choiceArray(value.bodyType),
       registration: choiceArray(value.registration), originCountry: choiceArray(value.originCountry),
@@ -235,6 +237,7 @@ function isSearchState(value: unknown): value is SearchState {
     && typeof state.smartCleanup === 'boolean'
     && typeof state.excludeNegotiable === 'boolean'
     && typeof state.onlyWithPhotos === 'boolean'
+    && (typeof state.onlyWithVIN === 'boolean' || state.onlyWithVIN === undefined)
     && typeof state.searched === 'boolean'
     && typeof state.updatedAt === 'number'
     && typeof state.loadedPages === 'number'

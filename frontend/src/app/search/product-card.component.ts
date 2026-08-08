@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, computed, in
 import { Product } from '../models';
 import { ListingSummaryService } from '../listing-summary.service';
 import { ToastService } from '../toast.service';
+import { VINResearchService } from '../vin-research.service';
 
 @Component({
 	selector: 'app-product-card',
@@ -12,6 +13,7 @@ import { ToastService } from '../toast.service';
 export class ProductCardComponent {
   private readonly summaries = inject(ListingSummaryService);
   private readonly toast = inject(ToastService);
+  private readonly vinResearch = inject(VINResearchService);
   readonly product = input.required<Product>();
   readonly saved = input(false);
   readonly eager = input(false);
@@ -27,6 +29,11 @@ export class ProductCardComponent {
   readonly copyState = signal<'idle' | 'loading' | 'ready' | 'copied'>('idle');
   readonly copyRank = computed(() => this.summaries.rank(this.product().id));
   readonly openRank = computed(() => this.summaries.openRank(this.product().id));
+  readonly shortVIN = computed(() => {
+    const vin = this.product().vin;
+    return vin ? `${vin.slice(0, 4)}…${vin.slice(-4)}` : '';
+  });
+  readonly vinTooltipId = computed(() => `vin-${this.product().id.replace(/[^a-zA-Z0-9_-]/g, '')}`);
   readonly popoverId = computed(() => `exclude-${this.product().id.replace(/[^a-zA-Z0-9_-]/g, '')}`);
   readonly titleWords = computed(() => this.product().title.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) ?? []);
   readonly metadata = computed(() => {
@@ -58,6 +65,13 @@ export class ProductCardComponent {
 
   recordOpen(): void {
     this.summaries.recordOpen(this.product().id);
+  }
+
+  researchVIN(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const vin = this.product().vin;
+    if (vin) this.vinResearch.open(vin);
   }
 
   async copyJSON(): Promise<void> {

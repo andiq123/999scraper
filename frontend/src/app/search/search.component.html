@@ -219,6 +219,9 @@
       <div class="quick-filters">
         <label class="switch"><span><b>Smart cleanup</b><small>Instant · parts, ads and fake prices</small></span><input role="switch" type="checkbox" [checked]="smartCleanup()" (change)="setSmartCleanup($any($event.target).checked)"></label>
         <label class="switch"><span>With photos</span><input role="switch" type="checkbox" [checked]="onlyWithPhotos()" (change)="onlyWithPhotos.set($any($event.target).checked)"></label>
+        @if (isVehicleSearch()) {
+          <label class="switch vin-filter"><span><b>VIN available</b><small>Only listings with a detected VIN</small></span><input role="switch" type="checkbox" [checked]="onlyWithVIN()" (change)="onlyWithVIN.set($any($event.target).checked)"></label>
+        }
         <label class="switch"><span>Fixed price</span><input role="switch" type="checkbox" [checked]="excludeNegotiable()" (change)="excludeNegotiable.set($any($event.target).checked)"></label>
       </div>
       <details class="word-filters" [open]="uiPreferences.isOpen('wordCleanup')" (toggle)="rememberPanel('wordCleanup', $event)">
@@ -271,6 +274,7 @@
         <div class="result-bar" animate.enter="reveal-enter" animate.leave="reveal-leave">
           <p><strong>{{ products().length }}</strong> shown @if (newlyRevealed().size) { <span>· {{ newlyRevealed().size }} newly shown</span> } @else if (hiddenCount()) { <span>· {{ hiddenCount() }} cleaned</span> }</p>
           @if (visiblePriceSummary()) { <p class="visible-price" aria-label="Visible result price range"><small>Price</small><strong>{{ visiblePriceSummary() }}</strong></p> }
+          @if (activeVehicleSearch()) { <button class="vin-research-trigger" type="button" (click)="vinResearch.open()"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5" /><path d="m15 15 4.5 4.5M8 10.5h5" /></svg> VIN research</button> }
           <button class="bulk-trigger" type="button" (click)="toggleBulkMode()" [disabled]="bulkDownloading()" [attr.aria-pressed]="bulkMode()"><span aria-hidden="true">JSON</span> {{ bulkMode() ? 'Cancel' : 'Bulk JSON' }}</button>
           <button class="restart-search" type="button" (click)="startOver()" aria-label="Clear this search and start over"><span aria-hidden="true">×</span> Start over</button>
         </div>

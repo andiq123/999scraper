@@ -27,6 +27,7 @@ export interface Product {
   drivetrain?: string;
   registration?: string;
   originCountry?: string;
+  vin?: string;
   deviceModel?: string;
   storage?: string;
   brand?: string;

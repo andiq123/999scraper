@@ -15,10 +15,10 @@ export interface SearchEvent {
 export class SearchService {
 	private readonly auth = inject(AuthService);
 
-  async stream(query: string, signal: AbortSignal, emit: (event: SearchEvent) => void): Promise<void> {
+  async stream(query: string, extractVINFromDescription: boolean, signal: AbortSignal, emit: (event: SearchEvent) => void): Promise<void> {
     const response = await fetch(environment.apiUrl + 'products/stream', this.auth.withSession({
       method: 'POST',
-      body: JSON.stringify({ productSearchCriteria: query }),
+      body: JSON.stringify({ productSearchCriteria: query, extractVINFromDescription }),
       signal,
 	}));
 	if (response.status === 401) this.auth.expire();

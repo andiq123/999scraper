@@ -21,10 +21,16 @@ type RedisConfig struct {
 	URL string
 }
 
+type GoogleSearchConfig struct {
+	APIKey   string
+	EngineID string
+}
+
 type Config struct {
 	Address         string
 	Database        DatabaseConfig
 	Redis           RedisConfig
+	GoogleSearch    GoogleSearchConfig
 	JWTSecret       string
 	JWTIssuer       string
 	JWTLifetime     time.Duration
@@ -76,9 +82,13 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	cfg := Config{
-		Address:         address,
-		Database:        database,
-		Redis:           redisConfig,
+		Address:  address,
+		Database: database,
+		Redis:    redisConfig,
+		GoogleSearch: GoogleSearchConfig{
+			APIKey:   strings.TrimSpace(os.Getenv("GOOGLE_SEARCH_API_KEY")),
+			EngineID: strings.TrimSpace(os.Getenv("GOOGLE_SEARCH_ENGINE_ID")),
+		},
 		JWTSecret:       strings.TrimSpace(os.Getenv("JWT_SECRET")),
 		JWTIssuer:       env("JWT_ISSUER", "999scraper"),
 		JWTLifetime:     30 * 24 * time.Hour,
@@ -92,6 +102,9 @@ func Load() (Config, error) {
 	}
 	if len(cfg.JWTSecret) < 32 {
 		return Config{}, fmt.Errorf("JWT_SECRET must contain at least 32 characters")
+	}
+	if (cfg.GoogleSearch.APIKey == "") != (cfg.GoogleSearch.EngineID == "") {
+		return Config{}, fmt.Errorf("GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_ENGINE_ID must be configured together")
 	}
 	return cfg, nil
 }
