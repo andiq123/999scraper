@@ -1,0 +1,44 @@
+@source "./app/**/*.{html,ts}";
+@import 'tailwindcss';
+
+@plugin "daisyui" {
+  themes: false;
+  logs: false;
+}
+
+@plugin "daisyui/theme" {
+  name: 'market';
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: #ffffff;
+  --color-base-200: #f2f5f9;
+  --color-base-300: #e8edf4;
+  --color-base-content: #172033;
+  --color-primary: #2563eb;
+  --color-primary-content: #ffffff;
+  --color-secondary: #626e84;
+  --color-secondary-content: #ffffff;
+  --color-accent: #17825d;
+  --color-accent-content: #ffffff;
+  --color-neutral: #293246;
+  --color-neutral-content: #ffffff;
+  --color-info: #2563eb;
+  --color-info-content: #ffffff;
+  --color-success: #17825d;
+  --color-success-content: #ffffff;
+  --color-warning: #d1840d;
+  --color-warning-content: #172033;
+  --color-error: #c43c45;
+  --color-error-content: #ffffff;
+
+  --radius-selector: 0.9rem;
+  --radius-field: 0.75rem;
+  --radius-box: 1.1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}

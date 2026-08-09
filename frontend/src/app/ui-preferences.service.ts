@@ -37,7 +37,7 @@ function readPreferences(): UiPreferences {
     if (!stored || typeof stored !== 'object' || !('panels' in stored)) return defaults;
     const panels = (stored as { panels?: unknown }).panels;
     if (!panels || typeof panels !== 'object') return defaults;
-    return {
+    const restored = {
       panels: {
         smartRefinement: booleanValue(panels, 'smartRefinement'),
         filters: booleanValue(panels, 'filters'),
@@ -45,6 +45,12 @@ function readPreferences(): UiPreferences {
         categories: booleanValue(panels, 'categories'),
       },
     };
+    // A persisted desktop accordion must never cover the mobile page on launch.
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 699px)').matches) {
+      restored.panels.smartRefinement = false;
+      restored.panels.filters = false;
+    }
+    return restored;
   } catch {
     return defaults;
   }

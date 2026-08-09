@@ -1,4 +1,4 @@
-.toast {
+.app-toast {
   position: fixed;
   right: max(1rem, env(safe-area-inset-right));
   bottom: calc(78px + env(safe-area-inset-bottom));
@@ -15,7 +15,7 @@
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(20px) saturate(140%);
 }
-.toast-mark {
+.app-toast .toast-mark {
   display: grid;
   place-items: center;
   width: 1.75rem;
@@ -24,7 +24,7 @@
   background: rgb(255 255 255 / 18%);
   font-weight: 800;
 }
-.toast.error {
+.app-toast.error {
   background: rgb(var(--danger-rgb) / 94%);
 }
 .network-state {
@@ -103,17 +103,34 @@
   padding-inline: 0.7rem;
   font-size: 0.7rem;
 }
-@keyframes update-card-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
+@media (prefers-reduced-motion: no-preference) {
+  .banner-enter {
+    animation: banner-enter var(--duration-slow) var(--ease) both;
+  }
+  .banner-leave {
+    animation: banner-leave var(--duration-fast) ease both;
+    pointer-events: none;
+  }
+  .banner-enter .update-mark {
+    animation: update-mark-enter 420ms var(--ease) 80ms both;
   }
 }
-@media (prefers-reduced-motion: no-preference) {
-  .network-state {
-    animation: toast-enter 0.28s var(--ease) both;
+
+@keyframes banner-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
   }
-  .update-card {
-    animation: update-card-enter 0.18s var(--ease) both;
+}
+@keyframes banner-leave {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+}
+@keyframes update-mark-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px) rotate(-12deg) scale(0.82);
   }
 }

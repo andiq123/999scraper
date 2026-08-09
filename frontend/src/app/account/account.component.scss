@@ -1,6 +1,7 @@
 .account-page {
-  width: min(100% - 1rem, 520px);
+  width: min(100% - 0.75rem, 640px);
   margin-top: 0.75rem;
+  margin-bottom: max(2rem, env(safe-area-inset-bottom));
 }
 .account-heading {
   margin: 0 0.2rem 0.8rem;
@@ -20,6 +21,99 @@
   padding: 0.85rem;
   border-radius: 22px;
   box-shadow: var(--shadow-md);
+}
+.app-status {
+  overflow: hidden;
+  margin-top: 0.7rem;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+}
+.app-status > header {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 48px;
+}
+.app-status > header > div,
+.service-list > div > span:nth-child(2) {
+  display: grid;
+  min-width: 0;
+  line-height: 1.3;
+}
+.app-status strong,
+.service-list strong {
+  font-size: 0.77rem;
+}
+.app-status small,
+.service-list small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.64rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.app-status > header button {
+  min-height: 38px;
+}
+.status-light,
+.service-dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  margin: auto;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 6px rgb(var(--success-rgb) / 9%);
+  transition:
+    background-color var(--duration) ease,
+    box-shadow var(--duration) ease;
+}
+.app-status.degraded .status-light {
+  background: var(--danger);
+  box-shadow: 0 0 0 6px rgb(var(--danger-rgb) / 8%);
+}
+.app-status.checking .status-light {
+  background: var(--subtle);
+  box-shadow: 0 0 0 6px rgb(144 155 173 / 8%);
+}
+.service-list {
+  overflow: hidden;
+  margin-top: 0.55rem;
+  border-top: 1px solid var(--line);
+}
+.service-list > div {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 55px;
+}
+.service-list > div + div {
+  border-top: 1px solid var(--line);
+}
+.service-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--subtle);
+  box-shadow: 0 0 0 5px rgb(144 155 173 / 8%);
+}
+.service-dot.online {
+  background: var(--success);
+  box-shadow: 0 0 0 5px rgb(var(--success-rgb) / 8%);
+}
+.service-list b {
+  padding: 0.2rem 0.48rem;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--surface-soft);
+  font-size: 0.61rem;
+  font-weight: 720;
+}
+.service-list b.online {
+  color: var(--success);
+  background: rgb(var(--success-rgb) / 8%);
 }
 .account-status {
   display: grid;
@@ -116,20 +210,13 @@
   width: 100%;
   min-height: 44px;
   margin-top: 0.7rem;
-  border: 0;
-  border-radius: 12px;
-  color: var(--danger);
-  background: rgb(var(--danger-rgb) / 6%);
   font-size: 0.74rem;
   font-weight: 700;
   cursor: pointer;
 }
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .account-list a:hover {
     background: var(--surface-soft);
-  }
-  .logout:hover {
-    background: rgb(var(--danger-rgb) / 10%);
   }
 }
 @media (min-width: 600px) {
@@ -138,6 +225,9 @@
   }
   .account-state {
     padding: 1rem;
+  }
+  .app-status {
+    padding: 0.9rem 1rem;
   }
   .account-heading h1 {
     font-size: 2.2rem;

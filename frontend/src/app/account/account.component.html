@@ -1,11 +1,11 @@
-<main class="account-page page-shell">
+<main class="account-page page-shell route-page">
   <header class="account-heading">
     <h1>Account</h1>
     <p>{{ auth.session() ? 'Your private search space.' : 'Search freely. Sign in only to keep things.' }}</p>
   </header>
 
   @if (auth.session()) {
-    <section class="account-state ui-surface">
+    <section class="account-state card bg-base-100 shadow-sm">
       <div class="account-status">
         <span aria-hidden="true">✓</span>
         <div><strong>Signed in</strong><small>Your saved listings and history are available.</small></div>
@@ -22,19 +22,64 @@
           ><b aria-hidden="true">›</b></a
         >
       </nav>
-      <button class="logout" type="button" (click)="auth.logout()">Log out</button>
+      <button class="logout btn btn-soft btn-error" type="button" (click)="auth.logout()">Log out</button>
     </section>
   } @else {
-    <section class="account-state ui-surface">
+    <section class="account-state card bg-base-100 shadow-sm">
       <div class="account-status guest">
         <span aria-hidden="true">6</span>
         <div><strong>One private code</strong><small>No name, email, or password required.</small></div>
       </div>
       <div class="account-actions">
-        <a class="ui-button ui-button-primary" routerLink="/login">Log in with code</a>
-        <a class="ui-button ui-button-quiet" routerLink="/register">Register · get a code</a>
+        <a class="btn btn-primary" routerLink="/login">Log in with code</a>
+        <a class="btn btn-ghost" routerLink="/register">Register · get a code</a>
       </div>
       <p class="guest-note">You can always search without an account.</p>
     </section>
   }
+
+  <section
+    class="app-status card bg-base-100 shadow-sm"
+    [class.checking]="checking() && !health()"
+    [class.degraded]="unavailable() || health()?.status === 'degraded'"
+  >
+    <header>
+      <span class="status-light" aria-hidden="true"></span>
+      <div>
+        <strong>App status</strong>
+        <small>
+          @if (lastChecked(); as checked) {
+            Checked {{ checked.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
+          } @else {
+            Checking services…
+          }
+          @if (latency(); as value) {
+            · {{ value }} ms
+          }
+        </small>
+      </div>
+      <button class="btn btn-soft btn-primary btn-sm" type="button" (click)="refreshStatus()" [disabled]="checking()">
+        <span aria-hidden="true">↻</span>{{ checking() ? 'Checking…' : 'Refresh' }}
+      </button>
+    </header>
+    <div class="service-list" aria-label="Application services">
+      @for (
+        service of [
+          { name: 'Search', detail: 'Backend API', online: health()?.services?.backend },
+          { name: 'Library', detail: 'Saved listings and history', online: health()?.services?.database },
+          { name: 'Cache', detail: 'Fast result loading', online: health()?.services?.redis },
+        ];
+        track service.name
+      ) {
+        <div>
+          <span class="service-dot" [class.online]="service.online" aria-hidden="true"></span>
+          <span
+            ><strong>{{ service.name }}</strong
+            ><small>{{ service.detail }}</small></span
+          >
+          <b class="badge badge-sm" [class.online]="service.online">{{ statusLabel(service.online) }}</b>
+        </div>
+      }
+    </div>
+  </section>
 </main>

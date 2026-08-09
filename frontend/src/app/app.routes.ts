@@ -9,7 +9,7 @@ export const routes: Routes = [
     loadComponent: () => import('./auth/register/register.component').then((m) => m.RegisterComponent),
   },
   { path: 'account', loadComponent: () => import('./account/account.component').then((m) => m.AccountComponent) },
-  { path: 'settings', loadComponent: () => import('./settings/settings.component').then((m) => m.SettingsComponent) },
+  { path: 'settings', redirectTo: 'account', pathMatch: 'full' },
   { path: 'search', redirectTo: '', pathMatch: 'full' },
   {
     path: 'history',

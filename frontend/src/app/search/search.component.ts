@@ -698,6 +698,8 @@ export class SearchComponent implements OnDestroy {
     this.newlyRevealed.set(new Set());
     this.controller?.abort();
     this.searchState.save(this.snapshot(window.scrollY), true);
+    document.documentElement.style.removeProperty('--page-scroll-lock');
+    document.documentElement.classList.remove('filter-sheet-open');
   }
 
   @HostListener('window:pagehide')
@@ -725,6 +727,23 @@ export class SearchComponent implements OnDestroy {
   @HostListener('window:scroll')
   closeSuggestionsOnScroll(): void {
     if (this.suggestionsOpen()) this.closeSearchSuggestions();
+  }
+
+  @HostListener('document:keydown.escape')
+  closeMobileFilterSheet(): void {
+    if (!window.matchMedia('(max-width: 699px)').matches) return;
+    this.closeMobileFilterSheets();
+  }
+
+  closeMobileFilterSheets(event?: Event): void {
+    event?.preventDefault();
+    event?.stopPropagation();
+    this.uiPreferences.setOpen('filters', false);
+    this.uiPreferences.setOpen('smartRefinement', false);
+    document
+      .querySelectorAll<HTMLDetailsElement>('app-search details.filters[open], app-search details.smart-prompt[open]')
+      .forEach((sheet) => (sheet.open = false));
+    this.syncMobileFilterChrome();
   }
 
   async search(event?: SubmitEvent): Promise<void> {
@@ -1158,7 +1177,29 @@ export class SearchComponent implements OnDestroy {
   }
 
   rememberPanel(panel: CollapsiblePanel, event: Event): void {
-    this.uiPreferences.setOpen(panel, (event.currentTarget as HTMLDetailsElement).open);
+    const open = (event.currentTarget as HTMLDetailsElement).open;
+    this.uiPreferences.setOpen(panel, open);
+    if (panel === 'filters' || panel === 'smartRefinement') {
+      if (open && window.matchMedia('(max-width: 699px)').matches) {
+        const otherPanel = panel === 'filters' ? 'smart-prompt' : 'filters';
+        const other = document.querySelector<HTMLDetailsElement>(`app-search details.${otherPanel}[open]`);
+        if (other) other.open = false;
+      }
+      this.syncMobileFilterChrome();
+    }
+  }
+
+  private syncMobileFilterChrome(): void {
+    window.requestAnimationFrame(() => {
+      const mobile = window.matchMedia('(max-width: 699px)').matches;
+      const hasOpenSheet = Boolean(
+        document.querySelector('app-search details.filters[open], app-search details.smart-prompt[open]'),
+      );
+      const active = mobile && hasOpenSheet;
+      document.documentElement.classList.toggle('filter-sheet-open', active);
+      if (active) document.documentElement.style.setProperty('--page-scroll-lock', 'hidden');
+      else document.documentElement.style.removeProperty('--page-scroll-lock');
+    });
   }
 
   toggleRegistration(value: 'moldova' | 'other'): void {

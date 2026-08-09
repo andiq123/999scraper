@@ -62,8 +62,8 @@ h1 {
 }
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(175px, 100%), 1fr));
-  gap: 0.65rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
 }
 .filtered-empty {
   grid-column: 1 / -1;
@@ -97,7 +97,23 @@ h1 {
     margin-top: 2rem;
   }
   .grid {
-    grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 0.75rem;
+  }
+}
+
+@media (max-width: 699px) {
+  .saved-page {
+    margin-top: 0.8rem;
+  }
+  header,
+  .saved-origin-filter {
+    margin-inline: 0;
+  }
+  header {
+    margin-bottom: 0.8rem;
+  }
+  .saved-origin-filter {
+    margin-bottom: 0.8rem;
   }
 }

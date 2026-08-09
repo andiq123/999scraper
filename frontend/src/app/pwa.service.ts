@@ -14,6 +14,7 @@ export class PwaService {
   readonly installAvailable = signal(false);
   readonly serviceWorkerEnabled = signal(this.updates.isEnabled);
   readonly updateReady = signal(false);
+  readonly applyingUpdate = signal(false);
   readonly updateMessage = signal('A newer version is ready. Refresh when you’re ready.');
 
   constructor() {
@@ -69,7 +70,9 @@ export class PwaService {
   }
 
   reloadForUpdate(): void {
-    window.location.reload();
+    if (this.applyingUpdate()) return;
+    this.applyingUpdate.set(true);
+    requestAnimationFrame(() => window.location.reload());
   }
 
   private async checkForUpdate(): Promise<void> {

@@ -611,7 +611,7 @@
       transform 220ms var(--ease);
   }
 }
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .source-card:hover {
     border-color: rgb(var(--accent-rgb) / 18%);
     box-shadow: 0 10px 26px rgb(23 32 51 / 8%);

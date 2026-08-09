@@ -1,10 +1,10 @@
-<main class="auth-card ui-surface">
+<main class="auth-card card bg-base-100 shadow-sm route-page">
   @if (code()) {
     <section class="auth-state" animate.enter="reveal-enter" animate.leave="reveal-leave">
       <h1>Your login code</h1>
       <p>Save these six digits. They are shown once.</p>
       <code aria-label="Your six-digit login code">{{ code() }}</code>
-      <button class="ui-button ui-button-primary" type="button" (click)="copy()">
+      <button class="btn btn-primary" type="button" (click)="copy()">
         {{ copied() ? 'Copied' : 'Copy code' }}
       </button>
       <a routerLink="/login">Go to login</a>
@@ -13,7 +13,7 @@
     <section class="auth-state" animate.enter="reveal-enter" animate.leave="reveal-leave">
       <h1>Register</h1>
       <p>Create a private six-digit login code.</p>
-      <button class="ui-button ui-button-primary" type="button" (click)="create()" [disabled]="creating()">
+      <button class="btn btn-primary" type="button" (click)="create()" [disabled]="creating()">
         {{ creating() ? 'Creating…' : 'Register' }}
       </button>
     </section>

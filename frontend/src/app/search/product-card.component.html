@@ -1,5 +1,5 @@
 <article
-  class="ui-surface"
+  class="card bg-base-100 shadow-sm"
   [class.bulk-mode]="bulkMode()"
   [class.bulk-selected]="bulkSelected()"
   [class.newly-revealed]="newlyRevealed()"
@@ -208,7 +208,7 @@
           <span>{{ copyState() === 'loading' ? 'Loading' : copyState() === 'copied' ? 'Copied' : 'JSON' }}</span>
         </button>
         <a
-          class="ui-button ui-button-quiet"
+          class="btn btn-ghost btn-sm"
           [href]="product().urlToProduct"
           target="_blank"
           rel="noopener noreferrer"

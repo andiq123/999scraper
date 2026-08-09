@@ -1,7 +1,8 @@
 <main class="search-page">
-  <form class="search-form ui-surface" (submit)="search($event)">
+  <form class="search-form card bg-base-100 shadow-sm" (submit)="search($event)">
     <label class="sr-only" for="search-query">Search 999.md</label>
     <input
+      class="input input-ghost"
       #searchInput
       id="search-query"
       autofocus
@@ -20,7 +21,7 @@
       (keydown)="handleSearchKeys($event)"
     />
     <button
-      class="ui-button ui-button-primary"
+      class="btn btn-primary"
       type="submit"
       [disabled]="
         !query().trim() ||
@@ -93,12 +94,27 @@
     </aside>
   }
 
+  @if (uiPreferences.isOpen('smartRefinement') || uiPreferences.isOpen('filters')) {
+    <button
+      class="mobile-filter-backdrop"
+      type="button"
+      animate.enter="backdrop-enter"
+      animate.leave="backdrop-leave"
+      aria-label="Close filters"
+      (pointerdown)="$event.preventDefault()"
+      (click)="closeMobileFilterSheets($event)"
+    ></button>
+  }
+
   @if (hasSmartPrompt()) {
     <details
-      class="smart-prompt ui-surface"
+      class="smart-prompt card bg-base-100 shadow-sm"
       animate.enter="reveal-enter"
       animate.leave="reveal-leave"
       aria-live="polite"
+      [attr.role]="uiPreferences.isOpen('smartRefinement') ? 'dialog' : null"
+      [attr.aria-modal]="uiPreferences.isOpen('smartRefinement') ? 'true' : null"
+      aria-label="Smart filters"
       [open]="uiPreferences.isOpen('smartRefinement')"
       (toggle)="rememberPanel('smartRefinement', $event)"
     >
@@ -109,6 +125,7 @@
           ><small>{{ smartSummary() }}</small></span
         >
         <span class="refine-label">Smart filters</span>
+        <span class="sheet-done">Done</span>
       </summary>
 
       <div class="smart-controls">
@@ -712,7 +729,10 @@
 
   <div class="workspace">
     <details
-      class="filters ui-surface"
+      class="filters card bg-base-100 shadow-sm"
+      [attr.role]="uiPreferences.isOpen('filters') ? 'dialog' : null"
+      [attr.aria-modal]="uiPreferences.isOpen('filters') ? 'true' : null"
+      aria-label="More filters"
       [open]="uiPreferences.isOpen('filters')"
       (toggle)="rememberPanel('filters', $event)"
     >
@@ -721,10 +741,15 @@
         ><small>{{
           activeFilterChips().length ? activeFilterChips().length + ' active' : 'Price · cleanup · words'
         }}</small>
+        <span class="sheet-done">Done</span>
       </summary>
       <label
         >Order
-        <select [value]="order()" (change)="order.set($any($event.target).value)">
+        <select
+          class="select select-bordered select-sm"
+          [value]="order()"
+          (change)="order.set($any($event.target).value)"
+        >
           <option value="relevance">Best match</option>
           <option value="qualityDesc">Best ad quality</option>
           <option value="priceAsc">Lowest price</option>
@@ -733,7 +758,7 @@
       </label>
       <label
         >Minimum ad quality
-        <select [value]="qualityMin()" (change)="setQualityMinimum($event)">
+        <select class="select select-bordered select-sm" [value]="qualityMin()" (change)="setQualityMinimum($event)">
           <option value="0">Any score</option>
           <option value="5">5+ · Useful details</option>
           <option value="7">7+ · Well documented</option>
@@ -745,7 +770,12 @@
         <legend>
           <span>Price</span><output>{{ priceRangeLabel() }}</output>
         </legend>
-        <select aria-label="Price currency" [value]="priceCurrency() ?? ''" (change)="setCurrency($event)">
+        <select
+          class="select select-bordered select-sm"
+          aria-label="Price currency"
+          [value]="priceCurrency() ?? ''"
+          (change)="setCurrency($event)"
+        >
           <option value="">Original prices</option>
           <option value="0">MDL</option>
           <option value="1">EUR</option>
@@ -780,6 +810,7 @@
         </div>
         <div class="price-inputs">
           <input
+            class="input input-bordered input-sm"
             type="number"
             inputmode="numeric"
             min="0"
@@ -790,6 +821,7 @@
           />
           <span>–</span>
           <input
+            class="input input-bordered input-sm"
             type="number"
             inputmode="numeric"
             min="0"
@@ -815,6 +847,7 @@
         <label class="switch"
           ><span><b>Smart cleanup</b><small>Instant · parts, ads and fake prices</small></span
           ><input
+            class="toggle toggle-primary toggle-sm"
             role="switch"
             type="checkbox"
             [checked]="smartCleanup()"
@@ -823,6 +856,7 @@
         <label class="switch"
           ><span>With photos</span
           ><input
+            class="toggle toggle-primary toggle-sm"
             role="switch"
             type="checkbox"
             [checked]="onlyWithPhotos()"
@@ -832,6 +866,7 @@
           <label class="switch vin-filter"
             ><span><b>VIN available</b><small>Only listings with a detected VIN</small></span
             ><input
+              class="toggle toggle-accent toggle-sm"
               role="switch"
               type="checkbox"
               [checked]="onlyWithVIN()"
@@ -841,6 +876,7 @@
         <label class="switch"
           ><span>Fixed price</span
           ><input
+            class="toggle toggle-primary toggle-sm"
             role="switch"
             type="checkbox"
             [checked]="excludeNegotiable()"
@@ -858,6 +894,7 @@
         <label
           >Exclude words
           <input
+            class="input input-bordered input-sm"
             autocomplete="off"
             enterkeyhint="done"
             placeholder="Type and press Enter"
@@ -900,7 +937,7 @@
     <section class="result-feed" aria-label="Search results">
       @if (loading()) {
         <div
-          class="status ui-surface"
+          class="status card bg-base-100 shadow-sm"
           animate.enter="reveal-enter"
           animate.leave="reveal-leave"
           role="status"
@@ -1050,11 +1087,9 @@
           <p>Try a broader search or fewer filters.</p>
           <div class="empty-actions">
             @if (hasCustomFilters()) {
-              <button class="ui-button ui-button-primary" type="button" (click)="resetFilters()">
-                Show broader results
-              </button>
+              <button class="btn btn-primary" type="button" (click)="resetFilters()">Show broader results</button>
             }
-            <button class="ui-button ui-button-quiet" type="button" (click)="startOver()">Start over</button>
+            <button class="btn btn-ghost" type="button" (click)="startOver()">Start over</button>
           </div>
         </div>
       } @else if (loading()) {

@@ -8,7 +8,7 @@
   @if (items().length) {
     <ol animate.enter="reveal-enter" animate.leave="reveal-leave">
       @for (item of items(); track item.id) {
-        <li class="ui-surface" animate.leave="reveal-leave">
+        <li class="card bg-base-100 shadow-sm" animate.leave="reveal-leave">
           <a routerLink="/" [queryParams]="{ q: item.query }">{{ item.query }}</a
           ><time [attr.datetime]="item.searchedAt">{{ item.searchedAt | date: 'medium' }}</time>
         </li>
@@ -18,7 +18,7 @@
     <div class="empty empty-state" animate.enter="reveal-enter" animate.leave="reveal-leave">
       <h2>No searches yet</h2>
       <p>Your searches will appear here.</p>
-      <a class="button ui-button ui-button-primary" routerLink="/">Start searching</a>
+      <a class="button btn btn-primary" routerLink="/">Start searching</a>
     </div>
   }
 </main>

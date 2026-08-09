@@ -19,7 +19,6 @@
   min-height: 44px;
   padding: 0.5rem 0.6rem;
   border: 0;
-  outline: none;
   background: transparent;
   font-size: 0.92rem;
 }
@@ -289,6 +288,7 @@
 }
 .workspace {
   display: grid;
+  align-items: start;
   gap: 0.5rem;
   margin-top: 0.5rem;
 }
@@ -344,11 +344,9 @@
   font-size: 0.75rem;
   font-weight: 650;
 }
-.filters input[type='checkbox'] {
-  width: 20px;
-  height: 20px;
+.filters .toggle {
+  flex: none;
   min-height: 0;
-  accent-color: var(--accent);
 }
 .filters input:not([type='checkbox']),
 .filters select {
@@ -531,39 +529,8 @@
   font-size: 0.64rem;
   font-weight: 520;
 }
-.filters .switch input {
-  position: relative;
-  flex: none;
-  width: 38px;
-  height: 22px;
-  appearance: none;
-  border-radius: 999px;
-  background: var(--line-strong);
-  cursor: pointer;
-}
-.filters .switch input::after {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  content: '';
-  background: var(--surface-solid);
-  box-shadow: var(--shadow-sm);
-  transition: transform 260ms var(--ease);
-}
-.filters .switch input:checked {
-  background: var(--accent);
-}
-.filters .switch input:checked::after {
-  transform: translateX(16px);
-}
 .vin-filter:has(input:checked) {
   color: #087f75;
-}
-.filters .vin-filter input:checked {
-  background: #0d9488;
 }
 .word-filters {
   margin-top: 0.2rem;
@@ -1067,7 +1034,7 @@
     animation: soft-pop 0.2s var(--ease) both;
   }
 }
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .clear-all-filters:not(:disabled):hover,
   .tags button:hover,
   .recent-searches button:hover,
