@@ -40,7 +40,7 @@ Configuration is split by service ownership and both files are ignored by Git. `
 
 Search is public and needs no account. Log in only to save listings, sync excluded-word preferences, and retain search history. There are no usernames, passwords, roles, or admins: press **Register** once, save the generated six-digit code, then use it to log in. The code is shown once and only its keyed cryptographic fingerprint is stored. Login attempts are rate-limited, and a successful login returns a signed JWT that the frontend keeps in local storage.
 
-Changes under `backend/cmd/` or `backend/internal/` rebuild and restart the backend through Air. Changes under `frontend/src/` refresh through the independent Angular development server.
+Changes under `backend/cmd/` or `backend/internal/` rebuild and restart the backend through Air. Changes under `frontend/src/` refresh through the independent Angular development server. The frontend container fingerprints `package-lock.json` on startup and refreshes its persistent dependency volume only when the lockfile changes, so adding or updating a package does not require deleting Docker volumes.
 
 VIN research decodes vehicle identity through NHTSA and discovers auction-detail pages with Google's official Programmable Search Element. `VIN_SEARCH_ENGINE_ID` is a public frontend identifier; no browser secret is required. Results are restricted to allow-listed HTTPS detail pages and must contain the complete VIN in the title, snippet, or detail URL. Generic search pages, unrelated snippets, and unverified domains are discarded.
 

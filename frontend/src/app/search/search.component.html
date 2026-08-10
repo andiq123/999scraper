@@ -936,20 +936,15 @@
 
     <section class="result-feed" aria-label="Search results">
       @if (loading()) {
-        <div
-          class="status card bg-base-100 shadow-sm"
+        <app-scrape-progress
           animate.enter="reveal-enter"
           animate.leave="reveal-leave"
-          role="status"
-          aria-live="polite"
-        >
-          <div>
-            <strong>Page {{ loadedPages() || 1 }} of {{ totalPages() || '?' }}</strong
-            ><span>{{ products().length }} matches</span>
-          </div>
-          <progress [value]="progress()" max="100"></progress>
-          <button type="button" (click)="cancel()">Cancel</button>
-        </div>
+          [loadedPages]="loadedPages()"
+          [totalPages]="totalPages()"
+          [matches]="products().length"
+          [progress]="progress()"
+          (stop)="cancel()"
+        />
       }
 
       @if (activeFilterChips().length) {

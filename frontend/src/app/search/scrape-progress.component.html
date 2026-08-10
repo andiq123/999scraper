@@ -1,0 +1,31 @@
+<section
+  class="scrape-progress"
+  [class.indeterminate]="totalPages() === 0"
+  [style.--scrape-progress.%]="progress()"
+  role="status"
+  aria-live="polite"
+  aria-atomic="true"
+>
+  <span class="activity" aria-hidden="true">
+    <svg viewBox="0 0 24 24">
+      <circle cx="10.5" cy="10.5" r="5.5" />
+      <path d="m15 15 4 4M7.5 10.5h6M10.5 7.5v6" />
+    </svg>
+  </span>
+
+  <div class="progress-copy">
+    <span>Scanning marketplace</span>
+    <strong>Page {{ loadedPages() || 1 }} of {{ totalPages() || '…' }}</strong>
+    <small>{{ matches() }} {{ matches() === 1 ? 'listing' : 'listings' }} found so far</small>
+  </div>
+
+  @if (totalPages()) {
+    <output aria-label="Search progress">{{ progress() }}%</output>
+  }
+
+  <button type="button" (click)="stop.emit()" aria-label="Stop loading results">
+    <span aria-hidden="true"></span>Stop
+  </button>
+
+  <span class="progress-track" aria-hidden="true"><i></i></span>
+</section>

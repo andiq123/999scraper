@@ -40,6 +40,7 @@ import {
 } from './search-intent';
 import { SearchSuggestion, completeSearchInput, marketCategories, suggestionsFor } from './search-suggestions';
 import { RangeFilterComponent, type RangePreset } from './range-filter.component';
+import { ScrapeProgressComponent } from './scrape-progress.component';
 import { type CollapsiblePanel, UiPreferencesService } from '../ui-preferences.service';
 import { ListingSummaryService, type BulkDownloadProgress } from '../listing-summary.service';
 import {
@@ -170,7 +171,7 @@ interface FilterChip {
 @Component({
   selector: 'app-search',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ProductCardComponent, RangeFilterComponent],
+  imports: [ProductCardComponent, RangeFilterComponent, ScrapeProgressComponent],
   templateUrl: './search.component.html',
   styleUrl: './search.component.scss',
 })

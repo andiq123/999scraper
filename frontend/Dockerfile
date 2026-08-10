@@ -6,7 +6,7 @@ RUN npm ci
 FROM dependencies AS development
 COPY . ./
 EXPOSE 4200
-CMD ["npm", "start", "--", "--poll", "500"]
+CMD ["sh", "scripts/container-start.sh"]
 
 FROM dependencies AS builder
 COPY . ./

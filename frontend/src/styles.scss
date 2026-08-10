@@ -163,15 +163,6 @@ select {
   .search-page .smart-fields.device-ranges > .compact-range {
     width: 100%;
   }
-  .search-page .result-feed .status {
-    gap: 0.35rem 0.55rem;
-    padding: 0.55rem 0.65rem;
-    border-radius: 14px;
-  }
-  .search-page .result-feed .status button {
-    min-height: 36px;
-    padding: 0.35rem 0.55rem;
-  }
   .search-page .result-feed .active-filters {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
