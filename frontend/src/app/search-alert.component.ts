@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component, ElementRef, effect, inject, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SearchAlertService } from './search-alert.service';
+import { searchAlertConfiguration } from './search/search-filter-chips';
+import { decodeSearchFilters } from './search/search-url-state';
 
 @Component({
   selector: 'app-search-alert',
@@ -11,6 +13,10 @@ import { SearchAlertService } from './search-alert.service';
 })
 export class SearchAlertComponent {
   readonly alerts = inject(SearchAlertService);
+  readonly configuration = computed(() => {
+    const filters = decodeSearchFilters(this.alerts.filterParam());
+    return filters ? searchAlertConfiguration(filters) : [];
+  });
   readonly intervalOptions = [
     { value: 15, label: 'Every 15 minutes' },
     { value: 60, label: 'Every hour' },

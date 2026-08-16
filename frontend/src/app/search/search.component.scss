@@ -293,8 +293,9 @@
 }
 .filters {
   min-width: 0;
-  padding: 0.2rem 0.65rem;
-  border-radius: 14px;
+  padding: 0.2rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
 }
 .filters[open] {
   padding-bottom: 0.8rem;
@@ -303,6 +304,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.55rem;
   min-height: 46px;
   list-style: none;
   font-weight: 750;
@@ -335,6 +337,12 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.filters > label > small {
+  color: var(--subtle);
+  font-size: 0.64rem;
+  font-weight: 520;
+  line-height: 1.4;
+}
 .filters label {
   display: grid;
   gap: 0.3rem;
@@ -352,8 +360,8 @@
   width: 100%;
   min-height: var(--control-height);
   padding: 0.5rem 0.62rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xs);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
   outline: none;
   background: var(--surface-raised);
 }
@@ -527,6 +535,7 @@
   color: var(--subtle);
   font-size: 0.64rem;
   font-weight: 520;
+  line-height: 1.35;
 }
 .vin-filter:has(input:checked) {
   color: #087f75;
@@ -884,6 +893,12 @@
 @keyframes spin {
   to {
     transform: rotate(1turn);
+  }
+}
+
+@media (max-width: 699px) {
+  .filters[open] > summary small {
+    display: none;
   }
 }
 

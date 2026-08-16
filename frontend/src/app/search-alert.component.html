@@ -28,6 +28,24 @@
       <span class="live-dot">Live</span>
     </div>
 
+    @if (configuration().length) {
+      <section class="saved-configuration" aria-labelledby="saved-configuration-title">
+        <div class="configuration-heading">
+          <span class="configuration-check" aria-hidden="true">✓</span>
+          <div>
+            <strong id="saved-configuration-title">Saved configuration</strong>
+            <small>Reopens with every filter applied</small>
+          </div>
+          <span class="matching-count">{{ alerts.matchingCount() }} now</span>
+        </div>
+        <div class="configuration-chips" aria-label="Applied search filters">
+          @for (filter of configuration(); track filter.id) {
+            <span>{{ filter.label }}</span>
+          }
+        </div>
+      </section>
+    }
+
     @if (alerts.loading()) {
       <div class="alert-loading" role="status"><span></span> Checking email alerts…</div>
     } @else if (alerts.available() === false) {

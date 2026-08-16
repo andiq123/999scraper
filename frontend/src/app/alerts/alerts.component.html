@@ -59,6 +59,15 @@
               ><strong>{{ item.query }}</strong></a
             >
             <small>{{ item.recipientEmail }}</small>
+            @if (configuration(item.filterParam); as filters) {
+              @if (filters.length) {
+                <div class="saved-filters" aria-label="Saved search configuration">
+                  @for (filter of filters; track filter) {
+                    <span>{{ filter }}</span>
+                  }
+                </div>
+              }
+            }
             <p>
               {{ intervalLabel(item.intervalMinutes) }} ·
               @if (item.lastNotifiedAt) {

@@ -28,6 +28,8 @@ export class SearchAlertService {
   readonly intervalMinutes = signal(15);
   readonly items = signal<SearchSubscription[]>([]);
   readonly query = signal('');
+  readonly filterParam = signal('');
+  readonly matchingCount = signal(0);
   readonly recipientEmail = signal('');
   readonly error = signal<string | null>(null);
 
@@ -44,6 +46,8 @@ export class SearchAlertService {
       snapshotProductIds: [...new Set(currentProductIds)].slice(0, 1000),
     };
     this.query.set(query);
+    this.filterParam.set(filterParam);
+    this.matchingCount.set(this.draft.snapshotProductIds.length);
     this.error.set(null);
     this.visible.set(true);
     await this.load();

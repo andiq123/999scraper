@@ -2,6 +2,8 @@ import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SearchAlertService } from '../search-alert.service';
+import { searchAlertConfiguration } from '../search/search-filter-chips';
+import { decodeSearchFilters } from '../search/search-url-state';
 
 @Component({
   selector: 'app-alerts',
@@ -63,5 +65,10 @@ export class AlertsComponent {
     if (minutes === 1440) return 'Daily';
     if (minutes > 60) return `Every ${minutes / 60} hours`;
     return `Every ${minutes} minutes`;
+  }
+
+  configuration(filterParam?: string): string[] {
+    const filters = decodeSearchFilters(filterParam ?? '');
+    return filters ? searchAlertConfiguration(filters).map((filter) => filter.label) : [];
   }
 }

@@ -123,6 +123,26 @@
 .alert-copy p {
   color: var(--subtle);
 }
+.saved-filters {
+  display: flex;
+  gap: 0.25rem;
+  margin-block: 0.25rem 0.1rem;
+  overflow: hidden;
+}
+.saved-filters span {
+  flex: 0 0 auto;
+  max-width: 150px;
+  padding: 0.18rem 0.38rem;
+  overflow: hidden;
+  border: 1px solid rgb(var(--accent-rgb) / 12%);
+  border-radius: 999px;
+  color: var(--accent);
+  background: var(--accent-softer);
+  font-size: 0.58rem;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .alert-actions {
   display: flex;
   align-items: center;

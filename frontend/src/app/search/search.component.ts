@@ -52,6 +52,7 @@ import {
 import { VINResearchService } from '../vin-research.service';
 import { isPartsVehicleAd, isWantedListing, listingQualityScore } from './listing-quality';
 import { SearchAlertService } from '../search-alert.service';
+import { searchFilterChips, type SearchFilterChip } from './search-filter-chips';
 const carNoise = new Set([
   'accesorii',
   'acumulator',
@@ -164,11 +165,6 @@ const chisinauSectors = [
 ] as const;
 const housingStockOptions = ['Construcții noi', 'Secundar'] as const;
 const listingAuthorOptions = ['Persoană fizică', 'Agenție', 'Dezvoltator imobiliar', 'Bancă'] as const;
-interface FilterChip {
-  id: string;
-  label: string;
-}
-
 @Component({
   selector: 'app-search',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -538,94 +534,9 @@ export class SearchComponent implements OnDestroy {
     if (max === null) return `From ${formatNumber(min)}`;
     return `${formatNumber(min)}–${formatNumber(max)}`;
   });
-  readonly activeFilterChips = computed<FilterChip[]>(() => {
-    const chips: FilterChip[] = [];
-    const order = this.order();
-    if (order !== 'relevance') {
-      const labels: Record<Exclude<SortOrder, 'relevance'>, string> = {
-        qualityDesc: 'Best ad quality',
-        priceAsc: 'Lowest price',
-        priceDesc: 'Highest price',
-      };
-      chips.push({ id: 'order', label: labels[order] });
-    }
-    if (this.qualityMin()) chips.push({ id: 'quality', label: `Ad quality ${this.qualityMin()}+` });
-    if (!this.smartCleanup()) chips.push({ id: 'cleanup', label: 'Cleanup off' });
-    if (this.onlyWithPhotos()) chips.push({ id: 'photos', label: 'With photos' });
-    if (this.onlyWithVIN()) chips.push({ id: 'vin', label: 'VIN available' });
-    if (this.excludeNegotiable()) chips.push({ id: 'fixed', label: 'Fixed price' });
-    if (this.yearFrom() !== null || this.yearTo() !== null)
-      chips.push({ id: 'year', label: rangeSummary('Year', this.yearFrom(), this.yearTo()) });
-    if (this.generationFrom() !== null || this.generationTo() !== null)
-      chips.push({ id: 'generation', label: rangeSummary('Generation', this.generationFrom(), this.generationTo()) });
-    if (this.storageFrom() !== null || this.storageTo() !== null)
-      chips.push({
-        id: 'storage',
-        label: rangeSummary('Storage', this.storageFrom(), this.storageTo()).replace(/(\d+)/g, '$1 GB'),
-      });
-    if (this.ramFrom() !== null || this.ramTo() !== null)
-      chips.push({ id: 'ram', label: rangeSummary('RAM', this.ramFrom(), this.ramTo()).replace(/(\d+)/g, '$1 GB') });
-    if (this.roomsFrom() !== null || this.roomsTo() !== null)
-      chips.push({ id: 'rooms', label: rangeSummary('Rooms', this.roomsFrom(), this.roomsTo()) });
-    if (this.areaFrom() !== null || this.areaTo() !== null)
-      chips.push({
-        id: 'area',
-        label: rangeSummary('Area', this.areaFrom(), this.areaTo()).replace(/(\d+)/g, '$1 m²'),
-      });
-    if (this.floorFrom() !== null || this.floorTo() !== null)
-      chips.push({ id: 'floor', label: rangeSummary('Floor', this.floorFrom(), this.floorTo()) });
-    for (const value of this.propertySector()) chips.push({ id: `property-sector:${value}`, label: value });
-    for (const value of this.propertyState()) chips.push({ id: `property-state:${value}`, label: value });
-    for (const value of this.housingStock()) chips.push({ id: `housing-stock:${value}`, label: value });
-    for (const value of this.listingAuthor()) chips.push({ id: `listing-author:${value}`, label: value });
-    for (const value of this.buildingType()) chips.push({ id: `building-type:${value}`, label: value });
-    if (this.screenFrom() !== null || this.screenTo() !== null)
-      chips.push({
-        id: 'screen',
-        label: rangeSummary('Screen', this.screenFrom(), this.screenTo()).replace(/(\d+(?:\.\d+)?)/g, '$1″'),
-      });
-    if (this.priceMin() !== null || this.priceMax() !== null)
-      chips.push({ id: 'price', label: `${this.priceRangeLabel()} ${this.priceCurrencyLabel()}` });
-    for (const value of this.fuel()) chips.push({ id: `fuel:${value}`, label: value });
-    for (const value of this.transmission()) chips.push({ id: `transmission:${value}`, label: value });
-    if (this.mileageFrom() !== null || this.mileageTo() !== null)
-      chips.push({
-        id: 'mileage',
-        label: rangeSummary('Mileage', this.mileageFrom(), this.mileageTo()).replace(/(\d+)/g, '$1 km'),
-      });
-    if (this.powerFrom() !== null || this.powerTo() !== null)
-      chips.push({
-        id: 'power',
-        label: rangeSummary('Power', this.powerFrom(), this.powerTo()).replace(/(\d+)/g, '$1 hp'),
-      });
-    for (const value of this.drivetrain()) chips.push({ id: `drivetrain:${value}`, label: value });
-    for (const value of this.bodyType()) chips.push({ id: `body-type:${value}`, label: value });
-    for (const value of this.registration())
-      chips.push({
-        id: `registration:${value}`,
-        label: value === 'moldova' ? 'Registered in Moldova' : 'Other registration',
-      });
-    for (const value of this.originCountry()) chips.push({ id: `origin-country:${value}`, label: `Origin: ${value}` });
-    for (const value of this.condition())
-      chips.push({ id: `condition:${value}`, label: value === 'new' ? 'New' : 'Used' });
-    for (const value of this.listingMode())
-      chips.push({
-        id: `listing-mode:${value}`,
-        label: value === 'monthly' ? 'Monthly rent' : value === 'daily' ? 'Daily rent' : 'For sale',
-      });
-    for (const tag of this.deviceTags()) chips.push({ id: `tag:${tag}`, label: tag[0].toUpperCase() + tag.slice(1) });
-    for (const word of this.queryExclusions()) chips.push({ id: `query-exclude:${word}`, label: `Without ${word}` });
-    const queryExcluded = new Set(this.queryExclusions().map(fold));
-    for (const word of this.excludedWords())
-      if (!queryExcluded.has(fold(word))) chips.push({ id: `exclude:${word}`, label: `Hide ${word}` });
-    const labels = new Set<string>();
-    return chips.filter((chip) => {
-      const label = fold(chip.label);
-      if (labels.has(label)) return false;
-      labels.add(label);
-      return true;
-    });
-  });
+  readonly activeFilterChips = computed<SearchFilterChip[]>(() =>
+    searchFilterChips(searchFiltersFromState(this.snapshot(0))),
+  );
   readonly suggestedExclusions = computed(() => {
     const queryWords = new Set(tokens(this.activeQuery()));
     const current = new Set(this.excludedWords());
@@ -840,7 +751,7 @@ export class SearchComponent implements OnDestroy {
     void this.searchAlerts.open(
       this.activeQuery(),
       filters,
-      this.rawProducts().map((product) => product.id),
+      this.products().map((product) => product.id),
     );
   }
 
