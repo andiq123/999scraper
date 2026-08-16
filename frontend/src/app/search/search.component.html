@@ -782,7 +782,7 @@
           <option value="2">USD</option>
         </select>
         <div class="budget-presets" aria-label="Quick maximum price">
-          @for (value of pricePresets(); track value) {
+          @for (value of pricePresets(); track $index) {
             <button type="button" [class.active]="priceMax() === value" (click)="setPricePreset(value)">
               {{ value < 1000 ? value : value >= 1000000 ? value / 1000000 + 'm' : value / 1000 + 'k' }}
             </button>
@@ -986,6 +986,18 @@
               <small>Price</small><strong>{{ visiblePriceSummary() }}</strong>
             </p>
           }
+          <button
+            class="search-alert-trigger"
+            type="button"
+            (click)="openSearchAlert()"
+            [disabled]="loading()"
+            [attr.aria-label]="loading() ? 'Email alerts are available when this search finishes' : 'Email alerts'"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
+            </svg>
+            {{ loading() ? 'Finishing…' : 'Email alerts' }}
+          </button>
           @if (activeVehicleSearch()) {
             <button class="vin-research-trigger" type="button" (click)="vinResearch.open()">
               <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -1024,7 +1036,7 @@
           >
             <div class="bulk-count" aria-live="polite">
               <strong>{{ bulkSelected().size }}</strong
-              ><span>selected · max {{ maxBulkSelection }}</span>
+              ><span>of {{ products().length }} available</span>
             </div>
             <button
               class="bulk-secondary"
@@ -1032,7 +1044,7 @@
               (click)="selectVisibleForBulk()"
               [disabled]="bulkDownloading()"
             >
-              Select visible
+              Select all {{ products().length }}
             </button>
             <button
               class="bulk-secondary"
@@ -1056,6 +1068,16 @@
                 <span aria-hidden="true">↓</span> Download JSON
               }
             </button>
+            @if (bulkSelected().size > bulkWarningThreshold) {
+              <p class="bulk-warning" role="alert">
+                <svg aria-hidden="true" viewBox="0 0 24 24">
+                  <path
+                    d="M12 8v5m0 3.5v.1M10.3 4.2 2.7 17.4A1.7 1.7 0 0 0 4.2 20h15.6a1.7 1.7 0 0 0 1.5-2.6L13.7 4.2a2 2 0 0 0-3.4 0Z"
+                  />
+                </svg>
+                Large export: keep this page open while {{ bulkSelected().size }} listing details are prepared.
+              </p>
+            }
           </div>
         }
         <div class="grid">

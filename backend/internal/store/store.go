@@ -58,7 +58,39 @@ CREATE TABLE IF NOT EXISTS saved_listings (
   PRIMARY KEY (account_id, product_id)
 );
 CREATE INDEX IF NOT EXISTS saved_listings_account_date_idx
-  ON saved_listings (account_id, saved_at DESC);`
+  ON saved_listings (account_id, saved_at DESC);
+CREATE TABLE IF NOT EXISTS search_subscriptions (
+  id uuid PRIMARY KEY,
+  account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  query text NOT NULL,
+  filter_param text NOT NULL DEFAULT '',
+  search_path text NOT NULL,
+  recipient_email text NOT NULL,
+  interval_minutes integer NOT NULL DEFAULT 15 CHECK (interval_minutes IN (15, 60, 360, 1440)),
+  snapshot_product_ids text[] NOT NULL DEFAULT '{}',
+  snapshot_products jsonb NOT NULL DEFAULT '[]'::jsonb,
+  active boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  next_check_at timestamptz NOT NULL DEFAULT now(),
+  last_checked_at timestamptz,
+  last_notified_at timestamptz,
+  locked_until timestamptz,
+  UNIQUE (account_id, query, filter_param, recipient_email)
+);
+CREATE INDEX IF NOT EXISTS search_subscriptions_due_idx
+  ON search_subscriptions (next_check_at) WHERE active;
+ALTER TABLE search_subscriptions
+  ADD COLUMN IF NOT EXISTS interval_minutes integer NOT NULL DEFAULT 15 CHECK (interval_minutes IN (15, 60, 360, 1440));
+DO $migration$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='search_subscriptions' AND column_name='seen_product_ids')
+     AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='search_subscriptions' AND column_name='snapshot_product_ids') THEN
+    ALTER TABLE search_subscriptions RENAME COLUMN seen_product_ids TO snapshot_product_ids;
+  END IF;
+END $migration$;
+ALTER TABLE search_subscriptions
+  ADD COLUMN IF NOT EXISTS snapshot_products jsonb NOT NULL DEFAULT '[]'::jsonb;`
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin database migration: %w", err)

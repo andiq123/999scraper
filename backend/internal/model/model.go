@@ -31,6 +31,20 @@ type SavedListing struct {
 	SavedAt time.Time `json:"savedAt"`
 }
 
+type SearchSubscription struct {
+	ID                 string     `json:"id"`
+	Query              string     `json:"query"`
+	FilterParam        string     `json:"filterParam,omitempty"`
+	SearchPath         string     `json:"searchPath"`
+	RecipientEmail     string     `json:"recipientEmail"`
+	IntervalMinutes    int        `json:"intervalMinutes"`
+	CreatedAt          time.Time  `json:"createdAt"`
+	LastCheckedAt      *time.Time `json:"lastCheckedAt,omitempty"`
+	LastNotifiedAt     *time.Time `json:"lastNotifiedAt,omitempty"`
+	SnapshotProductIDs []string   `json:"-"`
+	SnapshotProducts   []Product  `json:"-"`
+}
+
 type Product struct {
 	ID                          string   `json:"id"`
 	Title                       string   `json:"title"`

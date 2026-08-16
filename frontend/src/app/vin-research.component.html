@@ -1,4 +1,11 @@
-<dialog class="vin-dialog" #dialog (cancel)="cancel($event)" (close)="closed()" aria-labelledby="vin-research-title">
+<dialog
+  class="vin-dialog"
+  #dialog
+  (cancel)="cancel($event)"
+  (close)="closed()"
+  (click)="closeFromBackdrop($event)"
+  aria-labelledby="vin-research-title"
+>
   <div class="vin-shell">
     <header class="vin-header">
       <span class="vin-mark" aria-hidden="true"

@@ -1,0 +1,307 @@
+.alert-dialog {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 1rem;
+  border: 0;
+  color: var(--text);
+  background: transparent;
+  overflow: hidden;
+}
+.alert-dialog[open] {
+  display: grid;
+  place-items: center;
+}
+.alert-dialog::backdrop {
+  background: rgb(20 29 45 / 48%);
+  -webkit-backdrop-filter: blur(7px) saturate(85%);
+  backdrop-filter: blur(7px) saturate(85%);
+  animation: alert-backdrop 180ms ease both;
+}
+.alert-sheet {
+  display: grid;
+  gap: 1rem;
+  width: min(100%, 520px);
+  max-height: min(88dvh, 760px);
+  padding: 1.25rem;
+  border: 1px solid rgb(255 255 255 / 72%);
+  border-radius: 26px;
+  background: var(--surface-solid);
+  box-shadow: 0 28px 90px rgb(16 24 40 / 28%);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: alert-enter 260ms var(--ease) both;
+}
+header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+}
+header h2 {
+  font-size: 1.28rem;
+  line-height: 1.15;
+}
+header small {
+  color: var(--accent);
+  font-size: 0.64rem;
+  font-weight: 780;
+  letter-spacing: 0.12em;
+}
+header p {
+  margin-top: 0.18rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.alert-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+  color: white;
+  background: linear-gradient(145deg, #2563eb, #4f7df0);
+  box-shadow: 0 10px 24px rgb(var(--accent-rgb) / 24%);
+}
+.alert-icon svg,
+.subscribe svg,
+.email-field svg,
+.interval-field svg,
+.privacy-note svg {
+  width: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.close {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  min-height: 42px;
+  padding: 0;
+  border: 0;
+  border-radius: 13px;
+  color: var(--muted);
+  background: var(--surface-soft);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+.alert-query {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgb(var(--accent-rgb) / 14%);
+  border-radius: 15px;
+  background: var(--accent-softer);
+}
+.alert-query > span:first-child {
+  color: var(--accent);
+  font-size: 1.35rem;
+}
+.alert-query div {
+  display: grid;
+}
+.alert-query small,
+.frequency {
+  color: var(--subtle);
+  font-size: 0.67rem;
+}
+.alert-query strong {
+  overflow: hidden;
+  font-size: 0.85rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.live-dot {
+  padding: 0.22rem 0.5rem;
+  border-radius: 999px;
+  color: var(--success);
+  background: rgb(var(--success-rgb) / 10%);
+  font-size: 0.63rem;
+  font-weight: 760;
+}
+form {
+  display: grid;
+  gap: 0.55rem;
+}
+form > label {
+  font-size: 0.78rem;
+  font-weight: 720;
+}
+.email-field,
+.interval-field {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 50px;
+  padding-inline: 0.85rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--surface-solid);
+  transition:
+    border-color var(--duration-fast),
+    box-shadow var(--duration-fast);
+}
+.email-field:focus-within,
+.interval-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--focus);
+}
+.email-field svg,
+.interval-field svg {
+  width: 18px;
+  color: var(--subtle);
+}
+.email-field input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+.interval-field {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.interval-field select {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  outline: 0;
+  color: var(--text);
+  background: transparent;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 650;
+  appearance: none;
+  cursor: pointer;
+}
+.interval-field .chevron {
+  width: 16px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.privacy-note {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.67rem;
+}
+.privacy-note svg {
+  width: 14px;
+  color: var(--success);
+}
+.subscribe {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+.subscribe svg {
+  width: 17px;
+}
+.frequency {
+  text-align: center;
+}
+.alert-error,
+.alert-unavailable,
+.alert-loading {
+  padding: 0.8rem;
+  border-radius: 14px;
+  font-size: 0.75rem;
+}
+.alert-error {
+  color: var(--danger);
+  background: rgb(var(--danger-rgb) / 8%);
+}
+.alert-unavailable {
+  color: #945d12;
+  background: #fff8e9;
+}
+.alert-unavailable p {
+  margin-top: 0.25rem;
+  color: var(--muted);
+}
+.alert-unavailable code {
+  font-size: 0.68rem;
+}
+.alert-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--muted);
+  background: var(--surface-soft);
+}
+.alert-loading span {
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: alert-spin 700ms linear infinite;
+}
+.manage-link {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 36px;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 680;
+  text-decoration: none;
+}
+@media (max-width: 599px) {
+  .alert-dialog[open] {
+    align-items: end;
+    padding: 0;
+  }
+  .alert-sheet {
+    width: 100%;
+    max-height: min(92dvh, 760px);
+    padding: 1rem 0.9rem calc(1rem + env(safe-area-inset-bottom));
+    border-width: 1px 0 0;
+    border-radius: 28px 28px 0 0;
+    animation-name: alert-sheet-enter;
+  }
+  header p {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .alert-sheet,
+  .alert-dialog::backdrop {
+    animation: none;
+  }
+}
+@keyframes alert-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+}
+@keyframes alert-backdrop {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes alert-sheet-enter {
+  from {
+    opacity: 0.8;
+    transform: translateY(100%);
+  }
+}
+@keyframes alert-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}

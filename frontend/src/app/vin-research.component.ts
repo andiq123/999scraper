@@ -59,7 +59,9 @@ export class VINResearchComponent {
       if (!dialog) return;
       if (this.research.visible() && !dialog.open) {
         dialog.showModal();
-        queueMicrotask(() => this.vinInput()?.nativeElement.focus());
+        if (window.matchMedia('(min-width: 700px)').matches) {
+          queueMicrotask(() => this.vinInput()?.nativeElement.focus());
+        }
       } else if (!this.research.visible() && dialog.open) {
         dialog.close();
       }
@@ -78,6 +80,10 @@ export class VINResearchComponent {
   cancel(event: Event): void {
     event.preventDefault();
     this.close();
+  }
+
+  closeFromBackdrop(event: MouseEvent): void {
+    if (event.target === this.dialog()?.nativeElement) this.close();
   }
 
   closed(): void {

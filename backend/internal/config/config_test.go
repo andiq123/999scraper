@@ -5,6 +5,26 @@ import (
 	"testing"
 )
 
+func TestEmailConfigInfersProvider(t *testing.T) {
+	t.Setenv("SMTP_FROM_EMAIL", "alerts@gmail.com")
+	t.Setenv("SMTP_APP_PASSWORD", "app-password")
+	settings, err := loadEmail()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if settings.Host != "smtp.gmail.com" || settings.Port != 587 {
+		t.Fatalf("unexpected email settings: %#v", settings)
+	}
+}
+
+func TestEmailConfigRequiresCredentialPair(t *testing.T) {
+	t.Setenv("SMTP_FROM_EMAIL", "alerts@gmail.com")
+	t.Setenv("SMTP_APP_PASSWORD", "")
+	if _, err := loadEmail(); err == nil {
+		t.Fatal("accepted an incomplete SMTP configuration")
+	}
+}
+
 func TestCrossOriginConfiguration(t *testing.T) {
 	values, err := origins("https://market.example, https://preview.example/,https://market.example")
 	if err != nil || len(values) != 2 || values[0] != "https://market.example" || values[1] != "https://preview.example" {

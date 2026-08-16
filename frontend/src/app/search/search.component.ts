@@ -51,6 +51,7 @@ import {
 } from './search-url-state';
 import { VINResearchService } from '../vin-research.service';
 import { isPartsVehicleAd, isWantedListing, listingQualityScore } from './listing-quality';
+import { SearchAlertService } from '../search-alert.service';
 const carNoise = new Set([
   'accesorii',
   'acumulator',
@@ -188,6 +189,7 @@ export class SearchComponent implements OnDestroy {
   readonly currency = inject(CurrencyService);
   readonly uiPreferences = inject(UiPreferencesService);
   readonly vinResearch = inject(VINResearchService);
+  readonly searchAlerts = inject(SearchAlertService);
   private readonly ids = new Set<string>();
   private controller?: AbortController;
   private draftKind: SearchKind = 'generic';
@@ -310,7 +312,7 @@ export class SearchComponent implements OnDestroy {
   readonly bulkDownloading = signal(false);
   readonly bulkProgress = signal<BulkDownloadProgress>({ completed: 0, total: 0 });
   readonly newlyRevealed = signal<ReadonlySet<string>>(new Set());
-  readonly maxBulkSelection = 20;
+  readonly bulkWarningThreshold = 40;
   readonly loadedPages = signal(0);
   readonly totalPages = signal(0);
   readonly progress = computed(() =>
@@ -832,6 +834,16 @@ export class SearchComponent implements OnDestroy {
     this.loading.set(false);
   }
 
+  openSearchAlert(): void {
+    if (this.loading()) return;
+    const filters = encodeSearchFilters(searchFiltersFromState(this.snapshot(window.scrollY)));
+    void this.searchAlerts.open(
+      this.activeQuery(),
+      filters,
+      this.rawProducts().map((product) => product.id),
+    );
+  }
+
   startOver(): void {
     this.searchState.clearAll();
     this.startFreshWorkspace();
@@ -1087,22 +1099,13 @@ export class SearchComponent implements OnDestroy {
       this.bulkSelected.set(selected);
       return;
     }
-    if (selected.size >= this.maxBulkSelection) {
-      this.toast.error(`You can export up to ${this.maxBulkSelection} listings at once.`);
-      return;
-    }
     selected.add(product.id);
     this.bulkSelected.set(selected);
   }
 
   selectVisibleForBulk(): void {
-    const ids = this.products()
-      .slice(0, this.maxBulkSelection)
-      .map((product) => product.id);
+    const ids = this.products().map((product) => product.id);
     this.bulkSelected.set(new Set(ids));
-    if (this.products().length > this.maxBulkSelection) {
-      this.toast.success(`Selected the first ${this.maxBulkSelection} visible listings.`);
-    }
   }
 
   clearBulkSelection(): void {
@@ -1117,8 +1120,13 @@ export class SearchComponent implements OnDestroy {
     this.bulkDownloading.set(true);
     this.bulkProgress.set({ completed: 0, total: ids.length });
     try {
-      await this.summaries.download(ids, (progress) => this.bulkProgress.set(progress));
-      this.toast.success(`${ids.length} listing${ids.length === 1 ? '' : 's'} downloaded as JSON.`);
+      const result = await this.summaries.download(ids, (progress) => this.bulkProgress.set(progress));
+      const unavailable = result.unavailable
+        ? ` ${result.unavailable} unavailable listing${result.unavailable === 1 ? ' was' : 's were'} noted in the file.`
+        : '';
+      this.toast.success(
+        `${result.exported} listing${result.exported === 1 ? '' : 's'} downloaded as JSON.${unavailable}`,
+      );
       this.bulkMode.set(false);
       this.bulkSelected.set(new Set());
     } catch (error) {
@@ -1191,16 +1199,11 @@ export class SearchComponent implements OnDestroy {
   }
 
   private syncMobileFilterChrome(): void {
-    window.requestAnimationFrame(() => {
-      const mobile = window.matchMedia('(max-width: 699px)').matches;
-      const hasOpenSheet = Boolean(
-        document.querySelector('app-search details.filters[open], app-search details.smart-prompt[open]'),
-      );
-      const active = mobile && hasOpenSheet;
-      document.documentElement.classList.toggle('filter-sheet-open', active);
-      if (active) document.documentElement.style.setProperty('--page-scroll-lock', 'hidden');
-      else document.documentElement.style.removeProperty('--page-scroll-lock');
-    });
+    const mobile = window.matchMedia('(max-width: 699px)').matches;
+    const active = mobile && (this.uiPreferences.isOpen('filters') || this.uiPreferences.isOpen('smartRefinement'));
+    document.documentElement.classList.toggle('filter-sheet-open', active);
+    if (active) document.documentElement.style.setProperty('--page-scroll-lock', 'hidden');
+    else document.documentElement.style.removeProperty('--page-scroll-lock');
   }
 
   toggleRegistration(value: 'moldova' | 'other'): void {

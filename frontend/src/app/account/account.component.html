@@ -1,6 +1,6 @@
 <main class="account-page page-shell route-page">
   <header class="account-heading">
-    <h1>Account</h1>
+    <h1>Account & settings</h1>
     <p>{{ auth.session() ? 'Your private search space.' : 'Search freely. Sign in only to keep things.' }}</p>
   </header>
 
@@ -24,6 +24,7 @@
       </nav>
       <button class="logout btn btn-soft btn-error" type="button" (click)="auth.logout()">Log out</button>
     </section>
+    <app-alerts [embedded]="true" />
   } @else {
     <section class="account-state card bg-base-100 shadow-sm">
       <div class="account-status guest">

@@ -9,10 +9,14 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/mail"
+	"net/url"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/andi/999scraper/internal/alerts"
 	"github.com/andi/999scraper/internal/auth"
 	"github.com/andi/999scraper/internal/cache"
 	"github.com/andi/999scraper/internal/currency"
@@ -31,17 +35,19 @@ type API struct {
 	logins     *loginLimiter
 	summaries  *loginLimiter
 	vinChecks  *loginLimiter
+	alertEdits *loginLimiter
 	vinDecoder *vinDecoder
 	rates      *currency.Service
+	alerts     *alerts.Service
 	origins    map[string]struct{}
 }
 
-func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, rates *currency.Service, allowedOrigins []string, logger *slog.Logger) http.Handler {
+func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, rates *currency.Service, alertService *alerts.Service, allowedOrigins []string, logger *slog.Logger) http.Handler {
 	origins := make(map[string]struct{}, len(allowedOrigins))
 	for _, origin := range allowedOrigins {
 		origins[origin] = struct{}{}
 	}
-	api := &API{store: s, auth: a, scraper: sc, cache: c, rates: rates, origins: origins, logger: logger, queries: newQueryGate(), logins: newLoginLimiter(), summaries: newRequestLimiter(60, time.Minute), vinChecks: newRequestLimiter(30, time.Minute), vinDecoder: newVINDecoder()}
+	api := &API{store: s, auth: a, scraper: sc, cache: c, rates: rates, alerts: alertService, origins: origins, logger: logger, queries: newQueryGate(), logins: newLoginLimiter(), summaries: newRequestLimiter(60, time.Minute), vinChecks: newRequestLimiter(30, time.Minute), alertEdits: newRequestLimiter(5, time.Hour), vinDecoder: newVINDecoder()}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", api.health)
 	mux.HandleFunc("GET /api/health", api.health)
@@ -58,7 +64,154 @@ func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, r
 	mux.Handle("GET /api/saved", a.Middleware(http.HandlerFunc(api.savedListings)))
 	mux.Handle("PUT /api/saved/{id}", a.Middleware(http.HandlerFunc(api.saveListing)))
 	mux.Handle("DELETE /api/saved/{id}", a.Middleware(http.HandlerFunc(api.deleteListing)))
+	mux.Handle("GET /api/subscriptions", a.Middleware(http.HandlerFunc(api.searchSubscriptions)))
+	mux.Handle("POST /api/subscriptions", a.Middleware(http.HandlerFunc(api.createSearchSubscription)))
+	mux.Handle("POST /api/subscriptions/{id}/test", a.Middleware(http.HandlerFunc(api.testSearchSubscription)))
+	mux.Handle("DELETE /api/subscriptions/{id}", a.Middleware(http.HandlerFunc(api.deleteSearchSubscription)))
 	return api.recover(api.cors(api.log(mux)))
+}
+
+var filterParamPattern = regexp.MustCompile(`^[A-Za-z0-9_-]*$`)
+
+type subscriptionResponse struct {
+	Available            bool                       `json:"available"`
+	CheckIntervalMinutes int                        `json:"checkIntervalMinutes"`
+	Items                []model.SearchSubscription `json:"items"`
+}
+
+func (a *API) searchSubscriptions(w http.ResponseWriter, r *http.Request) {
+	items, err := a.alerts.List(r.Context(), accountID(r))
+	if err != nil {
+		a.internal(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, subscriptionResponse{Available: a.alerts.Available(), CheckIntervalMinutes: alerts.DefaultIntervalMinutes, Items: items})
+}
+
+func (a *API) createSearchSubscription(w http.ResponseWriter, r *http.Request) {
+	if !a.alertEdits.allow(accountID(r), time.Now()) {
+		w.Header().Set("Retry-After", "3600")
+		writeError(w, http.StatusTooManyRequests, "too many email alert changes; try again later")
+		return
+	}
+	var input struct {
+		Query              string   `json:"query"`
+		FilterParam        string   `json:"filterParam"`
+		SearchPath         string   `json:"searchPath"`
+		RecipientEmail     string   `json:"recipientEmail"`
+		IntervalMinutes    int      `json:"intervalMinutes"`
+		SnapshotProductIDs []string `json:"snapshotProductIds"`
+	}
+	if !decode(w, r, &input) {
+		return
+	}
+	input.Query = strings.TrimSpace(input.Query)
+	input.RecipientEmail = strings.ToLower(strings.TrimSpace(input.RecipientEmail))
+	if input.Query == "" || len(input.Query) > 160 || strings.ContainsAny(input.Query, "\r\n") {
+		writeError(w, http.StatusBadRequest, "invalid search query")
+		return
+	}
+	if len(input.FilterParam) > 8000 || !filterParamPattern.MatchString(input.FilterParam) || !alerts.ValidSearchPath(input.SearchPath) || !matchingSearchPath(input.SearchPath, input.Query, input.FilterParam) {
+		writeError(w, http.StatusBadRequest, "invalid search link")
+		return
+	}
+	if !validRecipient(input.RecipientEmail) {
+		writeError(w, http.StatusBadRequest, "enter a valid recipient email")
+		return
+	}
+	if !alerts.ValidInterval(input.IntervalMinutes) {
+		writeError(w, http.StatusBadRequest, "choose a valid alert interval")
+		return
+	}
+	input.SnapshotProductIDs = cleanProductIDs(input.SnapshotProductIDs)
+	if len(input.SnapshotProductIDs) > 1000 {
+		writeError(w, http.StatusBadRequest, "too many baseline listings")
+		return
+	}
+	item, err := a.alerts.Subscribe(r.Context(), accountID(r), model.SearchSubscription{Query: input.Query, FilterParam: input.FilterParam, SearchPath: input.SearchPath, RecipientEmail: input.RecipientEmail, IntervalMinutes: input.IntervalMinutes, SnapshotProductIDs: input.SnapshotProductIDs})
+	switch {
+	case errors.Is(err, alerts.ErrUnavailable):
+		writeError(w, http.StatusServiceUnavailable, "email alerts are not configured")
+	case errors.Is(err, alerts.ErrDelivery):
+		writeError(w, http.StatusBadGateway, "the confirmation email could not be delivered; check the recipient or sender settings")
+	case errors.Is(err, store.ErrSubscriptionLimit):
+		writeError(w, http.StatusConflict, "you can keep up to 10 search alerts")
+	case err != nil:
+		a.internal(w, err)
+	default:
+		writeJSON(w, http.StatusCreated, item)
+	}
+}
+
+func (a *API) deleteSearchSubscription(w http.ResponseWriter, r *http.Request) {
+	err := a.alerts.Delete(r.Context(), accountID(r), r.PathValue("id"))
+	if errors.Is(err, store.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "search alert not found")
+		return
+	}
+	if err != nil {
+		a.internal(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *API) testSearchSubscription(w http.ResponseWriter, r *http.Request) {
+	if !a.alertEdits.allow(accountID(r), time.Now()) {
+		w.Header().Set("Retry-After", "3600")
+		writeError(w, http.StatusTooManyRequests, "too many email alert tests; try again later")
+		return
+	}
+	err := a.alerts.Test(r.Context(), accountID(r), r.PathValue("id"))
+	switch {
+	case errors.Is(err, store.ErrNotFound):
+		writeError(w, http.StatusNotFound, "search alert not found")
+	case errors.Is(err, alerts.ErrUnavailable):
+		writeError(w, http.StatusServiceUnavailable, "email alerts are not configured")
+	case errors.Is(err, alerts.ErrDelivery):
+		writeError(w, http.StatusBadGateway, "the test email could not be delivered")
+	case err != nil:
+		a.internal(w, err)
+	default:
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func validRecipient(value string) bool {
+	if value == "" || len(value) > 254 || strings.ContainsAny(value, "\r\n") {
+		return false
+	}
+	address, err := mail.ParseAddress(value)
+	if err != nil || address.Name != "" || !strings.EqualFold(address.Address, value) {
+		return false
+	}
+	_, domain, ok := strings.Cut(address.Address, "@")
+	return ok && strings.Contains(domain, ".")
+}
+
+func matchingSearchPath(path, query, filterParam string) bool {
+	parsed, err := url.Parse(path)
+	if err != nil {
+		return false
+	}
+	values := parsed.Query()
+	return len(values["q"]) == 1 && len(values["filters"]) == 1 && values.Get("q") == query && values.Get("filters") == filterParam && len(values) == 2
+}
+
+func cleanProductIDs(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if !validListingID(value) {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	return result
 }
 
 func (a *API) health(w http.ResponseWriter, r *http.Request) {

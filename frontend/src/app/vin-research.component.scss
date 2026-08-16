@@ -1,17 +1,20 @@
 .vin-dialog {
-  width: min(880px, calc(100vw - 2rem));
+  position: fixed;
+  inset: 0;
+  width: 100%;
   max-width: none;
-  max-height: min(88dvh, 900px);
-  margin: auto;
-  padding: 0;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 1rem;
   overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 78%);
-  border-radius: 24px;
+  border: 0;
   color: var(--text);
-  background: rgb(248 250 253 / 97%);
-  box-shadow: 0 34px 90px rgb(16 24 40 / 28%);
-  -webkit-backdrop-filter: blur(28px) saturate(150%);
-  backdrop-filter: blur(28px) saturate(150%);
+  background: transparent;
+}
+.vin-dialog[open] {
+  display: grid;
+  place-items: center;
 }
 .vin-dialog::backdrop {
   background: rgb(18 27 43 / 38%);
@@ -19,8 +22,15 @@
   backdrop-filter: blur(5px);
 }
 .vin-shell {
+  width: min(880px, 100%);
   max-height: min(88dvh, 900px);
   overflow-y: auto;
+  border: 1px solid rgb(255 255 255 / 78%);
+  border-radius: 24px;
+  background: rgb(248 250 253 / 97%);
+  box-shadow: 0 34px 90px rgb(16 24 40 / 28%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  backdrop-filter: blur(28px) saturate(150%);
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
 }
@@ -593,7 +603,7 @@
   animation: vin-item-enter-keyframes 0.28s var(--ease) both;
 }
 @media (prefers-reduced-motion: no-preference) {
-  .vin-dialog[open] {
+  .vin-dialog[open] .vin-shell {
     animation: vin-dialog-enter 0.3s var(--ease) both;
   }
   .vin-dialog::backdrop {
@@ -629,13 +639,17 @@
   }
 }
 @media (max-width: 699px) {
-  .vin-dialog {
-    width: calc(100vw - 0.5rem);
-    max-height: calc(100dvh - 0.5rem);
-    border-radius: 22px;
+  .vin-dialog[open] {
+    align-items: end;
+    padding: 0;
   }
-  .vin-shell {
-    max-height: calc(100dvh - 0.5rem);
+  .vin-dialog[open] .vin-shell {
+    width: 100%;
+    max-height: 94dvh;
+    border-width: 1px 0 0;
+    border-radius: 24px 24px 0 0;
+    scrollbar-gutter: auto;
+    animation-name: vin-sheet-enter;
   }
   .vin-header {
     grid-template-columns: 38px minmax(0, 1fr) 38px;
@@ -686,5 +700,11 @@
   }
   .vin-welcome {
     padding-block: 2.5rem 3rem;
+  }
+}
+@keyframes vin-sheet-enter {
+  from {
+    opacity: 0.8;
+    transform: translateY(100%);
   }
 }

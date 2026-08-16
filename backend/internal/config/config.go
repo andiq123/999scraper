@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/andi/999scraper/internal/mailer"
 )
 
 type DatabaseConfig struct {
@@ -21,10 +23,20 @@ type RedisConfig struct {
 	URL string
 }
 
+type EmailConfig struct {
+	FromEmail   string
+	AppPassword string
+	Host        string
+	Port        int
+}
+
+func (c EmailConfig) Enabled() bool { return c.FromEmail != "" }
+
 type Config struct {
 	Address         string
 	Database        DatabaseConfig
 	Redis           RedisConfig
+	Email           EmailConfig
 	JWTSecret       string
 	JWTIssuer       string
 	JWTLifetime     time.Duration
@@ -48,6 +60,10 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	redisConfig, err := LoadRedis()
+	if err != nil {
+		return Config{}, err
+	}
+	emailConfig, err := loadEmail()
 	if err != nil {
 		return Config{}, err
 	}
@@ -79,6 +95,7 @@ func Load() (Config, error) {
 		Address:         address,
 		Database:        database,
 		Redis:           redisConfig,
+		Email:           emailConfig,
 		JWTSecret:       strings.TrimSpace(os.Getenv("JWT_SECRET")),
 		JWTIssuer:       env("JWT_ISSUER", "999scraper"),
 		JWTLifetime:     30 * 24 * time.Hour,
@@ -94,6 +111,22 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("JWT_SECRET must contain at least 32 characters")
 	}
 	return cfg, nil
+}
+
+func loadEmail() (EmailConfig, error) {
+	from := strings.TrimSpace(os.Getenv("SMTP_FROM_EMAIL"))
+	password := strings.TrimSpace(os.Getenv("SMTP_APP_PASSWORD"))
+	if from == "" && password == "" {
+		return EmailConfig{}, nil
+	}
+	if from == "" || password == "" {
+		return EmailConfig{}, fmt.Errorf("SMTP_FROM_EMAIL and SMTP_APP_PASSWORD must be configured together")
+	}
+	host, port, err := mailer.Provider(from)
+	if err != nil {
+		return EmailConfig{}, fmt.Errorf("SMTP_FROM_EMAIL: %w", err)
+	}
+	return EmailConfig{FromEmail: strings.ToLower(from), AppPassword: password, Host: host, Port: port}, nil
 }
 
 func loadAllowedOrigins() ([]string, error) {

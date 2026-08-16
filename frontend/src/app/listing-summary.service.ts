@@ -4,6 +4,7 @@ import { environment } from '../environments/environment';
 type CachedSummary = { json: string; expiresAt: number };
 type CopyResult = 'copied' | 'ready';
 export type BulkDownloadProgress = { completed: number; total: number };
+export type BulkDownloadResult = { exported: number; unavailable: number };
 
 const cacheTTL = 60 * 60 * 1_000;
 const maxCachedSummaries = 40;
@@ -11,7 +12,7 @@ const recentCopiesKey = '999scraper.recentJsonCopies';
 const recentOpensKey = '999scraper.recentOpenedListings';
 const maxRecentCopies = 5;
 const maxRecentOpens = 5;
-const bulkRequestConcurrency = 2;
+const bulkRequestInterval = 1_100;
 
 @Injectable({ providedIn: 'root' })
 export class ListingSummaryService {
@@ -57,42 +58,45 @@ export class ListingSummaryService {
     return 'ready';
   }
 
-  async download(ids: readonly string[], onProgress?: (progress: BulkDownloadProgress) => void): Promise<void> {
+  async download(
+    ids: readonly string[],
+    onProgress?: (progress: BulkDownloadProgress) => void,
+  ): Promise<BulkDownloadResult> {
     if (!ids.length) throw new Error('Select at least one listing.');
 
-    const listings = new Array<unknown>(ids.length);
-    let cursor = 0;
-    let completed = 0;
-    let failure: unknown;
-    onProgress?.({ completed, total: ids.length });
+    const listings: unknown[] = [];
+    const unavailable: Array<{ id: string; reason: string }> = [];
+    onProgress?.({ completed: 0, total: ids.length });
 
-    const worker = async (): Promise<void> => {
-      while (cursor < ids.length && failure === undefined) {
-        const index = cursor++;
-        try {
-          listings[index] = JSON.parse(await this.summaryJSON(ids[index]));
-          onProgress?.({ completed: ++completed, total: ids.length });
-        } catch (error) {
-          failure = error;
-        }
+    for (const [index, id] of ids.entries()) {
+      const cached = this.cachedJSON(id);
+      try {
+        listings.push(JSON.parse(cached ?? (await this.summaryJSON(id))));
+      } catch {
+        unavailable.push({ id, reason: 'Listing details were unavailable during export.' });
       }
-    };
+      onProgress?.({ completed: index + 1, total: ids.length });
+      if (cached === null && index < ids.length - 1) await wait(bulkRequestInterval);
+    }
 
-    await Promise.all(Array.from({ length: Math.min(bulkRequestConcurrency, ids.length) }, () => worker()));
-    if (failure !== undefined) throw failure;
+    if (!listings.length) throw new Error('Could not load details for the selected listings.');
 
     const exportedAt = new Date();
     const json = JSON.stringify(
       {
         source: '999.md',
         exportedAt: exportedAt.toISOString(),
+        requestedCount: ids.length,
         count: listings.length,
+        unavailableCount: unavailable.length,
         listings,
+        ...(unavailable.length ? { unavailable } : {}),
       },
       null,
       2,
     );
     downloadJSON(json, `999-listings-${fileTimestamp(exportedAt)}.json`);
+    return { exported: listings.length, unavailable: unavailable.length };
   }
 
   private summaryJSON(id: string): Promise<string> {
@@ -138,6 +142,10 @@ export class ListingSummaryService {
     this.recentCopies.set(recent);
     persistRecentIds(recentCopiesKey, recent);
   }
+}
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
 function downloadJSON(json: string, filename: string): void {

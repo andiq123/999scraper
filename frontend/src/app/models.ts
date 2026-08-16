@@ -17,6 +17,22 @@ export interface SavedListing {
   product: Product;
   savedAt: string;
 }
+export interface SearchSubscription {
+  id: string;
+  query: string;
+  filterParam?: string;
+  searchPath: string;
+  recipientEmail: string;
+  intervalMinutes: number;
+  createdAt: string;
+  lastCheckedAt?: string;
+  lastNotifiedAt?: string;
+}
+export interface SearchSubscriptionsResponse {
+  available: boolean;
+  checkIntervalMinutes: number;
+  items: SearchSubscription[];
+}
 
 export type SortOrder = 'relevance' | 'qualityDesc' | 'priceAsc' | 'priceDesc';
 export type QualityThreshold = 0 | 5 | 7 | 9;

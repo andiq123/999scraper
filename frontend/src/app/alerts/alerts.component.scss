@@ -1,0 +1,217 @@
+.alerts-page {
+  width: min(100% - 1rem, 820px);
+  margin-top: 1rem;
+  margin-bottom: 2rem;
+}
+.page-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0.2rem 1rem;
+}
+.page-heading small {
+  color: var(--accent);
+  font-size: 0.66rem;
+  font-weight: 780;
+  letter-spacing: 0.12em;
+}
+.page-heading h1,
+.page-heading h2 {
+  font-size: 2rem;
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+}
+.page-heading p {
+  margin-top: 0.2rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.alerts-page.embedded {
+  width: 100%;
+  margin-top: 0.7rem;
+  margin-bottom: 0;
+}
+.alerts-page.embedded .page-heading {
+  margin-bottom: 0.7rem;
+}
+.alerts-page.embedded .page-heading h2 {
+  font-size: 1.15rem;
+}
+.alerts-summary {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.38rem;
+  margin-bottom: 0.55rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgb(var(--success-rgb) / 14%);
+  border-radius: 12px;
+  color: var(--success);
+  background: rgb(var(--success-rgb) / 6%);
+  font-size: 0.67rem;
+}
+.alerts-summary > span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 4px rgb(var(--success-rgb) / 9%);
+}
+.alerts-summary small {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.alerts-summary.paused {
+  color: var(--danger);
+  border-color: rgb(var(--danger-rgb) / 14%);
+  background: rgb(var(--danger-rgb) / 5%);
+}
+.alerts-list {
+  display: grid;
+  gap: 0.55rem;
+}
+.alert-item {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 88px;
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+.bell {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.bell svg {
+  width: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.alert-copy {
+  display: grid;
+  min-width: 0;
+}
+.alert-copy a {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.84rem;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.alert-copy small,
+.alert-copy p {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.67rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.alert-copy p {
+  color: var(--subtle);
+}
+.alert-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.alert-actions.confirming {
+  padding: 0.22rem;
+  border-radius: 12px;
+  background: rgb(var(--danger-rgb) / 5%);
+}
+.alert-actions svg {
+  width: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+.alerts-state,
+.empty-alerts {
+  display: grid;
+  justify-items: center;
+  gap: 0.45rem;
+  padding: 2rem 1rem;
+  border-radius: 20px;
+  color: var(--muted);
+  text-align: center;
+}
+.alerts-state.unavailable {
+  grid-template-columns: auto minmax(0, 1fr);
+  justify-items: start;
+  text-align: left;
+}
+.alerts-state.unavailable > span,
+.empty-alerts > span {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 800;
+}
+.alerts-state p,
+.empty-alerts p {
+  font-size: 0.74rem;
+}
+.empty-alerts h2 {
+  color: var(--text);
+  font-size: 1rem;
+}
+.empty-alerts .btn {
+  margin-top: 0.4rem;
+}
+@media (max-width: 599px) {
+  .alerts-page {
+    width: calc(100% - 0.75rem);
+    margin-top: 0.6rem;
+  }
+  .page-heading {
+    align-items: center;
+  }
+  .page-heading h1,
+  .page-heading h2 {
+    font-size: 1.55rem;
+  }
+  .page-heading p {
+    display: none;
+  }
+  .alert-item {
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 0.55rem;
+    min-height: 80px;
+    padding: 0.65rem;
+  }
+  .bell {
+    width: 38px;
+    height: 38px;
+  }
+  .alert-actions {
+    grid-column: 2;
+    margin-top: 0.15rem;
+  }
+  .alerts-summary {
+    grid-template-columns: auto auto;
+  }
+  .alerts-summary small {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+}

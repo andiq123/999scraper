@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { environment } from '../../environments/environment';
+import { AlertsComponent } from '../alerts/alerts.component';
 
 interface HealthStatus {
   status: 'ok' | 'degraded';
@@ -11,7 +12,7 @@ interface HealthStatus {
 @Component({
   selector: 'app-account',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink],
+  imports: [RouterLink, AlertsComponent],
   templateUrl: './account.component.html',
   styleUrl: './account.component.scss',
 })

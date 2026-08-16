@@ -1,0 +1,108 @@
+<dialog
+  #dialog
+  class="alert-dialog"
+  (cancel)="cancel($event)"
+  (click)="closeFromBackdrop($event)"
+  aria-labelledby="search-alert-title"
+>
+  <section class="alert-sheet">
+    <header>
+      <span class="alert-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
+      </span>
+      <div>
+        <small>SEARCH ALERT</small>
+        <h2 id="search-alert-title">Email search updates</h2>
+        <p>Know when listings enter or leave the latest results.</p>
+      </div>
+      <button class="close" type="button" (click)="alerts.close()" [disabled]="alerts.saving()" aria-label="Close">
+        <span aria-hidden="true">×</span>
+      </button>
+    </header>
+
+    <div class="alert-query">
+      <span aria-hidden="true">⌕</span>
+      <div>
+        <small>Current search</small><strong>{{ alerts.query() }}</strong>
+      </div>
+      <span class="live-dot">Live</span>
+    </div>
+
+    @if (alerts.loading()) {
+      <div class="alert-loading" role="status"><span></span> Checking email alerts…</div>
+    } @else if (alerts.available() === false) {
+      <div class="alert-unavailable" role="status">
+        <strong>Email sender is not configured</strong>
+        <p>Add <code>SMTP_FROM_EMAIL</code> and <code>SMTP_APP_PASSWORD</code> to the backend environment.</p>
+      </div>
+    } @else {
+      <form (submit)="submit($event)" novalidate>
+        <label for="alert-recipient">Send new listings to</label>
+        <div class="email-field">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18v12H3zM3 7l9 6 9-6" /></svg>
+          <input
+            id="alert-recipient"
+            type="email"
+            autocomplete="email"
+            inputmode="email"
+            autocapitalize="none"
+            spellcheck="false"
+            maxlength="254"
+            placeholder="you@example.com"
+            required
+            [value]="alerts.recipientEmail()"
+            (input)="alerts.recipientEmail.set($any($event.target).value)"
+            [disabled]="alerts.saving()"
+          />
+        </div>
+        <label for="alert-interval">Check for new listings</label>
+        <div class="interval-field">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="8" />
+            <path d="M12 8v5l3 2" />
+          </svg>
+          <select
+            id="alert-interval"
+            [value]="alerts.intervalMinutes()"
+            (change)="alerts.intervalMinutes.set(+$any($event.target).value)"
+            [disabled]="alerts.saving()"
+          >
+            @for (option of intervalOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+          <svg class="chevron" aria-hidden="true" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5" /></svg>
+        </div>
+        <p class="privacy-note">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6z" /></svg>
+          Your address stays private and is used only for this alert.
+        </p>
+        @if (alerts.error()) {
+          <p class="alert-error" role="alert">{{ alerts.error() }}</p>
+        }
+        <button
+          class="subscribe btn btn-primary"
+          type="submit"
+          [disabled]="alerts.saving() || !alerts.recipientEmail().trim()"
+        >
+          @if (alerts.saving()) {
+            <span class="loading loading-spinner loading-sm"></span> Enabling…
+          } @else {
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
+            </svg>
+            Enable email alert
+          }
+        </button>
+        <small class="frequency">Runs securely in the background · unsubscribe anytime</small>
+      </form>
+    }
+
+    @if (alerts.items().length) {
+      <a class="manage-link" routerLink="/alerts" (click)="alerts.close()"
+        >Manage {{ alerts.items().length }} active alert{{ alerts.items().length === 1 ? '' : 's' }}
+        <span aria-hidden="true">›</span></a
+      >
+    }
+  </section>
+</dialog>

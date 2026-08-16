@@ -1,0 +1,131 @@
+<section
+  class="alerts-page page-shell"
+  [class.embedded]="embedded()"
+  [class.route-page]="!embedded()"
+  [attr.role]="embedded() ? null : 'main'"
+>
+  <header class="page-heading">
+    <div>
+      <small>{{ embedded() ? 'EMAIL NOTIFICATIONS' : 'PERSONAL WATCHLIST' }}</small>
+      @if (embedded()) {
+        <h2>Search alerts</h2>
+      } @else {
+        <h1>Search alerts</h1>
+      }
+      <p>Arrivals and departures, delivered quietly to your inbox.</p>
+    </div>
+    <a class="btn btn-primary btn-sm" routerLink="/">New alert</a>
+  </header>
+
+  @if (alerts.loading() && !alerts.items().length) {
+    <section class="alerts-state card bg-base-100 shadow-sm" role="status">
+      <span class="loading loading-spinner"></span> Loading alerts…
+    </section>
+  } @else if (alerts.error() && !alerts.items().length) {
+    <section class="alerts-state unavailable card bg-base-100 shadow-sm" role="alert">
+      <span aria-hidden="true">!</span>
+      <div>
+        <strong>Could not load search alerts</strong>
+        <p>{{ alerts.error() }}</p>
+        <button class="btn btn-soft btn-primary btn-sm" type="button" (click)="alerts.load()">Try again</button>
+      </div>
+    </section>
+  } @else if (alerts.items().length) {
+    <div class="alerts-summary" [class.paused]="alerts.available() === false" role="status">
+      <span aria-hidden="true"></span>
+      <strong>
+        {{ alerts.items().length }} {{ alerts.available() === false ? 'paused' : 'active' }} alert{{
+          alerts.items().length === 1 ? '' : 's'
+        }}
+      </strong>
+      <small>{{
+        alerts.available() === false
+          ? 'Email delivery is unavailable until the sender is configured.'
+          : 'Only these searches will run in the background.'
+      }}</small>
+    </div>
+    <section class="alerts-list" aria-label="Search alert subscriptions">
+      @for (item of alerts.items(); track item.id) {
+        <article
+          class="alert-item card bg-base-100 shadow-sm"
+          animate.enter="reveal-enter"
+          animate.leave="reveal-leave"
+        >
+          <span class="bell" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
+          </span>
+          <div class="alert-copy">
+            <a [href]="item.searchPath"
+              ><strong>{{ item.query }}</strong></a
+            >
+            <small>{{ item.recipientEmail }}</small>
+            <p>
+              {{ intervalLabel(item.intervalMinutes) }} ·
+              @if (item.lastNotifiedAt) {
+                Last update {{ item.lastNotifiedAt | date: 'medium' }}
+              } @else if (item.lastCheckedAt) {
+                Checked {{ item.lastCheckedAt | date: 'medium' }}
+              } @else {
+                Starts {{ item.createdAt | date: 'mediumDate' }}
+              }
+            </p>
+          </div>
+          <div class="alert-actions" [class.confirming]="confirmingRemoval() === item.id">
+            @if (confirmingRemoval() === item.id) {
+              <button class="btn btn-ghost btn-sm" type="button" (click)="cancelRemoval()">Cancel</button>
+              <button
+                class="btn btn-error btn-sm"
+                type="button"
+                (click)="remove(item.id)"
+                [disabled]="removing().has(item.id)"
+              >
+                {{ removing().has(item.id) ? 'Stopping…' : 'Confirm stop' }}
+              </button>
+            } @else {
+              <button
+                class="btn btn-soft btn-primary btn-sm"
+                type="button"
+                (click)="sendTest(item.id)"
+                [disabled]="testing().has(item.id) || removing().has(item.id) || alerts.available() === false"
+              >
+                @if (testing().has(item.id)) {
+                  <span class="loading loading-spinner loading-xs" aria-hidden="true"></span>
+                  Sending…
+                } @else {
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M4 6h16v12H4zM4 7l8 6 8-6" />
+                  </svg>
+                  Send test
+                }
+              </button>
+              <button
+                class="btn btn-soft btn-error btn-sm"
+                type="button"
+                (click)="confirmRemoval(item.id)"
+                [disabled]="removing().has(item.id) || testing().has(item.id)"
+                [attr.aria-label]="'Stop alert for ' + item.query"
+              >
+                Stop
+              </button>
+            }
+          </div>
+        </article>
+      }
+    </section>
+  } @else if (alerts.available() === false) {
+    <section class="alerts-state unavailable card bg-base-100 shadow-sm">
+      <span aria-hidden="true">!</span>
+      <div>
+        <strong>Email sender needs configuration</strong>
+        <p>Add the sender email and app password to the backend environment before creating alerts.</p>
+      </div>
+    </section>
+  } @else {
+    <section class="empty-alerts card bg-base-100 shadow-sm">
+      <span aria-hidden="true">♧</span>
+      <h2>No active alerts</h2>
+      <p>Run a search, choose your filters, then press <strong>Email alerts</strong>.</p>
+      <a class="btn btn-primary" routerLink="/">Start a search</a>
+    </section>
+  }
+</section>
