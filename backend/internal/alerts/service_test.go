@@ -21,17 +21,18 @@ func TestValidSearchPath(t *testing.T) {
 }
 
 func TestCompareSnapshots(t *testing.T) {
+	oldPrice, newPrice := 13_500, 12_900
 	changes := compareSnapshots(
-		[]string{"stayed", "left"},
-		[]model.Product{{ID: "stayed"}, {ID: "left", Title: "Gone"}},
-		[]model.Product{{ID: "new", Title: "Fresh"}, {ID: "stayed"}},
+		[]string{"stayed", "repriced", "left"},
+		[]model.Product{{ID: "stayed"}, {ID: "repriced", Title: "Cheaper", Price: &oldPrice, PriceString: "13.500 EUR", Currency: 1}, {ID: "left", Title: "Gone"}},
+		[]model.Product{{ID: "new", Title: "Fresh"}, {ID: "stayed"}, {ID: "repriced", Title: "Cheaper", Price: &newPrice, PriceString: "12.900 EUR", Currency: 1}},
 	)
-	if len(changes.Added) != 1 || changes.Added[0].ID != "new" || len(changes.Removed) != 1 || changes.Removed[0].ID != "left" {
+	if len(changes.Added) != 1 || changes.Added[0].ID != "new" || len(changes.Removed) != 1 || changes.Removed[0].ID != "left" || len(changes.PriceChanges) != 1 || changes.PriceChanges[0].Before.PriceString != "13.500 EUR" || changes.PriceChanges[0].After.PriceString != "12.900 EUR" {
 		t.Fatalf("unexpected changes: %#v", changes)
 	}
 
 	initial := compareSnapshots([]string{"existing"}, nil, []model.Product{{ID: "existing"}})
-	if len(initial.Removed) != 0 || len(initial.Added) != 0 {
+	if changeCount(initial) != 0 {
 		t.Fatalf("initial snapshot produced changes: %#v", initial)
 	}
 
@@ -40,12 +41,22 @@ func TestCompareSnapshots(t *testing.T) {
 		[]model.Product{{ID: "new"}, {ID: "stayed"}},
 		[]model.Product{{ID: "new"}, {ID: "stayed"}},
 	)
-	if len(unchanged.Removed) != 0 || len(unchanged.Added) != 0 {
+	if changeCount(unchanged) != 0 {
 		t.Fatalf("unchanged snapshot produced changes: %#v", unchanged)
 	}
 
+	samePriceBefore, samePriceAfter := 10_000, 10_000
+	formatOnly := compareSnapshots(
+		[]string{"same-price"},
+		[]model.Product{{ID: "same-price", Price: &samePriceBefore, Currency: 1, PriceString: "10.000 EUR"}},
+		[]model.Product{{ID: "same-price", Price: &samePriceAfter, Currency: 1, PriceString: "10 000 EUR"}},
+	)
+	if changeCount(formatOnly) != 0 {
+		t.Fatalf("format-only price update produced changes: %#v", formatOnly)
+	}
+
 	html := alertHTML(model.SearchSubscription{Query: "Tesla <3"}, changes, "https://example.com/search", true)
-	for _, expected := range []string{"New in the latest results", "Left the latest results", "Fresh", "Gone", "Tesla &lt;3"} {
+	for _, expected := range []string{"New in the latest results", "Left the latest results", "Price changes", "13.500 EUR", "12.900 EUR", "Fresh", "Gone", "Tesla &lt;3"} {
 		if !strings.Contains(html, expected) {
 			t.Fatalf("digest is missing %q", expected)
 		}

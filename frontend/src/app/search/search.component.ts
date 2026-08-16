@@ -298,6 +298,9 @@ export class SearchComponent implements OnDestroy {
   readonly rawProducts = signal<Product[]>([]);
   readonly alertChanges = signal<SearchChanges | null>(null);
   readonly alertAddedIds = computed(() => new Set(this.alertChanges()?.added.map((product) => product.id) ?? []));
+  readonly alertPriceChanges = computed(
+    () => new Map((this.alertChanges()?.priceChanges ?? []).map((change) => [change.after.id, change])),
+  );
   readonly alertChangesDate = computed(() => {
     const value = this.alertChanges()?.detectedAt;
     return value
@@ -452,6 +455,10 @@ export class SearchComponent implements OnDestroy {
   readonly alertAddedProducts = computed(() => {
     const visible = new Set(this.products().map((product) => product.id));
     return (this.alertChanges()?.added ?? []).filter((product) => !visible.has(product.id));
+  });
+  readonly alertPriceChangedProducts = computed(() => {
+    const visible = new Set(this.products().map((product) => product.id));
+    return (this.alertChanges()?.priceChanges ?? []).filter((change) => !visible.has(change.after.id));
   });
   readonly priceRangeUpdating = computed(() => this.loading() && this.availablePrices().length > 0);
   readonly hiddenCount = computed(() => this.rawProducts().length - this.products().length);
@@ -905,6 +912,16 @@ export class SearchComponent implements OnDestroy {
         window.scrollTo({ top: state.scrollY, behavior: 'instant' });
       }),
     );
+  }
+
+  alertChangeState(id: string): 'new' | 'price' | null {
+    if (this.alertAddedIds().has(id)) return 'new';
+    return this.alertPriceChanges().has(id) ? 'price' : null;
+  }
+
+  alertPreviousPrice(id: string): string {
+    const product = this.alertPriceChanges().get(id)?.before;
+    return product ? productPriceLabel(product) : '';
   }
 
   removeFilter(id: string): void {
@@ -1731,6 +1748,10 @@ export class SearchComponent implements OnDestroy {
 
 function tokens(value: string): string[] {
   return value.toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+}
+function productPriceLabel(product: Product): string {
+  if (product.price == null) return product.priceString || 'Price negotiable';
+  return `${product.price.toLocaleString('ro-MD')} ${['MDL', 'EUR', 'USD'][product.currency] ?? ''}`.trim();
 }
 function searchKey(value: string): string {
   return fold(value).replace(/\s+/g, ' ').trim();

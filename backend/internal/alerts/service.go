@@ -74,8 +74,9 @@ func (s *Service) Test(ctx context.Context, accountID, id string) error {
 		}
 		searchURL := s.subscriptionURL(item)
 		changes := snapshotChanges{
-			Added:   []model.Product{{ID: "105000001", Title: "Example new listing", PriceString: "12.500 EUR", URLToProduct: searchURL}},
-			Removed: []model.Product{{ID: "104999999", Title: "Example listing that left", PriceString: "11.900 EUR", URLToProduct: searchURL}},
+			Added:        []model.Product{{ID: "105000001", Title: "Example new listing", PriceString: "12.500 EUR", URLToProduct: searchURL}},
+			Removed:      []model.Product{{ID: "104999999", Title: "Example listing that left", PriceString: "11.900 EUR", URLToProduct: searchURL}},
+			PriceChanges: []model.PriceChange{{Before: model.Product{ID: "105000002", Title: "Example repriced listing", PriceString: "13.500 EUR", URLToProduct: searchURL}, After: model.Product{ID: "105000002", Title: "Example repriced listing", PriceString: "12.900 EUR", URLToProduct: searchURL}}},
 		}
 		if err := s.sender.Send(ctx, item.RecipientEmail, "Test: search alert preview for "+item.Query, alertText(item, changes, searchURL, true), alertHTML(item, changes, searchURL, true)); err != nil {
 			s.logger.Warn("search alert test failed", "subscription_id", item.ID, "error", err)
@@ -132,14 +133,14 @@ func (s *Service) checkOne(ctx context.Context, subscription model.SearchSubscri
 	}
 	changes := compareSnapshots(subscription.SnapshotProductIDs, subscription.SnapshotProducts, products)
 	var lastChanges *model.SearchChanges
-	if len(changes.Added)+len(changes.Removed) > 0 {
+	if changeCount(changes) > 0 {
 		searchURL := s.subscriptionURL(subscription)
 		if err := s.sender.Send(ctx, subscription.RecipientEmail, subject(subscription.Query, changes), alertText(subscription, changes, searchURL, false), alertHTML(subscription, changes, searchURL, false)); err != nil {
 			s.logger.Warn("search alert delivery failed", "subscription_id", subscription.ID, "error", err)
 			_ = s.store.RetrySearchSubscription(context.WithoutCancel(ctx), subscription.ID, time.Now().Add(min(interval, 10*time.Minute)))
 			return
 		}
-		lastChanges = &model.SearchChanges{Added: changes.Added, Removed: changes.Removed, DetectedAt: time.Now()}
+		lastChanges = &model.SearchChanges{Added: changes.Added, Removed: changes.Removed, PriceChanges: changes.PriceChanges, DetectedAt: time.Now()}
 	}
 	if err := s.store.CompleteSearchSubscription(context.WithoutCancel(ctx), subscription.ID, products, time.Now().Add(interval), lastChanges); err != nil {
 		s.logger.Error("complete search alert check", "subscription_id", subscription.ID, "error", err)
@@ -155,8 +156,9 @@ func (s *Service) subscriptionURL(item model.SearchSubscription) string {
 }
 
 type snapshotChanges struct {
-	Added   []model.Product
-	Removed []model.Product
+	Added        []model.Product
+	Removed      []model.Product
+	PriceChanges []model.PriceChange
 }
 
 func compareSnapshots(previousIDs []string, previous, current []model.Product) snapshotChanges {
@@ -165,11 +167,17 @@ func compareSnapshots(previousIDs []string, previous, current []model.Product) s
 		previousSet[id] = struct{}{}
 	}
 	currentSet := make(map[string]struct{}, len(current))
-	changes := snapshotChanges{Added: make([]model.Product, 0), Removed: make([]model.Product, 0)}
+	previousByID := make(map[string]model.Product, len(previous))
+	for _, product := range previous {
+		previousByID[product.ID] = product
+	}
+	changes := snapshotChanges{Added: make([]model.Product, 0), Removed: make([]model.Product, 0), PriceChanges: make([]model.PriceChange, 0)}
 	for _, product := range current {
 		currentSet[product.ID] = struct{}{}
 		if _, exists := previousSet[product.ID]; !exists {
 			changes.Added = append(changes.Added, product)
+		} else if before, exists := previousByID[product.ID]; exists && priceChanged(before, product) {
+			changes.PriceChanges = append(changes.PriceChanges, model.PriceChange{Before: before, After: product})
 		}
 	}
 	for _, product := range previous {
@@ -180,14 +188,28 @@ func compareSnapshots(previousIDs []string, previous, current []model.Product) s
 	return changes
 }
 
+func priceChanged(before, after model.Product) bool {
+	if (before.Price == nil) != (after.Price == nil) {
+		return true
+	}
+	return before.Price != nil && (*before.Price != *after.Price || before.Currency != after.Currency)
+}
+
+func changeCount(changes snapshotChanges) int {
+	return len(changes.Added) + len(changes.Removed) + len(changes.PriceChanges)
+}
+
 func subject(query string, changes snapshotChanges) string {
-	if len(changes.Removed) == 0 {
+	if len(changes.Removed) == 0 && len(changes.PriceChanges) == 0 {
 		return fmt.Sprintf("%d new %s for %s", len(changes.Added), plural("listing", len(changes.Added)), query)
 	}
-	if len(changes.Added) == 0 {
+	if len(changes.Added) == 0 && len(changes.PriceChanges) == 0 {
 		return fmt.Sprintf("%d %s left the latest results for %s", len(changes.Removed), plural("listing", len(changes.Removed)), query)
 	}
-	return fmt.Sprintf("%d search updates for %s", len(changes.Added)+len(changes.Removed), query)
+	if len(changes.Added) == 0 && len(changes.Removed) == 0 {
+		return fmt.Sprintf("%d price %s for %s", len(changes.PriceChanges), plural("change", len(changes.PriceChanges)), query)
+	}
+	return fmt.Sprintf("%d search updates for %s", changeCount(changes), query)
 }
 
 func alertText(item model.SearchSubscription, changes snapshotChanges, searchURL string, preview bool) string {
@@ -203,6 +225,12 @@ func alertText(item model.SearchSubscription, changes snapshotChanges, searchURL
 	if len(changes.Removed) > 0 {
 		fmt.Fprintln(&output, "\nLEFT THE LATEST RESULTS")
 		writeTextProducts(&output, changes.Removed)
+	}
+	if len(changes.PriceChanges) > 0 {
+		fmt.Fprintln(&output, "\nPRICE CHANGES")
+		for _, change := range changes.PriceChanges[:min(len(changes.PriceChanges), 12)] {
+			fmt.Fprintf(&output, "- %s · %s → %s · ID %s\n  %s\n", change.After.Title, priceLabel(change.Before), priceLabel(change.After), change.After.ID, change.After.URLToProduct)
+		}
 	}
 	fmt.Fprintf(&output, "\nA listing may be sold, paused, removed, or move beyond the latest page.\nOpen the saved search: %s", searchURL)
 	return output.String()
@@ -220,7 +248,10 @@ func alertHTML(item model.SearchSubscription, changes snapshotChanges, searchURL
 	if len(changes.Removed) > 0 {
 		sections.WriteString(emailSection("Left the latest results", "Possibly sold, paused, removed, or moved beyond the latest page", "−", "#c2410c", "#ffedd5", changes.Removed))
 	}
-	return fmt.Sprintf(`<div style="margin:0;background:#f3f6fb;padding:32px 14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#172033"><div style="max-width:620px;margin:auto;background:#fff;border:1px solid #e5eaf2;border-radius:20px;overflow:hidden">%s<div style="padding:28px 30px;background:linear-gradient(135deg,#eff6ff,#f0fdfa)"><div style="color:#0f766e;font-size:12px;font-weight:800;letter-spacing:.12em">999 WATCH · SEARCH UPDATE</div><h1 style="margin:10px 0 6px;font-size:27px;line-height:1.2">%s</h1><p style="margin:0;color:#64748b">Latest snapshot for <strong style="color:#172033">%s</strong></p><div style="margin-top:18px"><span style="display:inline-block;margin-right:8px;padding:7px 11px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-size:13px;font-weight:750">＋ %d new</span><span style="display:inline-block;padding:7px 11px;border-radius:999px;background:#ffedd5;color:#c2410c;font-size:13px;font-weight:750">− %d left</span></div></div><div style="padding:8px 30px 28px">%s<a href="%s" style="display:block;margin-top:24px;padding:13px 18px;border-radius:12px;background:#2563eb;color:#fff;text-align:center;text-decoration:none;font-weight:750">Open saved search&nbsp; ↗</a><p style="margin:18px 0 0;color:#94a3b8;font-size:12px;line-height:1.5;text-align:center">Leaving the latest snapshot does not prove deletion. Rankings and pagination can also change.</p></div></div></div>`, previewBanner, html.EscapeString(subject(item.Query, changes)), html.EscapeString(item.Query), len(changes.Added), len(changes.Removed), sections.String(), html.EscapeString(searchURL))
+	if len(changes.PriceChanges) > 0 {
+		sections.WriteString(priceChangeSection(changes.PriceChanges))
+	}
+	return fmt.Sprintf(`<div style="margin:0;background:#f3f6fb;padding:32px 14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#172033"><div style="max-width:620px;margin:auto;background:#fff;border:1px solid #e5eaf2;border-radius:20px;overflow:hidden">%s<div style="padding:28px 30px;background:linear-gradient(135deg,#eff6ff,#f0fdfa)"><div style="color:#0f766e;font-size:12px;font-weight:800;letter-spacing:.12em">999 WATCH · SEARCH UPDATE</div><h1 style="margin:10px 0 6px;font-size:27px;line-height:1.2">%s</h1><p style="margin:0;color:#64748b">Latest snapshot for <strong style="color:#172033">%s</strong></p><div style="margin-top:18px"><span style="display:inline-block;margin:0 8px 6px 0;padding:7px 11px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-size:13px;font-weight:750">＋ %d new</span><span style="display:inline-block;margin:0 8px 6px 0;padding:7px 11px;border-radius:999px;background:#ffedd5;color:#c2410c;font-size:13px;font-weight:750">− %d left</span><span style="display:inline-block;padding:7px 11px;border-radius:999px;background:#fef3c7;color:#a16207;font-size:13px;font-weight:750">↕ %d repriced</span></div></div><div style="padding:8px 30px 28px">%s<a href="%s" style="display:block;margin-top:24px;padding:13px 18px;border-radius:12px;background:#2563eb;color:#fff;text-align:center;text-decoration:none;font-weight:750">Open saved search&nbsp; ↗</a><p style="margin:18px 0 0;color:#94a3b8;font-size:12px;line-height:1.5;text-align:center">Leaving the latest snapshot does not prove deletion. Rankings and pagination can also change.</p></div></div></div>`, previewBanner, html.EscapeString(subject(item.Query, changes)), html.EscapeString(item.Query), len(changes.Added), len(changes.Removed), len(changes.PriceChanges), sections.String(), html.EscapeString(searchURL))
 }
 
 func writeTextProducts(output *strings.Builder, products []model.Product) {
@@ -237,11 +268,32 @@ func emailSection(title, note, symbol, color, soft string, products []model.Prod
 	return fmt.Sprintf(`<section style="margin-top:22px"><h2 style="margin:0;font-size:18px">%s</h2><p style="margin:5px 0 8px;color:#64748b;font-size:12px;line-height:1.45">%s</p><table role="presentation" style="width:100%%;border-collapse:collapse">%s</table></section>`, html.EscapeString(title), html.EscapeString(note), rows.String())
 }
 
-func priceLabel(product model.Product) string {
-	if product.PriceString == "" {
-		return "Price unavailable"
+func priceChangeSection(changes []model.PriceChange) string {
+	var rows strings.Builder
+	for _, change := range changes[:min(len(changes), 12)] {
+		fmt.Fprintf(&rows, `<tr><td style="padding:9px 0"><table role="presentation" style="width:100%%;border-collapse:collapse"><tr><td style="width:40px;height:40px;border-radius:11px;background:#fef3c7;color:#a16207;text-align:center;font-size:20px;font-weight:700">↕</td><td style="padding-left:12px"><a href="%s" style="display:block;color:#172033;text-decoration:none;font-size:15px;font-weight:750;line-height:1.3">%s</a><div style="margin-top:4px;font-size:13px"><span style="color:#94a3b8;text-decoration:line-through">%s</span><strong style="margin-left:8px;color:%s">%s</strong><span style="margin-left:8px;color:#64748b">ID %s</span></div></td><td style="width:52px;text-align:right"><a href="%s" style="color:#a16207;text-decoration:none;font-size:12px;font-weight:750">View ↗</a></td></tr></table></td></tr>`, html.EscapeString(change.After.URLToProduct), html.EscapeString(change.After.Title), html.EscapeString(priceLabel(change.Before)), priceChangeColor(change), html.EscapeString(priceLabel(change.After)), html.EscapeString(change.After.ID), html.EscapeString(change.After.URLToProduct))
 	}
-	return product.PriceString
+	return fmt.Sprintf(`<section style="margin-top:22px"><h2 style="margin:0;font-size:18px">Price changes</h2><p style="margin:5px 0 8px;color:#64748b;font-size:12px;line-height:1.45">The same listings now have a different asking price.</p><table role="presentation" style="width:100%%;border-collapse:collapse">%s</table></section>`, rows.String())
+}
+
+func priceChangeColor(change model.PriceChange) string {
+	if change.Before.Price != nil && change.After.Price != nil && change.Before.Currency == change.After.Currency {
+		if *change.After.Price < *change.Before.Price {
+			return "#15803d"
+		}
+		return "#c2410c"
+	}
+	return "#a16207"
+}
+
+func priceLabel(product model.Product) string {
+	if product.PriceString != "" {
+		return product.PriceString
+	}
+	if product.Price != nil && product.Currency >= 0 && product.Currency < 3 {
+		return fmt.Sprintf("%d %s", *product.Price, []string{"MDL", "EUR", "USD"}[product.Currency])
+	}
+	return "Price unavailable"
 }
 
 func plural(noun string, count int) string {

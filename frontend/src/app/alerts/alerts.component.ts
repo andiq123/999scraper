@@ -75,7 +75,11 @@ export class AlertsComponent {
   }
 
   changeCount(item: SearchSubscription): number {
-    return (item.lastChanges?.added.length ?? 0) + (item.lastChanges?.removed.length ?? 0);
+    return (
+      (item.lastChanges?.added.length ?? 0) +
+      (item.lastChanges?.removed.length ?? 0) +
+      (item.lastChanges?.priceChanges?.length ?? 0)
+    );
   }
 
   searchPath(item: SearchSubscription): string {

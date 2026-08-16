@@ -63,7 +63,7 @@
             >
             <small>{{ item.recipientEmail }}</small>
             @if (item.lastChanges; as changes) {
-              @if (changes.added.length || changes.removed.length) {
+              @if (changes.added.length || changes.removed.length || changes.priceChanges?.length) {
                 <div class="changes-available" aria-label="Changes available for review">
                   <strong>Changes available</strong>
                   @if (changes.added.length) {
@@ -71,6 +71,9 @@
                   }
                   @if (changes.removed.length) {
                     <span class="removed">−{{ changes.removed.length }} removed</span>
+                  }
+                  @if (changes.priceChanges?.length) {
+                    <span class="repriced">↕ {{ changes.priceChanges.length }} repriced</span>
                   }
                 </div>
               }

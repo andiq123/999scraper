@@ -32,7 +32,12 @@ export interface SearchSubscription {
 export interface SearchChanges {
   added: Product[];
   removed: Product[];
+  priceChanges?: PriceChange[];
   detectedAt: string;
+}
+export interface PriceChange {
+  before: Product;
+  after: Product;
 }
 export interface SearchSubscriptionsResponse {
   available: boolean;

@@ -149,6 +149,10 @@
   color: var(--danger);
   background: rgb(var(--danger-rgb) / 8%);
 }
+.changes-available .repriced {
+  color: #98600b;
+  background: rgb(245 158 11 / 11%);
+}
 .saved-filters {
   display: flex;
   gap: 0.25rem;

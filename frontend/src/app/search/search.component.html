@@ -979,7 +979,12 @@
         </div>
       }
 
-      @if (products().length || alertAddedProducts().length || alertRemovedProducts().length) {
+      @if (
+        products().length ||
+        alertAddedProducts().length ||
+        alertRemovedProducts().length ||
+        alertPriceChangedProducts().length
+      ) {
         <div class="result-bar" animate.enter="reveal-enter" animate.leave="reveal-leave">
           <p>
             <strong>{{ products().length }}</strong> shown
@@ -1044,6 +1049,9 @@
             </p>
             <p class="removed">
               <strong>&minus;{{ changes.removed.length }}</strong> removed
+            </p>
+            <p class="repriced">
+              <strong>↕ {{ changes.priceChanges?.length ?? 0 }}</strong> repriced
             </p>
           </section>
         }
@@ -1117,6 +1125,18 @@
               (exclude)="addExclusion($event)"
             />
           }
+          @for (change of alertPriceChangedProducts(); track 'repriced-' + change.after.id) {
+            <app-product-card
+              animate.enter="reveal-enter"
+              [product]="change.after"
+              [saved]="library.savedIds().has(change.after.id)"
+              [convertedPrice]="currency.label(change.after, priceCurrency())"
+              [changeState]="'price'"
+              [previousPrice]="alertPreviousPrice(change.after.id)"
+              (save)="toggleSaved($event)"
+              (exclude)="addExclusion($event)"
+            />
+          }
           @for (product of products(); track product.id; let index = $index) {
             <app-product-card
               animate.enter="reveal-enter"
@@ -1128,7 +1148,8 @@
               [bulkMode]="bulkMode()"
               [bulkSelected]="bulkSelected().has(product.id)"
               [newlyRevealed]="newlyRevealed().has(product.id)"
-              [changeState]="alertAddedIds().has(product.id) ? 'new' : null"
+              [changeState]="alertChangeState(product.id)"
+              [previousPrice]="alertPreviousPrice(product.id)"
               (bulkSelect)="toggleBulkSelection($event)"
               (save)="toggleSaved($event)"
               (exclude)="addExclusion($event)"

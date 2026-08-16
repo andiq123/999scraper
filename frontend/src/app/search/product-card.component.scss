@@ -24,6 +24,10 @@ article.change-new {
   border-color: rgb(var(--success-rgb) / 42%);
   background: linear-gradient(150deg, rgb(var(--success-rgb) / 8%), var(--surface-solid) 48%);
 }
+article.change-price {
+  border-color: rgb(245 158 11 / 42%);
+  background: linear-gradient(150deg, rgb(245 158 11 / 8%), var(--surface-solid) 48%);
+}
 article.change-removed {
   border-color: rgb(var(--danger-rgb) / 30%);
   background: linear-gradient(150deg, rgb(var(--danger-rgb) / 8%), var(--surface-solid) 52%);
@@ -171,6 +175,10 @@ img,
 .alert-change.removed {
   color: white;
   background: rgb(var(--danger-rgb) / 88%);
+}
+.alert-change.price {
+  color: white;
+  background: rgb(180 106 9 / 92%);
 }
 .copy-rank.latest {
   color: white;

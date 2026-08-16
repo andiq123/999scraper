@@ -35,7 +35,8 @@ export class ProductCardComponent {
   readonly bulkMode = input(false);
   readonly bulkSelected = input(false);
   readonly newlyRevealed = input(false);
-  readonly changeState = input<'new' | 'removed' | null>(null);
+  readonly changeState = input<'new' | 'removed' | 'price' | null>(null);
+  readonly previousPrice = input('');
   readonly exclude = output<string>();
   readonly save = output<Product>();
   readonly bulkSelect = output<Product>();

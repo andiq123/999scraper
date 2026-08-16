@@ -47,9 +47,15 @@ type SearchSubscription struct {
 }
 
 type SearchChanges struct {
-	Added      []Product `json:"added"`
-	Removed    []Product `json:"removed"`
-	DetectedAt time.Time `json:"detectedAt"`
+	Added        []Product     `json:"added"`
+	Removed      []Product     `json:"removed"`
+	PriceChanges []PriceChange `json:"priceChanges,omitempty"`
+	DetectedAt   time.Time     `json:"detectedAt"`
+}
+
+type PriceChange struct {
+	Before Product `json:"before"`
+	After  Product `json:"after"`
 }
 
 type Product struct {

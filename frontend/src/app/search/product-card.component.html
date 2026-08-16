@@ -5,6 +5,7 @@
   [class.newly-revealed]="newlyRevealed()"
   [class.change-new]="changeState() === 'new'"
   [class.change-removed]="changeState() === 'removed'"
+  [class.change-price]="changeState() === 'price'"
   [attr.aria-disabled]="changeState() === 'removed' ? 'true' : null"
   [attr.inert]="changeState() === 'removed' ? '' : null"
 >
@@ -60,6 +61,8 @@
         <span class="alert-change added">New since last check</span>
       } @else if (changeState() === 'removed') {
         <span class="alert-change removed">Removed since last check</span>
+      } @else if (changeState() === 'price') {
+        <span class="alert-change price">Price changed</span>
       } @else if (newlyRevealed()) {
         <span class="newly-shown">Newly shown</span>
       }
@@ -188,6 +191,11 @@
     <div class="footer">
       <div class="prices">
         <p>{{ price() }}</p>
+        @if (previousPrice()) {
+          <small
+            >Was <s>{{ previousPrice() }}</s></small
+          >
+        }
         @if (convertedPrice()) {
           <small>{{ convertedPrice() }}</small>
         }
