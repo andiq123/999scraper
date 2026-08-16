@@ -83,6 +83,10 @@
   border: 1px solid var(--line);
   border-radius: 18px;
 }
+.alert-item.has-changes {
+  border-color: rgb(var(--success-rgb) / 30%);
+  background: linear-gradient(135deg, rgb(var(--success-rgb) / 4%), var(--surface-solid) 45%);
+}
 .bell {
   display: grid;
   place-items: center;
@@ -123,6 +127,28 @@
 .alert-copy p {
   color: var(--subtle);
 }
+.changes-available {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+  font-size: 0.6rem;
+}
+.changes-available strong,
+.changes-available span {
+  padding: 0.2rem 0.4rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.changes-available strong,
+.changes-available .added {
+  color: #1f8b42;
+  background: rgb(var(--success-rgb) / 10%);
+}
+.changes-available .removed {
+  color: var(--danger);
+  background: rgb(var(--danger-rgb) / 8%);
+}
 .saved-filters {
   display: flex;
   gap: 0.25rem;
@@ -146,6 +172,7 @@
 .alert-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.4rem;
 }
 .alert-actions.confirming {

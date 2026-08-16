@@ -14,7 +14,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
-import { Product, type QualityThreshold, SortOrder } from '../models';
+import { Product, type QualityThreshold, type SearchChanges, SortOrder } from '../models';
 import { ToastService } from '../toast.service';
 import { ProductCardComponent } from './product-card.component';
 import { SearchEvent, SearchService } from './search.service';
@@ -296,6 +296,14 @@ export class SearchComponent implements OnDestroy {
   );
 
   readonly rawProducts = signal<Product[]>([]);
+  readonly alertChanges = signal<SearchChanges | null>(null);
+  readonly alertAddedIds = computed(() => new Set(this.alertChanges()?.added.map((product) => product.id) ?? []));
+  readonly alertChangesDate = computed(() => {
+    const value = this.alertChanges()?.detectedAt;
+    return value
+      ? new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+      : '';
+  });
   readonly propertySectorOptions = computed(() =>
     facetValues(this.rawProducts(), (product) => product.sector, chisinauSectors),
   );
@@ -437,6 +445,14 @@ export class SearchComponent implements OnDestroy {
       return value !== null && (min === null || value >= min) && (max === null || value <= max);
     });
   });
+  readonly alertRemovedProducts = computed(() => {
+    const visible = new Set(this.products().map((product) => product.id));
+    return (this.alertChanges()?.removed ?? []).filter((product) => !visible.has(product.id));
+  });
+  readonly alertAddedProducts = computed(() => {
+    const visible = new Set(this.products().map((product) => product.id));
+    return (this.alertChanges()?.added ?? []).filter((product) => !visible.has(product.id));
+  });
   readonly priceRangeUpdating = computed(() => this.loading() && this.availablePrices().length > 0);
   readonly hiddenCount = computed(() => this.rawProducts().length - this.products().length);
   readonly visiblePriceSummary = computed(() => {
@@ -573,6 +589,7 @@ export class SearchComponent implements OnDestroy {
     }
     const cached = freshEntry ? null : historyCached;
     const replay = this.route.snapshot.queryParamMap.get('q')?.trim();
+    const alertID = this.route.snapshot.queryParamMap.get('alert');
     const sharedFilters = decodeSearchFilters(this.route.snapshot.queryParamMap.get('filters'));
     const canRestore = cached && !sharedFilters && (!replay || replay === cached.activeQuery);
     if (canRestore) {
@@ -586,6 +603,7 @@ export class SearchComponent implements OnDestroy {
       queueMicrotask(() => void this.search());
     }
     void this.loadPersonalData(!canRestore && !sharedFilters);
+    if (alertID) void this.loadAlertChanges(alertID);
     let handledFreshRequest = this.searchState.freshRequests();
     effect(() => {
       const request = this.searchState.freshRequests();
@@ -748,11 +766,7 @@ export class SearchComponent implements OnDestroy {
   openSearchAlert(): void {
     if (this.loading()) return;
     const filters = encodeSearchFilters(searchFiltersFromState(this.snapshot(window.scrollY)));
-    void this.searchAlerts.open(
-      this.activeQuery(),
-      filters,
-      this.products().map((product) => product.id),
-    );
+    void this.searchAlerts.open(this.activeQuery(), filters, this.products());
   }
 
   startOver(): void {
@@ -1415,6 +1429,11 @@ export class SearchComponent implements OnDestroy {
   private async loadPersonalData(loadExclusions: boolean): Promise<void> {
     if (loadExclusions) this.excludedWords.set(await this.library.loadExcludedWords());
     if (this.auth.session()) await this.library.loadSaved();
+  }
+
+  private async loadAlertChanges(id: string): Promise<void> {
+    await this.searchAlerts.load();
+    this.alertChanges.set(this.searchAlerts.items().find((item) => item.id === id)?.lastChanges ?? null);
   }
 
   private restore(state: SearchState): void {

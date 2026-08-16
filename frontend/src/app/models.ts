@@ -27,6 +27,12 @@ export interface SearchSubscription {
   createdAt: string;
   lastCheckedAt?: string;
   lastNotifiedAt?: string;
+  lastChanges?: SearchChanges;
+}
+export interface SearchChanges {
+  added: Product[];
+  removed: Product[];
+  detectedAt: string;
 }
 export interface SearchSubscriptionsResponse {
   available: boolean;

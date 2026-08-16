@@ -3,6 +3,10 @@
   [class.bulk-mode]="bulkMode()"
   [class.bulk-selected]="bulkSelected()"
   [class.newly-revealed]="newlyRevealed()"
+  [class.change-new]="changeState() === 'new'"
+  [class.change-removed]="changeState() === 'removed'"
+  [attr.aria-disabled]="changeState() === 'removed' ? 'true' : null"
+  [attr.inert]="changeState() === 'removed' ? '' : null"
 >
   <a
     class="row-link"
@@ -52,7 +56,11 @@
       </button>
     }
     <div class="activity-badges">
-      @if (newlyRevealed()) {
+      @if (changeState() === 'new') {
+        <span class="alert-change added">New since last check</span>
+      } @else if (changeState() === 'removed') {
+        <span class="alert-change removed">Removed since last check</span>
+      } @else if (newlyRevealed()) {
         <span class="newly-shown">Newly shown</span>
       }
       @if (openRank(); as rank) {

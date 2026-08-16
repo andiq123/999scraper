@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { environment } from '../environments/environment';
 import { AuthService } from './auth/auth.service';
-import { SearchSubscription, SearchSubscriptionsResponse } from './models';
+import { Product, SearchSubscription, SearchSubscriptionsResponse } from './models';
 import { ToastService } from './toast.service';
 
 interface AlertDraft {
@@ -10,6 +10,7 @@ interface AlertDraft {
   filterParam: string;
   searchPath: string;
   snapshotProductIds: string[];
+  snapshotProducts: Product[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -33,17 +34,22 @@ export class SearchAlertService {
   readonly recipientEmail = signal('');
   readonly error = signal<string | null>(null);
 
-  async open(query: string, filterParam: string, currentProductIds: string[]): Promise<void> {
+  async open(query: string, filterParam: string, currentProducts: Product[]): Promise<void> {
     if (!(await this.auth.restore())) {
       this.toast.success('Log in to receive private search alerts.');
       await this.router.navigate(['/login']);
       return;
     }
+    const snapshotProducts = [...new Map(currentProducts.map((product) => [product.id, product])).values()].slice(
+      0,
+      1000,
+    );
     this.draft = {
       query,
       filterParam,
       searchPath: `/?q=${encodeURIComponent(query)}&filters=${encodeURIComponent(filterParam)}`,
-      snapshotProductIds: [...new Set(currentProductIds)].slice(0, 1000),
+      snapshotProductIds: snapshotProducts.map((product) => product.id),
+      snapshotProducts,
     };
     this.query.set(query);
     this.filterParam.set(filterParam);
@@ -92,7 +98,7 @@ export class SearchAlertService {
         }),
       });
       this.items.update((items) => [item, ...items.filter((candidate) => candidate.id !== item.id)]);
-      this.toast.success('Search alert enabled. Check your inbox for confirmation.');
+      this.toast.success('Search alert enabled. Email will be sent only when results change.');
       this.visible.set(false);
     } catch (error) {
       this.error.set(message(error));

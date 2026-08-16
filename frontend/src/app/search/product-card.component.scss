@@ -20,6 +20,27 @@ article.newly-revealed {
     0 0 0 2px rgb(var(--success-rgb) / 10%),
     var(--shadow-sm);
 }
+article.change-new {
+  border-color: rgb(var(--success-rgb) / 42%);
+  background: linear-gradient(150deg, rgb(var(--success-rgb) / 8%), var(--surface-solid) 48%);
+}
+article.change-removed {
+  border-color: rgb(var(--danger-rgb) / 30%);
+  background: linear-gradient(150deg, rgb(var(--danger-rgb) / 8%), var(--surface-solid) 52%);
+  filter: grayscale(0.45);
+  opacity: 0.62;
+  pointer-events: none;
+}
+article.change-removed .quality-score,
+article.change-removed .copy-json,
+article.change-removed .save,
+article.change-removed .vin-control,
+article.change-removed .card-actions {
+  display: none;
+}
+article.change-removed .activity-badges {
+  top: 0.55rem;
+}
 article.bulk-selected.newly-revealed {
   border-color: rgb(var(--accent-rgb) / 62%);
   box-shadow:
@@ -129,7 +150,8 @@ img,
 }
 .copy-rank,
 .open-rank,
-.newly-shown {
+.newly-shown,
+.alert-change {
   padding: 0.25rem 0.48rem;
   border: 1px solid rgb(255 255 255 / 65%);
   border-radius: 8px;
@@ -141,6 +163,14 @@ img,
   letter-spacing: 0.02em;
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
+}
+.alert-change.added {
+  color: white;
+  background: rgb(var(--success-rgb));
+}
+.alert-change.removed {
+  color: white;
+  background: rgb(var(--danger-rgb) / 88%);
 }
 .copy-rank.latest {
   color: white;

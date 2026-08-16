@@ -1,9 +1,10 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SearchAlertService } from '../search-alert.service';
 import { searchAlertConfiguration } from '../search/search-filter-chips';
 import { decodeSearchFilters } from '../search/search-url-state';
+import type { SearchSubscription } from '../models';
 
 @Component({
   selector: 'app-alerts',
@@ -18,6 +19,7 @@ export class AlertsComponent {
   readonly removing = signal<ReadonlySet<string>>(new Set());
   readonly testing = signal<ReadonlySet<string>>(new Set());
   readonly confirmingRemoval = signal<string | null>(null);
+  readonly changesAvailable = computed(() => this.alerts.items().filter((item) => this.changeCount(item) > 0).length);
 
   constructor() {
     void this.alerts.load();
@@ -70,5 +72,13 @@ export class AlertsComponent {
   configuration(filterParam?: string): string[] {
     const filters = decodeSearchFilters(filterParam ?? '');
     return filters ? searchAlertConfiguration(filters).map((filter) => filter.label) : [];
+  }
+
+  changeCount(item: SearchSubscription): number {
+    return (item.lastChanges?.added.length ?? 0) + (item.lastChanges?.removed.length ?? 0);
+  }
+
+  searchPath(item: SearchSubscription): string {
+    return `${item.searchPath}&alert=${encodeURIComponent(item.id)}`;
   }
 }

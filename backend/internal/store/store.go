@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS search_subscriptions (
   next_check_at timestamptz NOT NULL DEFAULT now(),
   last_checked_at timestamptz,
   last_notified_at timestamptz,
+  last_changes jsonb,
   locked_until timestamptz,
   UNIQUE (account_id, query, filter_param, recipient_email)
 );
@@ -90,7 +91,8 @@ BEGIN
   END IF;
 END $migration$;
 ALTER TABLE search_subscriptions
-  ADD COLUMN IF NOT EXISTS snapshot_products jsonb NOT NULL DEFAULT '[]'::jsonb;`
+  ADD COLUMN IF NOT EXISTS snapshot_products jsonb NOT NULL DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS last_changes jsonb;`
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin database migration: %w", err)

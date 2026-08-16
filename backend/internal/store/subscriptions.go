@@ -19,7 +19,7 @@ func (s *Store) SearchSubscriptions(ctx context.Context, accountID string) ([]mo
 	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
 	defer cancel()
 	rows, err := s.db.Query(ctx, `
-SELECT id::text, query, filter_param, search_path, recipient_email, interval_minutes, created_at, last_checked_at, last_notified_at
+SELECT id::text, query, filter_param, search_path, recipient_email, interval_minutes, created_at, last_checked_at, last_notified_at, last_changes
 FROM search_subscriptions
 WHERE account_id=$1 AND active
 ORDER BY created_at DESC`, accountID)
@@ -30,8 +30,15 @@ ORDER BY created_at DESC`, accountID)
 	items := make([]model.SearchSubscription, 0)
 	for rows.Next() {
 		var item model.SearchSubscription
-		if err := rows.Scan(&item.ID, &item.Query, &item.FilterParam, &item.SearchPath, &item.RecipientEmail, &item.IntervalMinutes, &item.CreatedAt, &item.LastCheckedAt, &item.LastNotifiedAt); err != nil {
+		var changes []byte
+		if err := rows.Scan(&item.ID, &item.Query, &item.FilterParam, &item.SearchPath, &item.RecipientEmail, &item.IntervalMinutes, &item.CreatedAt, &item.LastCheckedAt, &item.LastNotifiedAt, &changes); err != nil {
 			return nil, err
+		}
+		if len(changes) > 0 {
+			item.LastChanges = &model.SearchChanges{}
+			if err := json.Unmarshal(changes, item.LastChanges); err != nil {
+				return nil, err
+			}
 		}
 		items = append(items, item)
 	}
@@ -46,6 +53,10 @@ func (s *Store) PrepareSearchSubscription(ctx context.Context, accountID string,
 		return model.SearchSubscription{}, err
 	}
 	defer tx.Rollback(ctx)
+	snapshot, err := json.Marshal(item.SnapshotProducts)
+	if err != nil {
+		return model.SearchSubscription{}, err
+	}
 	var count int
 	if err := tx.QueryRow(ctx, `SELECT count(*) FROM search_subscriptions WHERE account_id=$1 AND active`, accountID).Scan(&count); err != nil {
 		return model.SearchSubscription{}, err
@@ -61,16 +72,18 @@ func (s *Store) PrepareSearchSubscription(ctx context.Context, accountID string,
 	}
 	item.ID = uuid.NewString()
 	err = tx.QueryRow(ctx, `
-INSERT INTO search_subscriptions (id, account_id, query, filter_param, search_path, recipient_email, interval_minutes, snapshot_product_ids, active, next_check_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, false, $9)
+INSERT INTO search_subscriptions (id, account_id, query, filter_param, search_path, recipient_email, interval_minutes, snapshot_product_ids, snapshot_products, active, next_check_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, false, $10)
 ON CONFLICT (account_id, query, filter_param, recipient_email) DO UPDATE SET
   search_path=EXCLUDED.search_path,
   interval_minutes=EXCLUDED.interval_minutes,
   snapshot_product_ids=EXCLUDED.snapshot_product_ids,
+  snapshot_products=EXCLUDED.snapshot_products,
+  last_changes=NULL,
   updated_at=now(),
   next_check_at=EXCLUDED.next_check_at,
   locked_until=NULL
-RETURNING id::text, created_at`, item.ID, accountID, item.Query, item.FilterParam, item.SearchPath, item.RecipientEmail, item.IntervalMinutes, item.SnapshotProductIDs, nextCheck).Scan(&item.ID, &item.CreatedAt)
+RETURNING id::text, created_at`, item.ID, accountID, item.Query, item.FilterParam, item.SearchPath, item.RecipientEmail, item.IntervalMinutes, item.SnapshotProductIDs, string(snapshot), nextCheck).Scan(&item.ID, &item.CreatedAt)
 	if err != nil {
 		return model.SearchSubscription{}, err
 	}
@@ -94,13 +107,6 @@ func (s *Store) DeleteSearchSubscription(ctx context.Context, accountID, id stri
 	if err == nil && command.RowsAffected() == 0 {
 		return ErrNotFound
 	}
-	return err
-}
-
-func (s *Store) DeletePreparedSearchSubscription(ctx context.Context, id string) error {
-	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
-	defer cancel()
-	_, err := s.db.Exec(ctx, `DELETE FROM search_subscriptions WHERE id=$1 AND NOT active`, id)
 	return err
 }
 
@@ -142,7 +148,7 @@ RETURNING subscription.id::text, subscription.query, subscription.filter_param, 
 	return items, rows.Err()
 }
 
-func (s *Store) CompleteSearchSubscription(ctx context.Context, id string, snapshot []model.Product, nextCheck time.Time, notified bool) error {
+func (s *Store) CompleteSearchSubscription(ctx context.Context, id string, snapshot []model.Product, nextCheck time.Time, changes *model.SearchChanges) error {
 	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
 	defer cancel()
 	payload, err := json.Marshal(snapshot)
@@ -153,16 +159,22 @@ func (s *Store) CompleteSearchSubscription(ctx context.Context, id string, snaps
 	for _, product := range snapshot {
 		ids = append(ids, product.ID)
 	}
+	changesPayload, err := json.Marshal(changes)
+	if err != nil {
+		return err
+	}
+	notified := changes != nil
 	_, err = s.db.Exec(ctx, `
 UPDATE search_subscriptions SET
   snapshot_product_ids=$2,
   snapshot_products=$3::jsonb,
   last_checked_at=now(),
   last_notified_at=CASE WHEN $5 THEN now() ELSE last_notified_at END,
+  last_changes=CASE WHEN $5 THEN $6::jsonb ELSE last_changes END,
   next_check_at=$4,
   locked_until=NULL,
   updated_at=now()
-WHERE id=$1 AND active`, id, ids, string(payload), nextCheck, notified)
+WHERE id=$1 AND active`, id, ids, string(payload), nextCheck, notified, string(changesPayload))
 	return err
 }
 

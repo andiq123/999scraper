@@ -41,13 +41,16 @@
       <small>{{
         alerts.available() === false
           ? 'Email delivery is unavailable until the sender is configured.'
-          : 'Only these searches will run in the background.'
+          : changesAvailable()
+            ? changesAvailable() + ' with changes ready to review.'
+            : 'Only these searches will run in the background.'
       }}</small>
     </div>
     <section class="alerts-list" aria-label="Search alert subscriptions">
       @for (item of alerts.items(); track item.id) {
         <article
           class="alert-item card bg-base-100 shadow-sm"
+          [class.has-changes]="changeCount(item) > 0"
           animate.enter="reveal-enter"
           animate.leave="reveal-leave"
         >
@@ -55,10 +58,23 @@
             <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
           </span>
           <div class="alert-copy">
-            <a [href]="item.searchPath"
+            <a [href]="searchPath(item)"
               ><strong>{{ item.query }}</strong></a
             >
             <small>{{ item.recipientEmail }}</small>
+            @if (item.lastChanges; as changes) {
+              @if (changes.added.length || changes.removed.length) {
+                <div class="changes-available" aria-label="Changes available for review">
+                  <strong>Changes available</strong>
+                  @if (changes.added.length) {
+                    <span class="added">+{{ changes.added.length }} new</span>
+                  }
+                  @if (changes.removed.length) {
+                    <span class="removed">−{{ changes.removed.length }} removed</span>
+                  }
+                </div>
+              }
+            }
             @if (configuration(item.filterParam); as filters) {
               @if (filters.length) {
                 <div class="saved-filters" aria-label="Saved search configuration">
@@ -91,6 +107,9 @@
                 {{ removing().has(item.id) ? 'Stopping…' : 'Confirm stop' }}
               </button>
             } @else {
+              @if (changeCount(item) > 0) {
+                <a class="btn btn-primary btn-sm" [href]="searchPath(item)">Review</a>
+              }
               <button
                 class="btn btn-soft btn-primary btn-sm"
                 type="button"

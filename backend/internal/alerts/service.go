@@ -50,11 +50,6 @@ func (s *Service) Subscribe(ctx context.Context, accountID string, subscription 
 	if err != nil {
 		return model.SearchSubscription{}, err
 	}
-	if err := s.sender.Send(ctx, prepared.RecipientEmail, "Search alerts are ready", welcomeText(prepared, interval), welcomeHTML(prepared, interval, s.searchURL(prepared.SearchPath))); err != nil {
-		_ = s.store.DeletePreparedSearchSubscription(context.WithoutCancel(ctx), prepared.ID)
-		s.logger.Warn("search alert confirmation failed", "subscription_id", prepared.ID, "error", err)
-		return model.SearchSubscription{}, ErrDelivery
-	}
 	if err := s.store.ActivateSearchSubscription(ctx, prepared.ID); err != nil {
 		return model.SearchSubscription{}, err
 	}
@@ -77,7 +72,7 @@ func (s *Service) Test(ctx context.Context, accountID, id string) error {
 		if item.ID != id {
 			continue
 		}
-		searchURL := s.searchURL(item.SearchPath)
+		searchURL := s.subscriptionURL(item)
 		changes := snapshotChanges{
 			Added:   []model.Product{{ID: "105000001", Title: "Example new listing", PriceString: "12.500 EUR", URLToProduct: searchURL}},
 			Removed: []model.Product{{ID: "104999999", Title: "Example listing that left", PriceString: "11.900 EUR", URLToProduct: searchURL}},
@@ -130,29 +125,33 @@ func (s *Service) checkOne(ctx context.Context, subscription model.SearchSubscri
 		return
 	}
 	if len(products) == 0 && len(subscription.SnapshotProductIDs) > 0 {
-		// ponytail: an empty page is too ambiguous for a mass-removal alert; add a
-		// persisted confirmation counter only if real empty searches need reporting.
+		// A completely empty page is too ambiguous to report as a mass removal.
 		s.logger.Warn("empty search alert snapshot ignored", "subscription_id", subscription.ID)
 		_ = s.store.RetrySearchSubscription(context.WithoutCancel(ctx), subscription.ID, time.Now().Add(min(interval, 10*time.Minute)))
 		return
 	}
 	changes := compareSnapshots(subscription.SnapshotProductIDs, subscription.SnapshotProducts, products)
-	notified := false
+	var lastChanges *model.SearchChanges
 	if len(changes.Added)+len(changes.Removed) > 0 {
-		if err := s.sender.Send(ctx, subscription.RecipientEmail, subject(subscription.Query, changes), alertText(subscription, changes, s.searchURL(subscription.SearchPath), false), alertHTML(subscription, changes, s.searchURL(subscription.SearchPath), false)); err != nil {
+		searchURL := s.subscriptionURL(subscription)
+		if err := s.sender.Send(ctx, subscription.RecipientEmail, subject(subscription.Query, changes), alertText(subscription, changes, searchURL, false), alertHTML(subscription, changes, searchURL, false)); err != nil {
 			s.logger.Warn("search alert delivery failed", "subscription_id", subscription.ID, "error", err)
 			_ = s.store.RetrySearchSubscription(context.WithoutCancel(ctx), subscription.ID, time.Now().Add(min(interval, 10*time.Minute)))
 			return
 		}
-		notified = true
+		lastChanges = &model.SearchChanges{Added: changes.Added, Removed: changes.Removed, DetectedAt: time.Now()}
 	}
-	if err := s.store.CompleteSearchSubscription(context.WithoutCancel(ctx), subscription.ID, products, time.Now().Add(interval), notified); err != nil {
+	if err := s.store.CompleteSearchSubscription(context.WithoutCancel(ctx), subscription.ID, products, time.Now().Add(interval), lastChanges); err != nil {
 		s.logger.Error("complete search alert check", "subscription_id", subscription.ID, "error", err)
 	}
 }
 
 func (s *Service) searchURL(path string) string {
 	return s.publicURL + path
+}
+
+func (s *Service) subscriptionURL(item model.SearchSubscription) string {
+	return s.searchURL(item.SearchPath) + "&alert=" + url.QueryEscape(item.ID)
 }
 
 type snapshotChanges struct {
@@ -189,14 +188,6 @@ func subject(query string, changes snapshotChanges) string {
 		return fmt.Sprintf("%d %s left the latest results for %s", len(changes.Removed), plural("listing", len(changes.Removed)), query)
 	}
 	return fmt.Sprintf("%d search updates for %s", len(changes.Added)+len(changes.Removed), query)
-}
-
-func welcomeText(item model.SearchSubscription, interval time.Duration) string {
-	return fmt.Sprintf("Search alerts are active for: %s\n\nWe will compare the latest result snapshot every %s and email you when listings enter or leave it. You can manage or stop this alert from your account.", item.Query, intervalLabel(interval))
-}
-
-func welcomeHTML(item model.SearchSubscription, interval time.Duration, searchURL string) string {
-	return fmt.Sprintf(`<div style="margin:0;background:#f3f6fb;padding:32px 14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#172033"><div style="max-width:600px;margin:auto;background:#fff;border:1px solid #e5eaf2;border-radius:20px;overflow:hidden"><div style="padding:30px;background:linear-gradient(135deg,#eff6ff,#f0fdfa)"><div style="color:#0f766e;font-size:12px;font-weight:800;letter-spacing:.12em">999 WATCH</div><h1 style="margin:10px 0 8px;font-size:28px;line-height:1.15">Your search is being watched</h1><p style="margin:0;color:#64748b;line-height:1.55">We’ll compare the latest results for <strong style="color:#172033">%s</strong> every %s.</p></div><div style="padding:24px 30px"><table role="presentation" style="width:100%%;border-collapse:separate;border-spacing:0 10px"><tr><td style="width:42px;height:42px;border-radius:12px;background:#dbeafe;color:#2563eb;text-align:center;font-size:22px">＋</td><td style="padding-left:12px"><strong>New listings</strong><div style="color:#64748b;font-size:13px;margin-top:3px">Know when something new reaches the latest results.</div></td></tr><tr><td style="width:42px;height:42px;border-radius:12px;background:#ffedd5;color:#c2410c;text-align:center;font-size:22px">−</td><td style="padding-left:12px"><strong>Listings that leave</strong><div style="color:#64748b;font-size:13px;margin-top:3px">They may be sold, paused, removed, or move beyond the latest page.</div></td></tr></table><a href="%s" style="display:block;margin-top:16px;padding:13px 18px;border-radius:12px;background:#2563eb;color:#fff;text-align:center;text-decoration:none;font-weight:750">Open saved search&nbsp; ↗</a><p style="margin:18px 0 0;color:#94a3b8;font-size:12px;text-align:center">Manage or stop this alert from your account at any time.</p></div></div></div>`, html.EscapeString(item.Query), html.EscapeString(intervalLabel(interval)), html.EscapeString(searchURL))
 }
 
 func alertText(item model.SearchSubscription, changes snapshotChanges, searchURL string, preview bool) string {
@@ -258,17 +249,6 @@ func plural(noun string, count int) string {
 		return noun
 	}
 	return noun + "s"
-}
-
-func intervalLabel(value time.Duration) string {
-	if value%time.Hour == 0 {
-		hours := int(value / time.Hour)
-		if hours == 1 {
-			return "1 hour"
-		}
-		return fmt.Sprintf("%d hours", hours)
-	}
-	return fmt.Sprintf("%d minutes", int(value/time.Minute))
 }
 
 func ValidInterval(minutes int) bool {

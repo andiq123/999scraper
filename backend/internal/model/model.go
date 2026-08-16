@@ -32,17 +32,24 @@ type SavedListing struct {
 }
 
 type SearchSubscription struct {
-	ID                 string     `json:"id"`
-	Query              string     `json:"query"`
-	FilterParam        string     `json:"filterParam,omitempty"`
-	SearchPath         string     `json:"searchPath"`
-	RecipientEmail     string     `json:"recipientEmail"`
-	IntervalMinutes    int        `json:"intervalMinutes"`
-	CreatedAt          time.Time  `json:"createdAt"`
-	LastCheckedAt      *time.Time `json:"lastCheckedAt,omitempty"`
-	LastNotifiedAt     *time.Time `json:"lastNotifiedAt,omitempty"`
-	SnapshotProductIDs []string   `json:"-"`
-	SnapshotProducts   []Product  `json:"-"`
+	ID                 string         `json:"id"`
+	Query              string         `json:"query"`
+	FilterParam        string         `json:"filterParam,omitempty"`
+	SearchPath         string         `json:"searchPath"`
+	RecipientEmail     string         `json:"recipientEmail"`
+	IntervalMinutes    int            `json:"intervalMinutes"`
+	CreatedAt          time.Time      `json:"createdAt"`
+	LastCheckedAt      *time.Time     `json:"lastCheckedAt,omitempty"`
+	LastNotifiedAt     *time.Time     `json:"lastNotifiedAt,omitempty"`
+	LastChanges        *SearchChanges `json:"lastChanges,omitempty"`
+	SnapshotProductIDs []string       `json:"-"`
+	SnapshotProducts   []Product      `json:"-"`
+}
+
+type SearchChanges struct {
+	Added      []Product `json:"added"`
+	Removed    []Product `json:"removed"`
+	DetectedAt time.Time `json:"detectedAt"`
 }
 
 type Product struct {

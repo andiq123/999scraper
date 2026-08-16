@@ -35,6 +35,15 @@ func TestCompareSnapshots(t *testing.T) {
 		t.Fatalf("initial snapshot produced changes: %#v", initial)
 	}
 
+	unchanged := compareSnapshots(
+		[]string{"new", "stayed"},
+		[]model.Product{{ID: "new"}, {ID: "stayed"}},
+		[]model.Product{{ID: "new"}, {ID: "stayed"}},
+	)
+	if len(unchanged.Removed) != 0 || len(unchanged.Added) != 0 {
+		t.Fatalf("unchanged snapshot produced changes: %#v", unchanged)
+	}
+
 	html := alertHTML(model.SearchSubscription{Query: "Tesla <3"}, changes, "https://example.com/search", true)
 	for _, expected := range []string{"New in the latest results", "Left the latest results", "Fresh", "Gone", "Tesla &lt;3"} {
 		if !strings.Contains(html, expected) {

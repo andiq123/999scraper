@@ -95,12 +95,13 @@ func (a *API) createSearchSubscription(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input struct {
-		Query              string   `json:"query"`
-		FilterParam        string   `json:"filterParam"`
-		SearchPath         string   `json:"searchPath"`
-		RecipientEmail     string   `json:"recipientEmail"`
-		IntervalMinutes    int      `json:"intervalMinutes"`
-		SnapshotProductIDs []string `json:"snapshotProductIds"`
+		Query              string          `json:"query"`
+		FilterParam        string          `json:"filterParam"`
+		SearchPath         string          `json:"searchPath"`
+		RecipientEmail     string          `json:"recipientEmail"`
+		IntervalMinutes    int             `json:"intervalMinutes"`
+		SnapshotProductIDs []string        `json:"snapshotProductIds"`
+		SnapshotProducts   []model.Product `json:"snapshotProducts"`
 	}
 	if !decode(w, r, &input) {
 		return
@@ -128,12 +129,11 @@ func (a *API) createSearchSubscription(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "too many baseline listings")
 		return
 	}
-	item, err := a.alerts.Subscribe(r.Context(), accountID(r), model.SearchSubscription{Query: input.Query, FilterParam: input.FilterParam, SearchPath: input.SearchPath, RecipientEmail: input.RecipientEmail, IntervalMinutes: input.IntervalMinutes, SnapshotProductIDs: input.SnapshotProductIDs})
+	input.SnapshotProducts = cleanSnapshotProducts(input.SnapshotProducts, input.SnapshotProductIDs)
+	item, err := a.alerts.Subscribe(r.Context(), accountID(r), model.SearchSubscription{Query: input.Query, FilterParam: input.FilterParam, SearchPath: input.SearchPath, RecipientEmail: input.RecipientEmail, IntervalMinutes: input.IntervalMinutes, SnapshotProductIDs: input.SnapshotProductIDs, SnapshotProducts: input.SnapshotProducts})
 	switch {
 	case errors.Is(err, alerts.ErrUnavailable):
 		writeError(w, http.StatusServiceUnavailable, "email alerts are not configured")
-	case errors.Is(err, alerts.ErrDelivery):
-		writeError(w, http.StatusBadGateway, "the confirmation email could not be delivered; check the recipient or sender settings")
 	case errors.Is(err, store.ErrSubscriptionLimit):
 		writeError(w, http.StatusConflict, "you can keep up to 10 search alerts")
 	case err != nil:
@@ -210,6 +210,26 @@ func cleanProductIDs(values []string) []string {
 		}
 		seen[value] = struct{}{}
 		result = append(result, value)
+	}
+	return result
+}
+
+func cleanSnapshotProducts(products []model.Product, allowedIDs []string) []model.Product {
+	allowed := make(map[string]struct{}, len(allowedIDs))
+	for _, id := range allowedIDs {
+		allowed[id] = struct{}{}
+	}
+	seen := make(map[string]struct{}, len(products))
+	result := make([]model.Product, 0, min(len(products), len(allowedIDs)))
+	for _, product := range products {
+		if _, ok := allowed[product.ID]; !ok {
+			continue
+		}
+		if _, exists := seen[product.ID]; exists {
+			continue
+		}
+		seen[product.ID] = struct{}{}
+		result = append(result, product)
 	}
 	return result
 }

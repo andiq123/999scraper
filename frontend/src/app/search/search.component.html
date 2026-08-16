@@ -979,7 +979,7 @@
         </div>
       }
 
-      @if (products().length) {
+      @if (products().length || alertAddedProducts().length || alertRemovedProducts().length) {
         <div class="result-bar" animate.enter="reveal-enter" animate.leave="reveal-leave">
           <p>
             <strong>{{ products().length }}</strong> shown
@@ -1033,6 +1033,20 @@
             <span aria-hidden="true">×</span> Start over
           </button>
         </div>
+        @if (alertChanges(); as changes) {
+          <section class="alert-change-summary" aria-label="Changes since the previous alert check">
+            <div>
+              <strong>Changes since the previous snapshot</strong>
+              <span>Detected {{ alertChangesDate() }}</span>
+            </div>
+            <p class="added">
+              <strong>+{{ changes.added.length }}</strong> new
+            </p>
+            <p class="removed">
+              <strong>&minus;{{ changes.removed.length }}</strong> removed
+            </p>
+          </section>
+        }
         @if (bulkMode()) {
           <div
             class="bulk-toolbar"
@@ -1089,6 +1103,20 @@
           </div>
         }
         <div class="grid">
+          @for (product of alertRemovedProducts(); track 'removed-' + product.id) {
+            <app-product-card animate.enter="reveal-enter" [product]="product" [changeState]="'removed'" />
+          }
+          @for (product of alertAddedProducts(); track 'added-' + product.id) {
+            <app-product-card
+              animate.enter="reveal-enter"
+              [product]="product"
+              [saved]="library.savedIds().has(product.id)"
+              [convertedPrice]="currency.label(product, priceCurrency())"
+              [changeState]="'new'"
+              (save)="toggleSaved($event)"
+              (exclude)="addExclusion($event)"
+            />
+          }
           @for (product of products(); track product.id; let index = $index) {
             <app-product-card
               animate.enter="reveal-enter"
@@ -1100,6 +1128,7 @@
               [bulkMode]="bulkMode()"
               [bulkSelected]="bulkSelected().has(product.id)"
               [newlyRevealed]="newlyRevealed().has(product.id)"
+              [changeState]="alertAddedIds().has(product.id) ? 'new' : null"
               (bulkSelect)="toggleBulkSelection($event)"
               (save)="toggleSaved($event)"
               (exclude)="addExclusion($event)"
