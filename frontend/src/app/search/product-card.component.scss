@@ -88,7 +88,7 @@ img,
   border: 1px solid rgb(255 255 255 / 62%);
   border-radius: 8px;
   color: white;
-  background: rgb(23 32 51 / 82%);
+  background: #172033;
   font-size: 0.75rem;
   font-weight: 750;
 }
@@ -116,10 +116,8 @@ img,
   border: 1px solid rgb(255 255 255 / 72%);
   border-radius: 9px;
   color: white;
-  background: rgb(23 32 51 / 84%);
+  background: #172033;
   cursor: pointer;
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
 }
 .quality-score strong {
   font-size: 0.75rem;
@@ -131,13 +129,13 @@ img,
   opacity: 0.78;
 }
 .quality-score.excellent {
-  background: rgb(var(--success-rgb) / 94%);
+  background: var(--success);
 }
 .quality-score.good {
-  background: rgb(var(--accent-rgb) / 94%);
+  background: var(--accent);
 }
 .quality-score.fair {
-  background: rgb(183 116 16 / 92%);
+  background: rgb(183 116 16);
 }
 .quality-score:focus-visible {
   outline: 2px solid white;
@@ -151,12 +149,10 @@ img,
   border: 1px solid rgb(255 255 255 / 65%);
   border-radius: 8px;
   color: rgb(255 255 255 / 88%);
-  background: rgb(23 32 51 / 76%);
+  background: #172033;
   font-size: 0.6875rem;
   font-weight: 760;
   letter-spacing: 0.02em;
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
 }
 .alert-change.added {
   color: white;
@@ -164,19 +160,19 @@ img,
 }
 .alert-change.removed {
   color: white;
-  background: rgb(var(--danger-rgb) / 88%);
+  background: var(--danger);
 }
 .alert-change.price {
   color: white;
-  background: rgb(180 106 9 / 92%);
+  background: rgb(180 106 9);
 }
 .copy-rank.latest {
   color: white;
-  background: rgb(var(--accent-rgb) / 94%);
+  background: var(--accent);
 }
 .open-rank.latest {
   color: white;
-  background: rgb(var(--success-rgb) / 94%);
+  background: var(--success);
 }
 .bulk-selector {
   position: absolute;
@@ -193,8 +189,6 @@ img,
   border-radius: 12px;
   background: var(--glass-thick);
   cursor: pointer;
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
 }
 .bulk-selector span {
   display: grid;
@@ -230,8 +224,6 @@ img,
   color: var(--text);
   background: var(--glass-thick);
   transform: translateY(14px) scale(0.98);
-  -webkit-backdrop-filter: blur(28px) saturate(150%);
-  backdrop-filter: blur(28px) saturate(150%);
   transition:
     opacity 0.2s var(--ease),
     transform 0.24s var(--ease),
@@ -250,8 +242,6 @@ img,
 }
 .quality-popover::backdrop {
   background: rgb(20 29 45 / 24%);
-  -webkit-backdrop-filter: blur(3px);
-  backdrop-filter: blur(3px);
 }
 .quality-popover header {
   display: grid;
@@ -397,8 +387,6 @@ img,
   border: 1px solid var(--glass-border);
   border-radius: 11px;
   background: var(--glass-thick);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
 }
 .save svg {
   width: 17px;
@@ -435,8 +423,6 @@ img,
   pointer-events: none;
   transform: translateY(5px);
   cursor: pointer;
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
 }
 .copy-json-icon {
   display: grid;
@@ -609,12 +595,10 @@ h2 button {
   border-radius: 9px;
   opacity: 0;
   color: white;
-  background: rgb(23 32 51 / 94%);
+  background: #172033;
   transform: translate(-50%, 4px);
   visibility: hidden;
   pointer-events: none;
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
 }
 .vin-popover::after {
   position: absolute;
@@ -725,8 +709,6 @@ h2 button {
   background: var(--glass-thick);
   transform: translateY(16px) scale(0.98);
   text-align: center;
-  -webkit-backdrop-filter: blur(28px) saturate(160%);
-  backdrop-filter: blur(28px) saturate(160%);
   transition:
     opacity 0.22s var(--ease),
     transform 0.22s var(--ease),
@@ -746,8 +728,6 @@ h2 button {
 .exclude-popover::backdrop {
   opacity: 0;
   background: rgb(20 29 45 / 25%);
-  -webkit-backdrop-filter: blur(3px);
-  backdrop-filter: blur(3px);
   transition:
     opacity 0.22s ease,
     overlay 0.22s allow-discrete,

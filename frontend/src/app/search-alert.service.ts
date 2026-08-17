@@ -133,7 +133,7 @@ export class SearchAlertService {
     try {
       const schedule = await this.request<{ intervalMinutes: number; nextCheckAt: string }>(
         `/${encodeURIComponent(id)}`,
-        { method: 'PUT', body: JSON.stringify({ intervalMinutes }), keepalive: true },
+        { method: 'PUT', body: JSON.stringify({ intervalMinutes }) },
       );
       this.items.update((items) => items.map((item) => (item.id === id ? { ...item, ...schedule } : item)));
       this.toast.success(`Schedule saved: ${alertIntervalLabel(schedule.intervalMinutes)}.`);

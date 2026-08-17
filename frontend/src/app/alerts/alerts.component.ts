@@ -19,6 +19,7 @@ export class AlertsComponent {
   readonly removing = signal<ReadonlySet<string>>(new Set());
   readonly testing = signal<ReadonlySet<string>>(new Set());
   readonly updating = signal<ReadonlySet<string>>(new Set());
+  readonly intervalDrafts = signal<Readonly<Record<string, number>>>({});
   readonly confirmingRemoval = signal<string | null>(null);
   readonly now = signal(Date.now());
   readonly changesAvailable = computed(() => this.alerts.items().filter((item) => this.changeCount(item) > 0).length);
@@ -71,13 +72,31 @@ export class AlertsComponent {
     }
   }
 
-  async changeInterval(item: SearchSubscription, event: Event): Promise<void> {
-    const select = event.target as HTMLSelectElement;
-    const minutes = Number(select.value);
-    if (minutes === item.intervalMinutes || this.updating().has(item.id)) return;
+  changeInterval(item: SearchSubscription, event: Event): void {
+    const interval = Number((event.target as HTMLSelectElement).value);
+    this.intervalDrafts.update((drafts) => ({ ...drafts, [item.id]: interval }));
+  }
+
+  draftInterval(item: SearchSubscription): number {
+    return this.intervalDrafts()[item.id] ?? item.intervalMinutes;
+  }
+
+  intervalChanged(item: SearchSubscription): boolean {
+    return this.draftInterval(item) !== item.intervalMinutes;
+  }
+
+  async saveInterval(item: SearchSubscription): Promise<void> {
+    if (!this.intervalChanged(item) || this.updating().has(item.id)) return;
+    const minutes = this.draftInterval(item);
     this.updating.update((items) => new Set(items).add(item.id));
     try {
-      if (!(await this.alerts.updateInterval(item.id, minutes))) select.value = String(item.intervalMinutes);
+      if (await this.alerts.updateInterval(item.id, minutes)) {
+        this.intervalDrafts.update((drafts) => {
+          const next = { ...drafts };
+          delete next[item.id];
+          return next;
+        });
+      }
     } finally {
       this.updating.update((items) => {
         const next = new Set(items);

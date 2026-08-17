@@ -202,6 +202,11 @@
   margin-right: 0.4rem;
   pointer-events: none;
 }
+.save-interval {
+  min-height: 30px;
+  padding-inline: 0.6rem;
+  font-size: var(--font-caption);
+}
 .run-result::before {
   width: 6px;
   height: 6px;
@@ -366,7 +371,7 @@
     gap: 0.4rem;
   }
   .interval-control {
-    width: 100%;
+    min-width: 0;
   }
   .interval-control select {
     width: 100%;
@@ -374,7 +379,14 @@
     padding-inline: 0.7rem 2rem;
     font-size: 16px !important;
   }
+  .schedule-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .save-interval {
+    min-height: 42px;
+  }
   .next-run {
+    grid-column: 1 / -1;
     min-width: 0;
     font-size: 0.75rem;
   }

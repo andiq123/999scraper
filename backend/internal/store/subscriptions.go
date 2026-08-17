@@ -114,12 +114,12 @@ func (s *Store) DeleteSearchSubscription(ctx context.Context, accountID, id stri
 func (s *Store) UpdateSearchSubscriptionInterval(ctx context.Context, accountID, id string, minutes int) (time.Time, error) {
 	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
 	defer cancel()
-	var nextCheck time.Time
+	nextCheck := time.Now().Add(time.Duration(minutes) * time.Minute)
 	err := s.db.QueryRow(ctx, `
 UPDATE search_subscriptions
-SET interval_minutes=$3, next_check_at=now() + $3 * interval '1 minute', updated_at=now()
+SET interval_minutes=$3, next_check_at=$4, updated_at=now()
 WHERE account_id=$1 AND id=$2 AND active
-RETURNING next_check_at`, accountID, id, minutes).Scan(&nextCheck)
+RETURNING next_check_at`, accountID, id, minutes, nextCheck).Scan(&nextCheck)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return time.Time{}, ErrNotFound
 	}

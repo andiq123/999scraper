@@ -26,10 +26,10 @@
   --warning-rgb: 180 108 0;
   --warning: rgb(var(--warning-rgb));
   --focus: rgb(var(--accent-rgb) / 18%);
-  --glass: rgb(248 248 252 / 72%);
-  --glass-thick: rgb(250 250 252 / 92%);
-  --glass-border: rgb(255 255 255 / 66%);
-  --glass-shadow: 0 8px 32px rgb(24 24 27 / 12%);
+  --glass: var(--surface-solid);
+  --glass-thick: var(--surface-solid);
+  --glass-border: var(--line);
+  --glass-shadow: none;
   --shadow-sm: none;
   --shadow-md: none;
   --shadow-lg: none;
@@ -72,10 +72,10 @@
   --success-rgb: 48 209 88;
   --warning-rgb: 255 190 80;
   --focus: rgb(var(--accent-rgb) / 25%);
-  --glass: rgb(43 45 52 / 76%);
-  --glass-thick: rgb(43 45 52 / 94%);
-  --glass-border: rgb(255 255 255 / 10%);
-  --glass-shadow: 0 8px 32px rgb(0 0 0 / 22%);
+  --glass: var(--surface-solid);
+  --glass-thick: var(--surface-solid);
+  --glass-border: var(--line);
+  --glass-shadow: none;
   --color-base-100: #2c2e34;
   --color-base-200: #27292f;
   --color-base-300: #3a3c44;
@@ -213,8 +213,6 @@ textarea {
     border-color: var(--glass-border);
     background: var(--glass-thick);
     box-shadow: var(--glass-shadow) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(170%);
-    backdrop-filter: blur(24px) saturate(170%);
   }
   .search-page.search-page.search-page {
     width: calc(100% - 2rem);
@@ -305,8 +303,6 @@ textarea {
     border-radius: 0;
     background: rgb(28 28 30 / 30%);
     cursor: default;
-    -webkit-backdrop-filter: blur(5px) saturate(85%);
-    backdrop-filter: blur(5px) saturate(85%);
   }
   .search-page .filters[open],
   .search-page .smart-prompt[open] {
@@ -322,8 +318,6 @@ textarea {
     border-radius: 28px 28px 0 0;
     background: var(--glass-thick);
     box-shadow: var(--glass-shadow);
-    -webkit-backdrop-filter: blur(28px) saturate(170%);
-    backdrop-filter: blur(28px) saturate(170%);
     overscroll-behavior: contain;
     transform: none;
   }
@@ -344,8 +338,6 @@ textarea {
     padding-block: 0.5rem;
     border-bottom: 1px solid var(--line);
     background: var(--glass-thick);
-    -webkit-backdrop-filter: blur(20px) saturate(150%);
-    backdrop-filter: blur(20px) saturate(150%);
   }
   .search-page .filters[open] > summary {
     display: grid;
@@ -921,8 +913,8 @@ summary:focus-visible {
 
 @media (prefers-contrast: more) {
   :root {
-    --glass: rgb(255 255 255 / 94%);
-    --glass-thick: #fff;
+    --glass: var(--surface-solid);
+    --glass-thick: var(--surface-solid);
     --glass-border: var(--line-strong);
   }
   .card {
