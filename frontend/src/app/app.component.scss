@@ -69,9 +69,8 @@
   overflow: hidden;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
-  background: var(--glass-thick);
-  -webkit-backdrop-filter: blur(24px) saturate(170%);
-  backdrop-filter: blur(24px) saturate(170%);
+  background: var(--surface-solid);
+  transform-origin: right bottom;
 }
 .update-mark {
   display: grid;
@@ -153,18 +152,13 @@
     pointer-events: none;
   }
   .update-enter {
-    animation: update-enter 460ms cubic-bezier(0.32, 0.72, 0, 1) both;
+    will-change: opacity, transform;
+    animation: update-enter 420ms var(--ease) both;
   }
   .update-leave {
-    animation: update-leave 240ms ease-in both;
+    will-change: opacity, transform;
+    animation: update-leave 180ms ease-in both;
     pointer-events: none;
-  }
-  .update-enter .update-mark {
-    animation: update-mark-enter 520ms var(--ease) 90ms both;
-  }
-  .update-enter .update-copy,
-  .update-enter button {
-    animation: update-content-enter 380ms var(--ease) 110ms both;
   }
 }
 
@@ -180,28 +174,16 @@
     transform: translateY(8px) scale(0.985);
   }
 }
-@keyframes update-mark-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px) rotate(-18deg) scale(0.78);
-  }
-}
 @keyframes update-enter {
   from {
     opacity: 0;
-    transform: translateY(24px) scale(0.96);
+    transform: translate3d(0, 16px, 0) scale(0.985);
   }
 }
 @keyframes update-leave {
   to {
     opacity: 0;
-    transform: translateY(12px) scale(0.98);
-  }
-}
-@keyframes update-content-enter {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
+    transform: translate3d(0, 8px, 0) scale(0.99);
   }
 }
 @keyframes update-spin {
@@ -220,6 +202,7 @@
     grid-template-columns: 38px minmax(0, 1fr) auto;
     gap: 0.55rem;
     padding: 0.55rem;
+    transform-origin: center bottom;
   }
   .update-mark {
     width: 38px;

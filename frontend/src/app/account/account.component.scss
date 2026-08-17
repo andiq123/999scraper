@@ -28,6 +28,59 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
 }
+.appearance {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 0.8fr);
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.7rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-lg);
+}
+.appearance > div:first-child {
+  display: grid;
+  line-height: 1.3;
+}
+.appearance strong {
+  font-size: var(--font-meta);
+}
+.appearance small {
+  color: var(--muted);
+  font-size: var(--font-caption);
+}
+.appearance-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface-soft);
+}
+.appearance-options button {
+  min-height: 36px;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: var(--muted);
+  background: transparent;
+  font-size: var(--font-meta);
+  font-weight: 680;
+  cursor: pointer;
+  transition:
+    color var(--duration-fast) ease,
+    background-color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease;
+}
+.appearance-options button.active {
+  border-color: var(--line);
+  color: var(--text);
+  background: var(--surface-solid);
+}
+.appearance-options button:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
 .app-status > header {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) auto;
@@ -228,5 +281,10 @@
   }
   .account-heading h1 {
     font-size: 2.5rem;
+  }
+}
+@media (max-width: 480px) {
+  .appearance {
+    grid-template-columns: 1fr;
   }
 }

@@ -39,6 +39,39 @@
     </section>
   }
 
+  <section class="appearance card bg-base-100" aria-labelledby="appearance-heading">
+    <div>
+      <strong id="appearance-heading">Appearance</strong>
+      <small>Use your device setting or choose a theme.</small>
+    </div>
+    <div class="appearance-options" role="group" aria-label="Color appearance">
+      <button
+        type="button"
+        [class.active]="preferences.appearance() === 'system'"
+        [attr.aria-pressed]="preferences.appearance() === 'system'"
+        (click)="preferences.setAppearance('system')"
+      >
+        Auto
+      </button>
+      <button
+        type="button"
+        [class.active]="preferences.appearance() === 'light'"
+        [attr.aria-pressed]="preferences.appearance() === 'light'"
+        (click)="preferences.setAppearance('light')"
+      >
+        Light
+      </button>
+      <button
+        type="button"
+        [class.active]="preferences.appearance() === 'dark'"
+        [attr.aria-pressed]="preferences.appearance() === 'dark'"
+        (click)="preferences.setAppearance('dark')"
+      >
+        Dark
+      </button>
+    </div>
+  </section>
+
   <section
     class="app-status card bg-base-100 shadow-sm"
     [class.checking]="checking() && !health()"

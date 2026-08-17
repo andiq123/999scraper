@@ -9,7 +9,7 @@ fieldset {
   padding: 0.55rem;
   border: 1px solid var(--line);
   border-radius: 13px;
-  background: rgb(255 255 255 / 72%);
+  background: var(--surface-solid);
 }
 legend {
   display: flex;

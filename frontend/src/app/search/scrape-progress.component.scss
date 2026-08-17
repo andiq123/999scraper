@@ -80,7 +80,7 @@ button {
   border: 1px solid var(--line);
   border-radius: 10px;
   color: var(--muted);
-  background: rgb(255 255 255 / 76%);
+  background: var(--surface-solid);
   font-size: var(--font-meta);
   font-weight: 700;
   cursor: pointer;
@@ -117,7 +117,7 @@ button > span {
   button:hover {
     border-color: var(--line-strong);
     color: var(--text);
-    background: white;
+    background: var(--surface-raised);
   }
 }
 

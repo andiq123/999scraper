@@ -1,5 +1,7 @@
 article {
   position: relative;
+  display: flex;
+  flex-direction: column;
   height: 100%;
   overflow: hidden;
   border-radius: 15px;
@@ -189,7 +191,7 @@ img,
   padding: 0;
   border: 0;
   border-radius: 12px;
-  background: rgb(255 255 255 / 95%);
+  background: var(--glass-thick);
   cursor: pointer;
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
@@ -222,11 +224,11 @@ img,
   max-width: none;
   margin: 0;
   padding: 1rem;
-  border: 1px solid rgb(255 255 255 / 76%);
+  border: 1px solid var(--glass-border);
   border-radius: 22px;
   opacity: 0;
   color: var(--text);
-  background: rgb(255 255 255 / 96%);
+  background: var(--glass-thick);
   transform: translateY(14px) scale(0.98);
   -webkit-backdrop-filter: blur(28px) saturate(150%);
   backdrop-filter: blur(28px) saturate(150%);
@@ -392,9 +394,9 @@ img,
   place-items: center;
   width: 34px;
   height: 34px;
-  border: 1px solid rgb(255 255 255 / 78%);
+  border: 1px solid var(--glass-border);
   border-radius: 11px;
-  background: rgb(255 255 255 / 91%);
+  background: var(--glass-thick);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
@@ -422,11 +424,11 @@ img,
   gap: 0.3rem;
   min-height: 30px;
   padding: 0.3rem 0.46rem;
-  border: 1px solid rgb(255 255 255 / 74%);
+  border: 1px solid var(--glass-border);
   border-radius: 9px;
   opacity: 0;
   color: var(--text);
-  background: rgb(255 255 255 / 92%);
+  background: var(--glass-thick);
   font: inherit;
   font-size: 0.6875rem;
   font-weight: 720;
@@ -468,6 +470,7 @@ img,
 }
 .copy {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 0.3rem;
   min-height: 102px;
@@ -582,7 +585,7 @@ h2 button {
   margin: -0.05rem -0.05rem -0.05rem 0.02rem;
   border-radius: 7px;
   color: rgb(var(--vin-rgb));
-  background: rgb(255 255 255 / 84%);
+  background: var(--surface-raised);
 }
 .vin-action svg {
   width: 12px;
@@ -715,11 +718,11 @@ h2 button {
   max-width: none;
   margin: 0;
   padding: 1.1rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom));
-  border: 1px solid rgb(255 255 255 / 76%);
+  border: 1px solid var(--glass-border);
   border-radius: 24px;
   opacity: 0;
   color: var(--text);
-  background: rgb(255 255 255 / 94%);
+  background: var(--glass-thick);
   transform: translateY(16px) scale(0.98);
   text-align: center;
   -webkit-backdrop-filter: blur(28px) saturate(160%);
@@ -807,7 +810,6 @@ h2 button {
   }
   .save:not(.saved):hover span {
     background: var(--surface-solid);
-    transform: scale(1.04);
   }
   .save.saved:hover {
     color: var(--danger);
@@ -828,8 +830,7 @@ h2 button {
     background: rgb(var(--vin-rgb) / 11%);
   }
   .vin-row:hover .vin-action {
-    background: white;
-    transform: scale(1.04);
+    background: var(--surface-solid);
   }
   .footer a:hover {
     color: var(--accent);
@@ -860,21 +861,12 @@ article:focus-within .copy-json {
       border-color 260ms ease,
       background-color 260ms ease;
   }
-  .media img {
-    transition:
-      transform 520ms var(--ease),
-      filter 320ms ease;
-  }
   .copy-json,
   .save span {
     transition:
       color 220ms ease,
       background-color 220ms ease,
-      opacity 260ms ease,
-      transform 320ms var(--ease);
-  }
-  .save.saved {
-    animation: soft-pop 0.26s var(--ease);
+      opacity 260ms ease;
   }
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -883,11 +875,7 @@ article:focus-within .copy-json {
     transition:
       color 200ms ease,
       border-color 200ms ease,
-      background-color 200ms ease,
-      transform 180ms var(--ease);
-  }
-  .vin-row:active {
-    transform: scale(0.975);
+      background-color 200ms ease;
   }
   .vin-popover {
     transition:
@@ -903,10 +891,6 @@ article:focus-within .copy-json {
     min-height: 116px;
     border-radius: 13px;
     contain-intrinsic-size: auto 116px;
-  }
-  article:has(.row-link:active) {
-    opacity: 0.82;
-    transform: scale(0.995);
   }
   .row-link::after {
     position: absolute;

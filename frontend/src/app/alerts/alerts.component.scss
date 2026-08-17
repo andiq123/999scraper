@@ -202,26 +202,6 @@
   margin-right: 0.4rem;
   pointer-events: none;
 }
-.schedule-confirmation {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  margin-top: 0.5rem;
-  padding: 0.45rem 0.5rem 0.45rem 0.65rem;
-  border: 1px solid rgb(var(--accent-rgb) / 18%);
-  border-radius: 12px;
-  background: var(--accent-softer);
-  color: var(--muted);
-  font-size: var(--font-meta);
-}
-.schedule-confirmation > div {
-  display: flex;
-  gap: 0.35rem;
-}
-.schedule-confirmation strong {
-  color: var(--text);
-}
 .run-result::before {
   width: 6px;
   height: 6px;
@@ -401,17 +381,6 @@
   .next-run time {
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-  .schedule-confirmation {
-    align-items: stretch;
-    flex-direction: column;
-  }
-  .schedule-confirmation > div {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-  .schedule-confirmation .btn {
-    width: 100%;
   }
   .alert-actions {
     display: grid;

@@ -702,7 +702,7 @@
   padding: 0.22rem 0.45rem;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: rgb(255 255 255 / 72%);
+  background: var(--surface-solid);
   white-space: nowrap;
 }
 .visible-price small {
@@ -1046,9 +1046,6 @@
       background var(--duration) var(--ease),
       transform var(--duration-fast) var(--ease),
       box-shadow var(--duration-fast) ease;
-  }
-  .smart-icon {
-    animation: soft-pop 0.2s var(--ease) both;
   }
 }
 @media (hover: hover) and (pointer: fine) {

@@ -212,7 +212,7 @@
   border: 1px solid rgb(13 148 136 / 16%);
   border-radius: 10px;
   color: #087f75;
-  background: rgb(255 255 255 / 80%);
+  background: var(--surface-solid);
   font-size: var(--font-meta);
   font-weight: 730;
   cursor: copy;
@@ -308,7 +308,7 @@
   padding: 0.45rem 0.5rem;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: rgb(255 255 255 / 72%);
+  background: var(--surface-solid);
 }
 .vehicle-panel dt {
   color: var(--subtle);
@@ -362,7 +362,7 @@
   padding: 0.7rem;
   border: 1px solid var(--line);
   border-radius: 15px;
-  background: rgb(255 255 255 / 88%);
+  background: var(--surface-solid);
 }
 .source-card.record {
   border-color: rgb(13 148 136 / 18%);
@@ -501,7 +501,7 @@
   padding: 0.75rem;
   border: 1px dashed var(--line-strong);
   border-radius: 14px;
-  background: rgb(255 255 255 / 52%);
+  background: var(--surface-soft);
 }
 .evidence-empty > svg {
   width: 28px;
@@ -612,7 +612,6 @@
     transition:
       color 200ms ease,
       border-color 200ms ease,
-      background-color 200ms ease,
       background-color 200ms ease;
   }
 }

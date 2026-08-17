@@ -6,6 +6,7 @@ import { PwaService } from './pwa.service';
 import { ToastService } from './toast.service';
 import { VINResearchComponent } from './vin-research.component';
 import { SearchAlertComponent } from './search-alert.component';
+import { UiPreferencesService } from './ui-preferences.service';
 
 @Component({
   selector: 'app-root',
@@ -19,6 +20,7 @@ export class AppComponent {
   readonly pwa = inject(PwaService);
 
   constructor() {
+    inject(UiPreferencesService);
     void inject(AuthService).restore();
   }
 }

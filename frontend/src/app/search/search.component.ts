@@ -672,7 +672,7 @@ export class SearchComponent implements OnDestroy {
 
   @HostListener('document:keydown.escape')
   closeMobileFilterSheet(): void {
-    if (!window.matchMedia('(max-width: 699px)').matches) return;
+    if (!window.matchMedia('(max-width: 767px)').matches) return;
     this.closeMobileFilterSheets();
   }
 
@@ -1133,7 +1133,7 @@ export class SearchComponent implements OnDestroy {
     const open = (event.currentTarget as HTMLDetailsElement).open;
     this.uiPreferences.setOpen(panel, open);
     if (panel === 'filters' || panel === 'smartRefinement') {
-      if (open && window.matchMedia('(max-width: 699px)').matches) {
+      if (open && window.matchMedia('(max-width: 767px)').matches) {
         const otherPanel = panel === 'filters' ? 'smart-prompt' : 'filters';
         const other = document.querySelector<HTMLDetailsElement>(`app-search details.${otherPanel}[open]`);
         if (other) other.open = false;
@@ -1143,7 +1143,7 @@ export class SearchComponent implements OnDestroy {
   }
 
   private syncMobileFilterChrome(): void {
-    const mobile = window.matchMedia('(max-width: 699px)').matches;
+    const mobile = window.matchMedia('(max-width: 767px)').matches;
     const active = mobile && (this.uiPreferences.isOpen('filters') || this.uiPreferences.isOpen('smartRefinement'));
     document.documentElement.classList.toggle('filter-sheet-open', active);
     if (active) document.documentElement.style.setProperty('--page-scroll-lock', 'hidden');

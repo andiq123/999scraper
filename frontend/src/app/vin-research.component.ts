@@ -59,7 +59,7 @@ export class VINResearchComponent {
       if (!dialog) return;
       if (this.research.visible() && !dialog.open) {
         dialog.showModal();
-        if (window.matchMedia('(min-width: 700px)').matches) {
+        if (window.matchMedia('(min-width: 768px)').matches) {
           queueMicrotask(() => this.vinInput()?.nativeElement.focus());
         }
       } else if (!this.research.visible() && dialog.open) {

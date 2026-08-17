@@ -92,8 +92,8 @@
                 <label class="interval-control">
                   <span class="sr-only">Check frequency for {{ item.query }}</span>
                   <select
-                    [value]="selectedInterval(item)"
-                    (change)="chooseInterval(item, $event)"
+                    [value]="item.intervalMinutes"
+                    (change)="changeInterval(item, $event)"
                     [disabled]="updating().has(item.id)"
                   >
                     @for (option of intervalOptions; track option.value) {
@@ -128,27 +128,6 @@
                 <span class="run-result unchanged">No changes last run</span>
               }
             </div>
-            @if (pendingInterval(); as pending) {
-              @if (pending.id === item.id) {
-                <div class="schedule-confirmation" role="group" aria-label="Confirm schedule change">
-                  <span
-                    >Change to <strong>{{ intervalLabel(pending.minutes) }}</strong
-                    >?</span
-                  >
-                  <div>
-                    <button class="btn btn-ghost btn-sm" type="button" (click)="cancelInterval()">Cancel</button>
-                    <button
-                      class="btn btn-primary btn-sm"
-                      type="button"
-                      (click)="confirmInterval(item)"
-                      [disabled]="updating().has(item.id)"
-                    >
-                      {{ updating().has(item.id) ? 'Saving…' : 'Confirm' }}
-                    </button>
-                  </div>
-                </div>
-              }
-            }
           </div>
           <div class="alert-actions" [class.confirming]="confirmingRemoval() === item.id">
             @if (confirmingRemoval() === item.id) {

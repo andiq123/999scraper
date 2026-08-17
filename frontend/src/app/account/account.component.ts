@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { environment } from '../../environments/environment';
 import { AlertsComponent } from '../alerts/alerts.component';
+import { UiPreferencesService } from '../ui-preferences.service';
 
 interface HealthStatus {
   status: 'ok' | 'degraded';
@@ -18,6 +19,7 @@ interface HealthStatus {
 })
 export class AccountComponent {
   readonly auth = inject(AuthService);
+  readonly preferences = inject(UiPreferencesService);
   readonly health = signal<HealthStatus | null>(null);
   readonly checking = signal(false);
   readonly unavailable = signal(false);

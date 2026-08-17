@@ -281,8 +281,8 @@ form > label {
   background: rgb(var(--danger-rgb) / 8%);
 }
 .alert-unavailable {
-  color: #945d12;
-  background: #fff8e9;
+  color: var(--warning);
+  background: rgb(var(--warning-rgb) / 10%);
 }
 .alert-unavailable p {
   margin-top: 0.25rem;

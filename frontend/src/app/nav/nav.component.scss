@@ -49,7 +49,7 @@ a {
 
 a.active {
   color: var(--accent);
-  background: rgb(255 255 255 / 72%);
+  background: var(--surface-raised);
 }
 
 .tab-icon {
@@ -69,7 +69,7 @@ a.active .tab-icon {
 @media (hover: hover) and (pointer: fine) {
   a:not(.active):hover {
     color: var(--text);
-    background: rgb(255 255 255 / 42%);
+    background: var(--surface-soft);
   }
 }
 
@@ -78,18 +78,7 @@ a,
 .tab-icon {
   transition:
     color var(--duration-fast) ease,
-    background-color var(--duration-fast) ease,
-    transform var(--duration-fast) var(--ease);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:active .tab-icon {
-    transform: scale(0.88);
-  }
-
-  a.active .tab-icon {
-    animation: soft-pop 0.2s var(--ease) both;
-  }
+    background-color var(--duration-fast) ease;
 }
 
 @media (max-width: 767px) {
