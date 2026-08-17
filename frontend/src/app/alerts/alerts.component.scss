@@ -116,16 +116,48 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.alert-copy small,
-.alert-copy p {
+.alert-copy small {
   overflow: hidden;
   color: var(--muted);
   font-size: 0.67rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.alert-copy p {
+.job-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.55rem;
+  margin-top: 0.28rem;
   color: var(--subtle);
+  font-size: 0.61rem;
+}
+.job-status span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+.job-status svg {
+  width: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+.run-result::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
+}
+.run-result.changed {
+  color: var(--success);
+}
+.run-result.pending {
+  color: var(--accent);
 }
 .changes-available {
   display: flex;

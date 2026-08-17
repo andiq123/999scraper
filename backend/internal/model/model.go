@@ -39,6 +39,7 @@ type SearchSubscription struct {
 	RecipientEmail     string         `json:"recipientEmail"`
 	IntervalMinutes    int            `json:"intervalMinutes"`
 	CreatedAt          time.Time      `json:"createdAt"`
+	NextCheckAt        time.Time      `json:"nextCheckAt"`
 	LastCheckedAt      *time.Time     `json:"lastCheckedAt,omitempty"`
 	LastNotifiedAt     *time.Time     `json:"lastNotifiedAt,omitempty"`
 	LastChanges        *SearchChanges `json:"lastChanges,omitempty"`

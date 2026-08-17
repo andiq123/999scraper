@@ -19,7 +19,7 @@ func (s *Store) SearchSubscriptions(ctx context.Context, accountID string) ([]mo
 	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
 	defer cancel()
 	rows, err := s.db.Query(ctx, `
-SELECT id::text, query, filter_param, search_path, recipient_email, interval_minutes, created_at, last_checked_at, last_notified_at, last_changes
+SELECT id::text, query, filter_param, search_path, recipient_email, interval_minutes, created_at, next_check_at, last_checked_at, last_notified_at, last_changes
 FROM search_subscriptions
 WHERE account_id=$1 AND active
 ORDER BY created_at DESC`, accountID)
@@ -31,7 +31,7 @@ ORDER BY created_at DESC`, accountID)
 	for rows.Next() {
 		var item model.SearchSubscription
 		var changes []byte
-		if err := rows.Scan(&item.ID, &item.Query, &item.FilterParam, &item.SearchPath, &item.RecipientEmail, &item.IntervalMinutes, &item.CreatedAt, &item.LastCheckedAt, &item.LastNotifiedAt, &changes); err != nil {
+		if err := rows.Scan(&item.ID, &item.Query, &item.FilterParam, &item.SearchPath, &item.RecipientEmail, &item.IntervalMinutes, &item.CreatedAt, &item.NextCheckAt, &item.LastCheckedAt, &item.LastNotifiedAt, &changes); err != nil {
 			return nil, err
 		}
 		if len(changes) > 0 {
@@ -71,6 +71,7 @@ func (s *Store) PrepareSearchSubscription(ctx context.Context, accountID string,
 		}
 	}
 	item.ID = uuid.NewString()
+	item.NextCheckAt = nextCheck
 	err = tx.QueryRow(ctx, `
 INSERT INTO search_subscriptions (id, account_id, query, filter_param, search_path, recipient_email, interval_minutes, snapshot_product_ids, snapshot_products, active, next_check_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, false, $10)

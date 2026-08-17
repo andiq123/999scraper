@@ -25,6 +25,7 @@ export interface SearchSubscription {
   recipientEmail: string;
   intervalMinutes: number;
   createdAt: string;
+  nextCheckAt: string;
   lastCheckedAt?: string;
   lastNotifiedAt?: string;
   lastChanges?: SearchChanges;

@@ -82,6 +82,10 @@ export class AlertsComponent {
     );
   }
 
+  lastRunChanged(item: SearchSubscription): boolean {
+    return !!item.lastCheckedAt && item.lastCheckedAt === item.lastNotifiedAt;
+  }
+
   searchPath(item: SearchSubscription): string {
     return `${item.searchPath}&alert=${encodeURIComponent(item.id)}`;
   }

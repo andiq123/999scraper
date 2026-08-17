@@ -87,16 +87,24 @@
                 </div>
               }
             }
-            <p>
-              {{ intervalLabel(item.intervalMinutes) }} ·
-              @if (item.lastNotifiedAt) {
-                Last update {{ item.lastNotifiedAt | date: 'medium' }}
-              } @else if (item.lastCheckedAt) {
-                Checked {{ item.lastCheckedAt | date: 'medium' }}
+            <div class="job-status" aria-label="Alert schedule and latest run">
+              <span class="next-run">
+                <svg aria-hidden="true" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
+                {{ intervalLabel(item.intervalMinutes) }} · Next {{ item.nextCheckAt | date: 'short' }}
+              </span>
+              @if (!item.lastCheckedAt) {
+                <span class="run-result pending">Waiting for first check</span>
+              } @else if (lastRunChanged(item)) {
+                <span class="run-result changed">
+                  {{ changeCount(item) }} change{{ changeCount(item) === 1 ? '' : 's' }} last run
+                </span>
               } @else {
-                Starts {{ item.createdAt | date: 'mediumDate' }}
+                <span class="run-result unchanged">No changes last run</span>
               }
-            </p>
+            </div>
           </div>
           <div class="alert-actions" [class.confirming]="confirmingRemoval() === item.id">
             @if (confirmingRemoval() === item.id) {
