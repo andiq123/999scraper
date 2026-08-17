@@ -58,10 +58,11 @@ func New(ctx context.Context, logger *slog.Logger) (*http.Server, func(), error)
 			return nil, nil, err
 		}
 	}
-	alertService := alerts.New(db, scrape, emailSender, publicFrontendURL(cfg.AllowedOrigins), logger)
+	rates := currency.New()
+	alertService := alerts.New(db, scrape, rates, emailSender, publicFrontendURL(cfg.AllowedOrigins), logger)
 	workerCtx, stopWorker := context.WithCancel(ctx)
 	go alertService.Run(workerCtx)
-	handler := httpapi.New(db, auth.New(cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTLifetime), scrape, redisCache, currency.New(), alertService, cfg.AllowedOrigins, logger)
+	handler := httpapi.New(db, auth.New(cfg.JWTSecret, cfg.JWTIssuer, cfg.JWTLifetime), scrape, redisCache, rates, alertService, cfg.AllowedOrigins, logger)
 	server := &http.Server{Addr: cfg.Address, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 30 * time.Second, WriteTimeout: 5 * time.Minute, IdleTimeout: 2 * time.Minute}
 	return server, func() { stopWorker(); redisCache.Close(); dbPool.Close() }, nil
 }

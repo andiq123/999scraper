@@ -10,9 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/andi/999scraper/internal/currency"
 	"github.com/andi/999scraper/internal/mailer"
 	"github.com/andi/999scraper/internal/model"
 	"github.com/andi/999scraper/internal/scraper"
+	"github.com/andi/999scraper/internal/searchfilter"
 	"github.com/andi/999scraper/internal/store"
 )
 
@@ -26,13 +28,14 @@ const DefaultIntervalMinutes = 15
 type Service struct {
 	store     *store.Store
 	scraper   *scraper.Scraper
+	rates     *currency.Service
 	sender    *mailer.Sender
 	publicURL string
 	logger    *slog.Logger
 }
 
-func New(db *store.Store, searcher *scraper.Scraper, sender *mailer.Sender, publicURL string, logger *slog.Logger) *Service {
-	return &Service{store: db, scraper: searcher, sender: sender, publicURL: strings.TrimRight(publicURL, "/"), logger: logger}
+func New(db *store.Store, searcher *scraper.Scraper, rates *currency.Service, sender *mailer.Sender, publicURL string, logger *slog.Logger) *Service {
+	return &Service{store: db, scraper: searcher, rates: rates, sender: sender, publicURL: strings.TrimRight(publicURL, "/"), logger: logger}
 }
 
 func (s *Service) Available() bool { return s.sender != nil }
@@ -123,7 +126,7 @@ func (s *Service) check(ctx context.Context) {
 
 func (s *Service) checkOne(ctx context.Context, subscription model.SearchSubscription) {
 	interval := time.Duration(subscription.IntervalMinutes) * time.Minute
-	products, err := s.scraper.SearchLatest(ctx, subscription.Query, scraper.SearchOptions{ExtractVINFromDescription: true})
+	products, err := s.scraper.SearchStreamWithOptions(ctx, subscription.Query, scraper.SearchOptions{ExtractVINFromDescription: true}, nil)
 	if err != nil {
 		s.logger.Warn("search alert check failed", "subscription_id", subscription.ID, "error", err)
 		_ = s.store.RetrySearchSubscription(context.WithoutCancel(ctx), subscription.ID, time.Now().Add(min(interval, 10*time.Minute)))
@@ -135,7 +138,31 @@ func (s *Service) checkOne(ctx context.Context, subscription model.SearchSubscri
 		_ = s.store.RetrySearchSubscription(context.WithoutCancel(ctx), subscription.ID, time.Now().Add(min(interval, 10*time.Minute)))
 		return
 	}
-	changes := compareSnapshots(subscription.SnapshotProductIDs, subscription.SnapshotProducts, products)
+	rates := map[string]float64{"MDL": 1}
+	if latest, rateErr := s.rates.Latest(ctx); rateErr == nil {
+		rates = latest.Values
+	} else {
+		s.logger.Warn("search alert exchange rates unavailable", "subscription_id", subscription.ID, "error", rateErr)
+		_ = s.store.RetrySearchSubscription(context.WithoutCancel(ctx), subscription.ID, time.Now().Add(min(interval, 10*time.Minute)))
+		return
+	}
+	products, err = searchfilter.Apply(subscription.Query, subscription.FilterParam, products, rates)
+	if err != nil {
+		s.logger.Error("search alert saved filters are invalid", "subscription_id", subscription.ID, "error", err)
+		_ = s.store.RetrySearchSubscription(context.WithoutCancel(ctx), subscription.ID, time.Now().Add(interval))
+		return
+	}
+	previousIDs, previousProducts := subscription.SnapshotProductIDs, subscription.SnapshotProducts
+	if len(previousProducts) > 0 {
+		previousProducts, err = searchfilter.Apply(subscription.Query, subscription.FilterParam, previousProducts, rates)
+		if err != nil {
+			s.logger.Error("search alert baseline filters are invalid", "subscription_id", subscription.ID, "error", err)
+			_ = s.store.RetrySearchSubscription(context.WithoutCancel(ctx), subscription.ID, time.Now().Add(interval))
+			return
+		}
+		previousIDs = productIDs(previousProducts)
+	}
+	changes := compareSnapshots(previousIDs, previousProducts, products)
 	var lastChanges *model.SearchChanges
 	if changeCount(changes) > 0 {
 		searchURL := s.subscriptionURL(subscription)
@@ -149,6 +176,14 @@ func (s *Service) checkOne(ctx context.Context, subscription model.SearchSubscri
 	if err := s.store.CompleteSearchSubscription(context.WithoutCancel(ctx), subscription.ID, products, lastChanges); err != nil {
 		s.logger.Error("complete search alert check", "subscription_id", subscription.ID, "error", err)
 	}
+}
+
+func productIDs(products []model.Product) []string {
+	ids := make([]string, 0, len(products))
+	for _, product := range products {
+		ids = append(ids, product.ID)
+	}
+	return ids
 }
 
 func (s *Service) searchURL(path string) string {

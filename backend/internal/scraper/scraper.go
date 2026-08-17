@@ -314,19 +314,6 @@ func (s *Scraper) Search(ctx context.Context, query string) ([]model.Product, er
 	return s.SearchStream(ctx, query, nil)
 }
 
-// SearchLatest fetches only the first result page. Search alerts use it to
-// detect newly surfaced listings without repeating a complete search scrape.
-func (s *Scraper) SearchLatest(ctx context.Context, query string, options SearchOptions) ([]model.Product, error) {
-	select {
-	case s.searchSlots <- struct{}{}:
-		defer func() { <-s.searchSlots }()
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
-	products, _, err := s.pageWithRetry(ctx, strings.TrimSpace(query), 0, pageSize, options)
-	return products, err
-}
-
 func (s *Scraper) SearchStreamWithOptions(ctx context.Context, query string, options SearchOptions, yield func(Batch) error) ([]model.Product, error) {
 	return s.searchStream(ctx, query, options, yield)
 }

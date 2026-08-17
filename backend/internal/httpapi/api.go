@@ -22,6 +22,7 @@ import (
 	"github.com/andi/999scraper/internal/currency"
 	"github.com/andi/999scraper/internal/model"
 	"github.com/andi/999scraper/internal/scraper"
+	"github.com/andi/999scraper/internal/searchfilter"
 	"github.com/andi/999scraper/internal/store"
 )
 
@@ -115,7 +116,8 @@ func (a *API) createSearchSubscription(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid search query")
 		return
 	}
-	if len(input.FilterParam) > 8000 || !filterParamPattern.MatchString(input.FilterParam) || !alerts.ValidSearchPath(input.SearchPath) || !matchingSearchPath(input.SearchPath, input.Query, input.FilterParam) {
+	_, filterErr := searchfilter.Decode(input.FilterParam)
+	if len(input.FilterParam) > 8000 || !filterParamPattern.MatchString(input.FilterParam) || filterErr != nil || !alerts.ValidSearchPath(input.SearchPath) || !matchingSearchPath(input.SearchPath, input.Query, input.FilterParam) {
 		writeError(w, http.StatusBadRequest, "invalid search link")
 		return
 	}
