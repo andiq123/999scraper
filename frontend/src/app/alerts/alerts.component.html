@@ -91,10 +91,7 @@
               <div class="schedule-row">
                 <label class="interval-control">
                   <span class="sr-only">Check frequency for {{ item.query }}</span>
-                  <select
-                    (change)="changeInterval(item, $event)"
-                    [disabled]="updating().has(item.id)"
-                  >
+                  <select (change)="changeInterval(item, $event)" [disabled]="updating().has(item.id)">
                     @for (option of intervalOptions; track option.value) {
                       <option [value]="option.value" [selected]="option.value === draftInterval(item)">
                         {{ option.label }}
