@@ -138,6 +138,10 @@
   gap: 0.25rem;
   white-space: nowrap;
 }
+.job-status .next-run {
+  flex-wrap: wrap;
+  white-space: normal;
+}
 .job-status svg {
   width: 13px;
   fill: none;
@@ -152,6 +156,46 @@
 .next-run strong {
   color: var(--accent);
   font-weight: 700;
+}
+.interval-control {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  border-radius: 7px;
+  background: var(--surface-soft);
+}
+.interval-control select {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  min-height: 26px;
+  padding: 0.2rem 1.35rem 0.2rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: inherit;
+  outline: 0;
+  color: var(--text);
+  background: transparent;
+  font: inherit;
+  font-weight: 680;
+  appearance: none;
+  cursor: pointer;
+}
+.interval-control select:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus);
+}
+.interval-control select:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+.interval-control .chevron,
+.interval-control .loading {
+  z-index: 1;
+  grid-column: 2;
+  grid-row: 1;
+  width: 12px;
+  margin-right: 0.4rem;
+  pointer-events: none;
 }
 .run-result::before {
   width: 6px;

@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { SearchAlertService } from '../search-alert.service';
+import { SearchAlertService, alertIntervalOptions } from '../search-alert.service';
 import { searchAlertConfiguration } from '../search/search-filter-chips';
 import { decodeSearchFilters } from '../search/search-url-state';
 import type { SearchSubscription } from '../models';
@@ -18,9 +18,11 @@ export class AlertsComponent {
   readonly embedded = input(false);
   readonly removing = signal<ReadonlySet<string>>(new Set());
   readonly testing = signal<ReadonlySet<string>>(new Set());
+  readonly updating = signal<ReadonlySet<string>>(new Set());
   readonly confirmingRemoval = signal<string | null>(null);
   readonly now = signal(Date.now());
   readonly changesAvailable = computed(() => this.alerts.items().filter((item) => this.changeCount(item) > 0).length);
+  readonly intervalOptions = alertIntervalOptions;
   private readonly clock = window.setInterval(() => {
     const now = Date.now();
     this.now.set(now);
@@ -69,11 +71,18 @@ export class AlertsComponent {
     }
   }
 
-  intervalLabel(minutes: number): string {
-    if (minutes === 60) return 'Every hour';
-    if (minutes === 1440) return 'Daily';
-    if (minutes > 60) return `Every ${minutes / 60} hours`;
-    return `Every ${minutes} minutes`;
+  async changeInterval(item: SearchSubscription, event: Event): Promise<void> {
+    const select = event.target as HTMLSelectElement;
+    const minutes = Number(select.value);
+    if (minutes === item.intervalMinutes || this.updating().has(item.id)) return;
+    this.updating.update((items) => new Set(items).add(item.id));
+    const updated = await this.alerts.updateInterval(item.id, minutes);
+    if (!updated) select.value = String(item.intervalMinutes);
+    this.updating.update((items) => {
+      const next = new Set(items);
+      next.delete(item.id);
+      return next;
+    });
   }
 
   configuration(filterParam?: string): string[] {

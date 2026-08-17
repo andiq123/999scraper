@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { SearchAlertService } from './search-alert.service';
+import { SearchAlertService, alertIntervalOptions } from './search-alert.service';
 import { searchAlertConfiguration } from './search/search-filter-chips';
 import { decodeSearchFilters } from './search/search-url-state';
 
@@ -17,12 +17,7 @@ export class SearchAlertComponent {
     const filters = decodeSearchFilters(this.alerts.filterParam());
     return filters ? searchAlertConfiguration(filters) : [];
   });
-  readonly intervalOptions = [
-    { value: 15, label: 'Every 15 minutes' },
-    { value: 60, label: 'Every hour' },
-    { value: 360, label: 'Every 6 hours' },
-    { value: 1440, label: 'Once a day' },
-  ] as const;
+  readonly intervalOptions = alertIntervalOptions;
   private readonly dialog = viewChild<ElementRef<HTMLDialogElement>>('dialog');
 
   constructor() {

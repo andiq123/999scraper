@@ -1,5 +1,15 @@
 <nav aria-label="Primary navigation" [class.authenticated]="auth.session()">
-  <a routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="active" ariaCurrentWhenActive="page">
+  <a
+    routerLink="/"
+    [routerLinkActiveOptions]="{
+      paths: 'exact',
+      queryParams: 'ignored',
+      matrixParams: 'ignored',
+      fragment: 'ignored',
+    }"
+    routerLinkActive="active"
+    ariaCurrentWhenActive="page"
+  >
     <span class="tab-icon search-icon" aria-hidden="true"></span>
     <span>Search</span>
   </a>

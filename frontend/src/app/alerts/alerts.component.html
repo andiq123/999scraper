@@ -93,7 +93,24 @@
                   <circle cx="12" cy="12" r="9" />
                   <path d="M12 7v5l3 2" />
                 </svg>
-                {{ intervalLabel(item.intervalMinutes) }} · Next
+                <label class="interval-control">
+                  <span class="sr-only">Check frequency for {{ item.query }}</span>
+                  <select
+                    [value]="item.intervalMinutes"
+                    (change)="changeInterval(item, $event)"
+                    [disabled]="updating().has(item.id)"
+                  >
+                    @for (option of intervalOptions; track option.value) {
+                      <option [value]="option.value">{{ option.label }}</option>
+                    }
+                  </select>
+                  @if (updating().has(item.id)) {
+                    <span class="loading loading-spinner loading-xs" aria-hidden="true"></span>
+                  } @else {
+                    <svg class="chevron" aria-hidden="true" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4" /></svg>
+                  }
+                </label>
+                <span aria-hidden="true">·</span> Next
                 <time [attr.datetime]="item.nextCheckAt" [attr.title]="item.nextCheckAt | date: 'full'">
                   {{ item.nextCheckAt | date: 'MMM d, h:mm a' }}
                 </time>

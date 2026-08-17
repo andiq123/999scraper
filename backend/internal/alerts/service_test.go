@@ -67,12 +67,12 @@ func TestCompareSnapshots(t *testing.T) {
 }
 
 func TestValidInterval(t *testing.T) {
-	for _, minutes := range []int{15, 60, 360, 1440} {
+	for _, minutes := range []int{15, 60, 360, 720, 1440} {
 		if !ValidInterval(minutes) {
 			t.Fatalf("rejected interval %d", minutes)
 		}
 	}
-	for _, minutes := range []int{0, 5, 30, 1441} {
+	for _, minutes := range []int{0, 5, 30, 719, 1441} {
 		if ValidInterval(minutes) {
 			t.Fatalf("accepted interval %d", minutes)
 		}

@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS search_subscriptions (
   filter_param text NOT NULL DEFAULT '',
   search_path text NOT NULL,
   recipient_email text NOT NULL,
-  interval_minutes integer NOT NULL DEFAULT 15 CHECK (interval_minutes IN (15, 60, 360, 1440)),
+  interval_minutes integer NOT NULL DEFAULT 15 CHECK (interval_minutes IN (15, 60, 360, 720, 1440)),
   snapshot_product_ids text[] NOT NULL DEFAULT '{}',
   snapshot_products jsonb NOT NULL DEFAULT '[]'::jsonb,
   active boolean NOT NULL DEFAULT false,
@@ -82,7 +82,11 @@ CREATE TABLE IF NOT EXISTS search_subscriptions (
 CREATE INDEX IF NOT EXISTS search_subscriptions_due_idx
   ON search_subscriptions (next_check_at) WHERE active;
 ALTER TABLE search_subscriptions
-  ADD COLUMN IF NOT EXISTS interval_minutes integer NOT NULL DEFAULT 15 CHECK (interval_minutes IN (15, 60, 360, 1440));
+  ADD COLUMN IF NOT EXISTS interval_minutes integer NOT NULL DEFAULT 15;
+ALTER TABLE search_subscriptions
+  DROP CONSTRAINT IF EXISTS search_subscriptions_interval_minutes_check;
+ALTER TABLE search_subscriptions
+  ADD CONSTRAINT search_subscriptions_interval_minutes_check CHECK (interval_minutes IN (15, 60, 360, 720, 1440));
 DO $migration$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='search_subscriptions' AND column_name='seen_product_ids')

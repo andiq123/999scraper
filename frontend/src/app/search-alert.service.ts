@@ -13,6 +13,18 @@ interface AlertDraft {
   snapshotProducts: Product[];
 }
 
+export const alertIntervalOptions = [
+  { value: 15, label: 'Every 15 minutes' },
+  { value: 60, label: 'Once an hour' },
+  { value: 360, label: 'Four times a day' },
+  { value: 720, label: 'Twice a day' },
+  { value: 1440, label: 'Once a day' },
+] as const;
+
+export function alertIntervalLabel(minutes: number): string {
+  return alertIntervalOptions.find((option) => option.value === minutes)?.label ?? `Every ${minutes} minutes`;
+}
+
 @Injectable({ providedIn: 'root' })
 export class SearchAlertService {
   private readonly auth = inject(AuthService);
@@ -114,6 +126,21 @@ export class SearchAlertService {
       this.toast.success('Search alert stopped and its saved snapshot was removed.');
     } catch (error) {
       this.toast.error(message(error));
+    }
+  }
+
+  async updateInterval(id: string, intervalMinutes: number): Promise<boolean> {
+    try {
+      const schedule = await this.request<{ intervalMinutes: number; nextCheckAt: string }>(
+        `/${encodeURIComponent(id)}`,
+        { method: 'PUT', body: JSON.stringify({ intervalMinutes }) },
+      );
+      this.items.update((items) => items.map((item) => (item.id === id ? { ...item, ...schedule } : item)));
+      this.toast.success(`${alertIntervalLabel(schedule.intervalMinutes)}. Next run updated.`);
+      return true;
+    } catch (error) {
+      this.toast.error(message(error));
+      return false;
     }
   }
 

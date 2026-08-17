@@ -111,6 +111,21 @@ func (s *Store) DeleteSearchSubscription(ctx context.Context, accountID, id stri
 	return err
 }
 
+func (s *Store) UpdateSearchSubscriptionInterval(ctx context.Context, accountID, id string, minutes int) (time.Time, error) {
+	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
+	defer cancel()
+	var nextCheck time.Time
+	err := s.db.QueryRow(ctx, `
+UPDATE search_subscriptions
+SET interval_minutes=$3, next_check_at=now() + $3 * interval '1 minute', updated_at=now()
+WHERE account_id=$1 AND id=$2 AND active
+RETURNING next_check_at`, accountID, id, minutes).Scan(&nextCheck)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return time.Time{}, ErrNotFound
+	}
+	return nextCheck, err
+}
+
 func (s *Store) ClaimDueSearchSubscriptions(ctx context.Context, limit int, lease time.Duration) ([]model.SearchSubscription, error) {
 	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
 	defer cancel()
@@ -149,7 +164,7 @@ RETURNING subscription.id::text, subscription.query, subscription.filter_param, 
 	return items, rows.Err()
 }
 
-func (s *Store) CompleteSearchSubscription(ctx context.Context, id string, snapshot []model.Product, nextCheck time.Time, changes *model.SearchChanges) error {
+func (s *Store) CompleteSearchSubscription(ctx context.Context, id string, snapshot []model.Product, changes *model.SearchChanges) error {
 	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
 	defer cancel()
 	payload, err := json.Marshal(snapshot)
@@ -170,12 +185,12 @@ UPDATE search_subscriptions SET
   snapshot_product_ids=$2,
   snapshot_products=$3::jsonb,
   last_checked_at=now(),
-  last_notified_at=CASE WHEN $5 THEN now() ELSE last_notified_at END,
-  last_changes=CASE WHEN $5 THEN $6::jsonb ELSE last_changes END,
-  next_check_at=$4,
+  last_notified_at=CASE WHEN $4 THEN now() ELSE last_notified_at END,
+  last_changes=CASE WHEN $4 THEN $5::jsonb ELSE last_changes END,
+  next_check_at=now() + interval_minutes * interval '1 minute',
   locked_until=NULL,
   updated_at=now()
-WHERE id=$1 AND active`, id, ids, string(payload), nextCheck, notified, string(changesPayload))
+WHERE id=$1 AND active`, id, ids, string(payload), notified, string(changesPayload))
 	return err
 }
 

@@ -60,6 +60,10 @@ func (s *Service) Delete(ctx context.Context, accountID, id string) error {
 	return s.store.DeleteSearchSubscription(ctx, accountID, id)
 }
 
+func (s *Service) UpdateInterval(ctx context.Context, accountID, id string, minutes int) (time.Time, error) {
+	return s.store.UpdateSearchSubscriptionInterval(ctx, accountID, id, minutes)
+}
+
 func (s *Service) Test(ctx context.Context, accountID, id string) error {
 	if !s.Available() {
 		return ErrUnavailable
@@ -142,7 +146,7 @@ func (s *Service) checkOne(ctx context.Context, subscription model.SearchSubscri
 		}
 		lastChanges = &model.SearchChanges{Added: changes.Added, Removed: changes.Removed, PriceChanges: changes.PriceChanges, DetectedAt: time.Now()}
 	}
-	if err := s.store.CompleteSearchSubscription(context.WithoutCancel(ctx), subscription.ID, products, time.Now().Add(interval), lastChanges); err != nil {
+	if err := s.store.CompleteSearchSubscription(context.WithoutCancel(ctx), subscription.ID, products, lastChanges); err != nil {
 		s.logger.Error("complete search alert check", "subscription_id", subscription.ID, "error", err)
 	}
 }
@@ -305,7 +309,7 @@ func plural(noun string, count int) string {
 
 func ValidInterval(minutes int) bool {
 	switch minutes {
-	case 15, 60, 360, 1440:
+	case 15, 60, 360, 720, 1440:
 		return true
 	default:
 		return false

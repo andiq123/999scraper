@@ -66,6 +66,7 @@ func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, r
 	mux.Handle("DELETE /api/saved/{id}", a.Middleware(http.HandlerFunc(api.deleteListing)))
 	mux.Handle("GET /api/subscriptions", a.Middleware(http.HandlerFunc(api.searchSubscriptions)))
 	mux.Handle("POST /api/subscriptions", a.Middleware(http.HandlerFunc(api.createSearchSubscription)))
+	mux.Handle("PUT /api/subscriptions/{id}", a.Middleware(http.HandlerFunc(api.updateSearchSubscription)))
 	mux.Handle("POST /api/subscriptions/{id}/test", a.Middleware(http.HandlerFunc(api.testSearchSubscription)))
 	mux.Handle("DELETE /api/subscriptions/{id}", a.Middleware(http.HandlerFunc(api.deleteSearchSubscription)))
 	return api.recover(api.cors(api.log(mux)))
@@ -154,6 +155,37 @@ func (a *API) deleteSearchSubscription(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *API) updateSearchSubscription(w http.ResponseWriter, r *http.Request) {
+	if !a.alertEdits.allow(accountID(r), time.Now()) {
+		w.Header().Set("Retry-After", "3600")
+		writeError(w, http.StatusTooManyRequests, "too many email alert changes; try again later")
+		return
+	}
+	var input struct {
+		IntervalMinutes int `json:"intervalMinutes"`
+	}
+	if !decode(w, r, &input) {
+		return
+	}
+	if !alerts.ValidInterval(input.IntervalMinutes) {
+		writeError(w, http.StatusBadRequest, "choose a valid alert interval")
+		return
+	}
+	nextCheck, err := a.alerts.UpdateInterval(r.Context(), accountID(r), r.PathValue("id"), input.IntervalMinutes)
+	if errors.Is(err, store.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "search alert not found")
+		return
+	}
+	if err != nil {
+		a.internal(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, struct {
+		IntervalMinutes int       `json:"intervalMinutes"`
+		NextCheckAt     time.Time `json:"nextCheckAt"`
+	}{input.IntervalMinutes, nextCheck})
 }
 
 func (a *API) testSearchSubscription(w http.ResponseWriter, r *http.Request) {
