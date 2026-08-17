@@ -17,7 +17,7 @@
     <a class="btn btn-primary btn-sm" routerLink="/">New alert</a>
   </header>
 
-  @if (alerts.loading() && !alerts.items().length) {
+  @if (!alerts.loaded()) {
     <section class="alerts-state card bg-base-100 shadow-sm" role="status">
       <span class="loading loading-spinner"></span> Loading alerts…
     </section>
@@ -92,12 +92,13 @@
                 <label class="interval-control">
                   <span class="sr-only">Check frequency for {{ item.query }}</span>
                   <select
-                    [value]="draftInterval(item)"
                     (change)="changeInterval(item, $event)"
                     [disabled]="updating().has(item.id)"
                   >
                     @for (option of intervalOptions; track option.value) {
-                      <option [value]="option.value">{{ option.label }}</option>
+                      <option [value]="option.value" [selected]="option.value === draftInterval(item)">
+                        {{ option.label }}
+                      </option>
                     }
                   </select>
                   @if (updating().has(item.id)) {

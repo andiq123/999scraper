@@ -25,6 +25,10 @@ export function alertIntervalLabel(minutes: number): string {
   return alertIntervalOptions.find((option) => option.value === minutes)?.label ?? `Every ${minutes} minutes`;
 }
 
+export function validAlertInterval(minutes: number): boolean {
+  return alertIntervalOptions.some((option) => option.value === minutes);
+}
+
 @Injectable({ providedIn: 'root' })
 export class SearchAlertService {
   private readonly auth = inject(AuthService);
@@ -35,6 +39,7 @@ export class SearchAlertService {
 
   readonly visible = signal(false);
   readonly loading = signal(false);
+  readonly loaded = signal(false);
   readonly saving = signal(false);
   readonly available = signal<boolean | null>(null);
   readonly checkIntervalMinutes = signal(15);
@@ -81,17 +86,25 @@ export class SearchAlertService {
   }
 
   async load(): Promise<void> {
-    if (this.loading() || !(await this.auth.restore())) return;
+    if (this.loading()) return;
     this.loading.set(true);
     this.error.set(null);
     try {
+      if (!(await this.auth.restore())) {
+        this.items.set([]);
+        return;
+      }
       const response = await this.request<SearchSubscriptionsResponse>('');
+      if (response.items.some((item) => !validAlertInterval(item.intervalMinutes))) {
+        throw new Error('The server returned an invalid alert schedule.');
+      }
       this.available.set(response.available);
       this.checkIntervalMinutes.set(response.checkIntervalMinutes);
       this.items.set(response.items);
     } catch (error) {
       this.error.set(message(error));
     } finally {
+      this.loaded.set(true);
       this.loading.set(false);
     }
   }
