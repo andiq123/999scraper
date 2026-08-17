@@ -14,7 +14,7 @@
 .account-heading p {
   margin-top: 0.18rem;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: var(--font-body);
 }
 .account-state {
   overflow: hidden;
@@ -43,13 +43,13 @@
 }
 .app-status strong,
 .service-list strong {
-  font-size: 0.77rem;
+  font-size: var(--font-meta);
 }
 .app-status small,
 .service-list small {
   overflow: hidden;
   color: var(--muted);
-  font-size: 0.64rem;
+  font-size: var(--font-caption);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -107,7 +107,7 @@
   border-radius: 999px;
   color: var(--muted);
   background: var(--surface-soft);
-  font-size: 0.61rem;
+  font-size: var(--font-caption);
   font-weight: 720;
 }
 .service-list b.online {
@@ -129,7 +129,7 @@
   border-radius: 12px;
   color: white;
   background: var(--success);
-  font-size: 0.82rem;
+  font-size: var(--font-body);
   font-weight: 800;
 }
 .account-status.guest > span {
@@ -140,11 +140,11 @@
   line-height: 1.3;
 }
 .account-status strong {
-  font-size: 0.82rem;
+  font-size: var(--font-body);
 }
 .account-status small {
   color: var(--muted);
-  font-size: 0.67rem;
+  font-size: var(--font-meta);
 }
 .account-list {
   overflow: hidden;
@@ -177,11 +177,11 @@
   line-height: 1.25;
 }
 .account-list strong {
-  font-size: 0.77rem;
+  font-size: var(--font-meta);
 }
 .account-list small {
   color: var(--muted);
-  font-size: 0.64rem;
+  font-size: var(--font-caption);
 }
 .account-list b {
   color: var(--subtle);
@@ -195,19 +195,19 @@
 }
 .account-actions a {
   min-height: 48px;
-  font-size: 0.78rem;
+  font-size: var(--font-meta);
 }
 .guest-note {
   margin-top: 0.7rem;
   color: var(--subtle);
-  font-size: 0.65rem;
+  font-size: var(--font-meta);
   text-align: center;
 }
 .logout {
   width: 100%;
   min-height: 44px;
   margin-top: 0.7rem;
-  font-size: 0.74rem;
+  font-size: var(--font-meta);
   font-weight: 700;
   cursor: pointer;
 }

@@ -21,7 +21,7 @@ h1 {
 }
 .saved-filter-heading > span {
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: var(--font-meta);
   font-weight: 700;
 }
 .saved-filter-heading .btn {
@@ -37,7 +37,7 @@ h1 {
 }
 .saved-filter-heading small {
   color: inherit;
-  font-size: 0.62rem;
+  font-size: var(--font-caption);
   opacity: 0.72;
 }
 .saved-origin-filter [role='group'] {
@@ -62,13 +62,13 @@ h1 {
   color: var(--muted);
   background: var(--surface-raised);
   font: inherit;
-  font-size: 0.72rem;
+  font-size: var(--font-meta);
   font-weight: 700;
   cursor: pointer;
 }
 .saved-origin-filter [role='group'] button small {
   color: var(--subtle);
-  font-size: 0.65rem;
+  font-size: var(--font-meta);
 }
 .saved-origin-filter [role='group'] button.active {
   border-color: rgb(var(--accent-rgb) / 14%);
@@ -101,7 +101,7 @@ h1 {
 }
 .filtered-empty p {
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: var(--font-body);
 }
 .empty {
   padding: 3.5rem 1rem;
@@ -115,7 +115,7 @@ h1 {
 .empty a {
   margin-top: 1rem;
 }
-@media (min-width: 700px) {
+@media (min-width: 768px) {
   .saved-page {
     margin-top: 2rem;
   }
@@ -125,7 +125,7 @@ h1 {
   }
 }
 
-@media (max-width: 699px) {
+@media (max-width: 767px) {
   .saved-page {
     margin-top: 0.8rem;
   }

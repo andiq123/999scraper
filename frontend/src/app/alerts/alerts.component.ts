@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { SearchAlertService, alertIntervalOptions } from '../search-alert.service';
+import { SearchAlertService, alertIntervalLabel, alertIntervalOptions } from '../search-alert.service';
 import { searchAlertConfiguration } from '../search/search-filter-chips';
 import { decodeSearchFilters } from '../search/search-url-state';
 import type { SearchSubscription } from '../models';
@@ -19,6 +19,7 @@ export class AlertsComponent {
   readonly removing = signal<ReadonlySet<string>>(new Set());
   readonly testing = signal<ReadonlySet<string>>(new Set());
   readonly updating = signal<ReadonlySet<string>>(new Set());
+  readonly pendingInterval = signal<{ id: string; minutes: number } | null>(null);
   readonly confirmingRemoval = signal<string | null>(null);
   readonly now = signal(Date.now());
   readonly changesAvailable = computed(() => this.alerts.items().filter((item) => this.changeCount(item) > 0).length);
@@ -71,18 +72,38 @@ export class AlertsComponent {
     }
   }
 
-  async changeInterval(item: SearchSubscription, event: Event): Promise<void> {
-    const select = event.target as HTMLSelectElement;
-    const minutes = Number(select.value);
-    if (minutes === item.intervalMinutes || this.updating().has(item.id)) return;
+  chooseInterval(item: SearchSubscription, event: Event): void {
+    const minutes = Number((event.target as HTMLSelectElement).value);
+    this.pendingInterval.set(minutes === item.intervalMinutes ? null : { id: item.id, minutes });
+  }
+
+  cancelInterval(): void {
+    this.pendingInterval.set(null);
+  }
+
+  async confirmInterval(item: SearchSubscription): Promise<void> {
+    const pending = this.pendingInterval();
+    if (!pending || pending.id !== item.id || this.updating().has(item.id)) return;
     this.updating.update((items) => new Set(items).add(item.id));
-    const updated = await this.alerts.updateInterval(item.id, minutes);
-    if (!updated) select.value = String(item.intervalMinutes);
-    this.updating.update((items) => {
-      const next = new Set(items);
-      next.delete(item.id);
-      return next;
-    });
+    try {
+      await this.alerts.updateInterval(item.id, pending.minutes);
+    } finally {
+      this.pendingInterval.set(null);
+      this.updating.update((items) => {
+        const next = new Set(items);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  }
+
+  selectedInterval(item: SearchSubscription): number {
+    const pending = this.pendingInterval();
+    return pending?.id === item.id ? pending.minutes : item.intervalMinutes;
+  }
+
+  intervalLabel(minutes: number): string {
+    return alertIntervalLabel(minutes);
   }
 
   configuration(filterParam?: string): string[] {

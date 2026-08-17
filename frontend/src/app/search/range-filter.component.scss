@@ -18,13 +18,13 @@ legend {
   width: 100%;
   padding: 0;
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: var(--font-meta);
   font-weight: 700;
 }
 output {
   overflow: hidden;
   color: var(--accent);
-  font-size: 0.65rem;
+  font-size: var(--font-meta);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -45,7 +45,7 @@ output {
   border-radius: 9px;
   color: var(--muted);
   background: var(--surface-soft);
-  font-size: 0.65rem;
+  font-size: var(--font-meta);
   font-weight: 680;
   cursor: pointer;
 }
@@ -125,7 +125,7 @@ output {
   border-radius: 10px;
   outline: 0;
   background: var(--surface-solid);
-  font-size: 0.75rem;
+  font-size: var(--font-meta);
 }
 .inputs input:focus {
   border-color: var(--accent);

@@ -40,7 +40,7 @@
 }
 .progress-copy > span {
   color: var(--accent);
-  font-size: 0.58rem;
+  font-size: var(--font-caption);
   font-weight: 780;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -48,13 +48,13 @@
 .progress-copy strong {
   margin-top: 0.05rem;
   color: var(--text);
-  font-size: 0.82rem;
+  font-size: var(--font-body);
 }
 .progress-copy small {
   overflow: hidden;
   margin-top: 0.04rem;
   color: var(--muted);
-  font-size: 0.66rem;
+  font-size: var(--font-meta);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -65,7 +65,7 @@ output {
   border-radius: 999px;
   color: var(--accent);
   background: var(--accent-soft);
-  font-size: 0.65rem;
+  font-size: var(--font-meta);
   font-weight: 750;
   text-align: center;
 }
@@ -81,7 +81,7 @@ button {
   border-radius: 10px;
   color: var(--muted);
   background: rgb(255 255 255 / 76%);
-  font-size: 0.69rem;
+  font-size: var(--font-meta);
   font-weight: 700;
   cursor: pointer;
 }
@@ -121,7 +121,7 @@ button > span {
   }
 }
 
-@media (max-width: 699px) {
+@media (max-width: 767px) {
   .scrape-progress {
     grid-template-columns: 36px minmax(0, 1fr) auto;
     gap: 0.55rem;

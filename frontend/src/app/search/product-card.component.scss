@@ -87,7 +87,7 @@ img,
   border-radius: 8px;
   color: white;
   background: rgb(23 32 51 / 82%);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 750;
 }
 .activity-badges {
@@ -120,11 +120,11 @@ img,
   backdrop-filter: blur(12px);
 }
 .quality-score strong {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 820;
 }
 .quality-score span {
-  font-size: 0.48rem;
+  font-size: 0.6875rem;
   font-weight: 720;
   opacity: 0.78;
 }
@@ -150,7 +150,7 @@ img,
   border-radius: 8px;
   color: rgb(255 255 255 / 88%);
   background: rgb(23 32 51 / 76%);
-  font-size: 0.58rem;
+  font-size: 0.6875rem;
   font-weight: 760;
   letter-spacing: 0.02em;
   -webkit-backdrop-filter: blur(10px);
@@ -202,7 +202,7 @@ img,
   border: 2px solid var(--line-strong);
   border-radius: 7px;
   color: white;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 800;
 }
 .bulk-selector.selected span {
@@ -263,7 +263,7 @@ img,
 .quality-popover header small,
 .quality-popover h4 {
   color: var(--subtle);
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 760;
   letter-spacing: 0.055em;
   text-transform: uppercase;
@@ -307,7 +307,7 @@ img,
   line-height: 1;
 }
 .quality-ring small {
-  font-size: 0.55rem;
+  font-size: 0.6875rem;
 }
 .quality-ring.excellent {
   color: rgb(var(--success-rgb));
@@ -327,7 +327,7 @@ img,
   border-radius: 11px;
   color: var(--muted);
   background: var(--surface-soft);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   line-height: 1.45;
 }
 .quality-popover section + section {
@@ -345,7 +345,7 @@ img,
   align-items: center;
   gap: 0.45rem;
   color: var(--muted);
-  font-size: 0.73rem;
+  font-size: 0.75rem;
 }
 .quality-popover li span {
   display: grid;
@@ -428,7 +428,7 @@ img,
   color: var(--text);
   background: rgb(255 255 255 / 92%);
   font: inherit;
-  font-size: 0.6rem;
+  font-size: 0.6875rem;
   font-weight: 720;
   pointer-events: none;
   transform: translateY(5px);
@@ -481,7 +481,7 @@ h2 {
   gap: 0 0.22em;
   height: 2.65em;
   overflow: hidden;
-  font-size: 0.79rem;
+  font-size: 0.75rem;
   font-weight: 690;
   line-height: 1.32;
   letter-spacing: -0.018em;
@@ -509,7 +509,7 @@ h2 button {
   flex: 1;
   overflow: hidden;
   color: var(--subtle);
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -517,7 +517,7 @@ h2 button {
   flex: none;
   color: var(--subtle);
   font:
-    620 0.55rem ui-monospace,
+    620 0.6875rem ui-monospace,
     SFMono-Regular,
     Menlo,
     monospace;
@@ -525,7 +525,7 @@ h2 button {
 }
 .listing-id > span {
   font-family: inherit;
-  font-size: 0.48rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.04em;
 }
 .vin-control {
@@ -556,7 +556,7 @@ h2 button {
 }
 .vin-label {
   color: rgb(var(--vin-rgb));
-  font-size: 0.5rem;
+  font-size: 0.6875rem;
   font-weight: 820;
   letter-spacing: 0.07em;
 }
@@ -565,7 +565,7 @@ h2 button {
   overflow: hidden;
   color: var(--text);
   font:
-    690 0.52rem ui-monospace,
+    690 0.6875rem ui-monospace,
     SFMono-Regular,
     Menlo,
     monospace;
@@ -625,14 +625,14 @@ h2 button {
 }
 .vin-popover small {
   color: rgb(255 255 255 / 64%);
-  font-size: 0.46rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.055em;
   text-transform: uppercase;
 }
 .vin-popover strong {
   font:
-    700 0.59rem ui-monospace,
+    700 0.6875rem ui-monospace,
     SFMono-Regular,
     Menlo,
     monospace;
@@ -658,7 +658,7 @@ h2 button {
 }
 .footer p {
   color: var(--accent);
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   font-weight: 790;
   letter-spacing: -0.025em;
   line-height: 1.15;
@@ -666,7 +666,7 @@ h2 button {
 .prices small {
   overflow: hidden;
   color: var(--subtle);
-  font-size: 0.59rem;
+  font-size: 0.6875rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -690,7 +690,7 @@ h2 button {
   border-radius: 8px;
   color: var(--muted);
   background: var(--surface-soft);
-  font-size: 0.62rem;
+  font-size: 0.6875rem;
   font-weight: 690;
   line-height: 1;
   text-decoration: none;
@@ -778,7 +778,7 @@ h2 button {
   margin: 0.4rem auto 1rem;
   max-width: 32ch;
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: 0.875rem;
 }
 .exclude-popover > div {
   display: grid;
@@ -896,13 +896,13 @@ article:focus-within .copy-json {
       visibility 180ms;
   }
 }
-@media (max-width: 699px) {
+@media (max-width: 767px) {
   article {
     display: grid;
-    grid-template-columns: 88px minmax(0, 1fr);
-    min-height: 94px;
+    grid-template-columns: 108px minmax(0, 1fr);
+    min-height: 116px;
     border-radius: 13px;
-    contain-intrinsic-size: auto 94px;
+    contain-intrinsic-size: auto 116px;
   }
   article:has(.row-link:active) {
     opacity: 0.82;
@@ -919,14 +919,14 @@ article:focus-within .copy-json {
   }
   .media {
     grid-column: 1;
-    min-height: 94px;
+    min-height: 116px;
     border-right: 1px solid var(--line);
   }
   img,
   .placeholder {
-    width: 88px;
+    width: 108px;
     height: 100%;
-    min-height: 94px;
+    min-height: 116px;
     aspect-ratio: auto;
   }
   .year {
@@ -934,7 +934,7 @@ article:focus-within .copy-json {
     bottom: 0.3rem;
     padding: 0.1rem 0.28rem;
     border-radius: 6px;
-    font-size: 0.53rem;
+    font-size: 0.6875rem;
   }
   .activity-badges {
     top: 2rem;
@@ -944,22 +944,22 @@ article:focus-within .copy-json {
   .quality-score {
     top: 0.28rem;
     left: 0.28rem;
-    min-height: 25px;
+    min-height: 28px;
     padding: 0.18rem 0.3rem;
     border-radius: 7px;
   }
   .quality-score strong {
-    font-size: 0.61rem;
+    font-size: 0.6875rem;
   }
   .quality-score span {
-    font-size: 0.42rem;
+    font-size: 0.6875rem;
   }
   .copy-rank,
   .open-rank,
   .newly-shown {
     padding: 0.16rem 0.28rem;
     border-radius: 6px;
-    font-size: 0.48rem;
+    font-size: 0.6875rem;
   }
   .bulk-selector {
     top: 0.18rem;
@@ -973,7 +973,7 @@ article:focus-within .copy-json {
     width: 21px;
     height: 21px;
     border-radius: 6px;
-    font-size: 0.64rem;
+    font-size: 0.6875rem;
   }
   .bulk-mode .activity-badges {
     top: 2.55rem;
@@ -992,7 +992,7 @@ article:focus-within .copy-json {
     width: 29px;
     height: 29px;
     border-radius: 9px;
-    font-size: 0.95rem;
+    font-size: 0.875rem;
   }
   .media .copy-json-image {
     display: none;
@@ -1011,7 +1011,7 @@ article:focus-within .copy-json {
     border-radius: 8px;
     color: var(--accent);
     background: var(--accent-softer);
-    font-size: 0.55rem;
+    font-size: 0.6875rem;
     font-weight: 760;
     line-height: 1;
     cursor: pointer;
@@ -1035,15 +1035,15 @@ article:focus-within .copy-json {
   }
   .copy {
     grid-column: 2;
-    gap: 0.18rem;
-    min-height: 94px;
-    padding: 0.43rem 2.35rem 0.4rem 0.52rem;
+    gap: 0.3rem;
+    min-height: 116px;
+    padding: 0.55rem 2.7rem 0.5rem 0.65rem;
   }
   h2 {
     flex-wrap: nowrap;
     height: 1.35em;
     gap: 0 0.22em;
-    font-size: 0.73rem;
+    font-size: 0.9375rem;
     line-height: 1.35;
     white-space: nowrap;
   }
@@ -1052,13 +1052,13 @@ article:focus-within .copy-json {
     margin-top: 0;
   }
   .metadata {
-    font-size: 0.57rem;
+    font-size: 0.6875rem;
   }
   .listing-id {
-    font-size: 0.5rem;
+    font-size: 0.6875rem;
   }
   .listing-id > span {
-    font-size: 0.44rem;
+    font-size: 0.6875rem;
   }
   .vin-row {
     min-height: 44px;
@@ -1069,23 +1069,23 @@ article:focus-within .copy-json {
     height: 31px;
   }
   .vin-row code {
-    font-size: 0.5rem;
+    font-size: 0.6875rem;
   }
   .footer {
     gap: 0.25rem;
   }
   .footer p {
-    font-size: 0.77rem;
+    font-size: 0.9375rem;
   }
   .prices small {
     max-width: 20ch;
-    font-size: 0.54rem;
+    font-size: 0.6875rem;
   }
   .footer a {
     display: none;
   }
 }
-@media (min-width: 700px) {
+@media (min-width: 768px) {
   .copy {
     gap: 0.34rem;
     min-height: 116px;
@@ -1093,14 +1093,14 @@ article:focus-within .copy-json {
   }
   h2 {
     height: 2.7em;
-    font-size: 0.84rem;
+    font-size: 0.875rem;
     line-height: 1.35;
   }
   .footer {
     gap: 0.4rem;
   }
   .footer p {
-    font-size: 0.94rem;
+    font-size: 0.875rem;
   }
   .exclude-popover {
     inset: 0;

@@ -40,7 +40,7 @@
   border-radius: 999px;
   color: white;
   background: rgb(63 70 84 / 90%);
-  font-size: 0.68rem;
+  font-size: var(--font-meta);
   font-weight: 680;
   transform: translateX(-50%);
   -webkit-backdrop-filter: blur(18px) saturate(150%);
@@ -98,17 +98,17 @@
 }
 .update-copy > span {
   color: var(--accent);
-  font-size: 0.54rem;
+  font-size: var(--font-caption);
   font-weight: 780;
   letter-spacing: 0.1em;
 }
 .update-copy strong {
-  font-size: 0.8rem;
+  font-size: var(--font-body);
 }
 .update-copy small {
   overflow: hidden;
   color: var(--muted);
-  font-size: 0.65rem;
+  font-size: var(--font-meta);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -118,7 +118,7 @@
   gap: 0.35rem;
   min-height: 38px;
   padding-inline: 0.7rem;
-  font-size: 0.7rem;
+  font-size: var(--font-meta);
 }
 .update-button-mark {
   display: none;

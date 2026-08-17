@@ -65,7 +65,7 @@
 }
 .trusted-label {
   color: #087f75;
-  font-size: 0.58rem;
+  font-size: var(--font-caption);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -77,7 +77,7 @@
 }
 .vin-header p {
   color: var(--muted);
-  font-size: 0.67rem;
+  font-size: var(--font-meta);
 }
 .vin-close {
   display: grid;
@@ -114,7 +114,7 @@
 .vin-search > span {
   padding-left: 0.55rem;
   color: #0d9488;
-  font-size: 0.62rem;
+  font-size: var(--font-caption);
   font-weight: 820;
   letter-spacing: 0.08em;
 }
@@ -126,7 +126,7 @@
   outline: 0;
   background: transparent;
   font:
-    700 0.85rem ui-monospace,
+    700 var(--font-body) ui-monospace,
     SFMono-Regular,
     Menlo,
     monospace;
@@ -152,7 +152,7 @@
   border-radius: 11px;
   color: white;
   background: #0d9488;
-  font-size: 0.72rem;
+  font-size: var(--font-meta);
   font-weight: 740;
   cursor: pointer;
 }
@@ -170,7 +170,7 @@
 .vin-input-error {
   margin: 0.25rem 1.2rem 0;
   color: var(--danger);
-  font-size: 0.66rem;
+  font-size: var(--font-meta);
 }
 .vin-identity {
   display: flex;
@@ -190,13 +190,13 @@
 }
 .vin-identity small {
   color: #087f75;
-  font-size: 0.55rem;
+  font-size: var(--font-caption);
   font-weight: 750;
 }
 .vin-identity code {
   overflow: hidden;
   font:
-    760 0.9rem ui-monospace,
+    760 var(--font-body) ui-monospace,
     SFMono-Regular,
     Menlo,
     monospace;
@@ -213,7 +213,7 @@
   border-radius: 10px;
   color: #087f75;
   background: rgb(255 255 255 / 80%);
-  font-size: 0.67rem;
+  font-size: var(--font-meta);
   font-weight: 730;
   cursor: copy;
 }
@@ -235,7 +235,7 @@
   min-height: 28px;
   margin: 0 1.1rem 0.55rem;
   color: var(--muted);
-  font-size: 0.66rem;
+  font-size: var(--font-meta);
 }
 .research-status > span:not(.research-spinner) {
   display: grid;
@@ -245,7 +245,7 @@
   border-radius: 50%;
   color: white;
   background: var(--success);
-  font-size: 0.58rem;
+  font-size: var(--font-caption);
   font-weight: 800;
 }
 .research-status.error > span {
@@ -281,13 +281,13 @@
 .section-heading span,
 .section-heading > small {
   color: var(--subtle);
-  font-size: 0.55rem;
+  font-size: var(--font-caption);
   font-weight: 750;
   letter-spacing: 0.055em;
   text-transform: uppercase;
 }
 .section-heading h3 {
-  font-size: 0.88rem;
+  font-size: var(--font-body);
   letter-spacing: -0.02em;
 }
 .official-badge {
@@ -312,11 +312,11 @@
 }
 .vehicle-panel dt {
   color: var(--subtle);
-  font-size: 0.55rem;
+  font-size: var(--font-caption);
 }
 .vehicle-panel dd {
   overflow: hidden;
-  font-size: 0.69rem;
+  font-size: var(--font-meta);
   font-weight: 680;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -325,7 +325,7 @@
 .source-warning {
   margin-top: 0.55rem;
   color: #9a6512;
-  font-size: 0.62rem;
+  font-size: var(--font-caption);
   line-height: 1.4;
 }
 .source-warning {
@@ -401,13 +401,13 @@
 }
 .source-top > div span {
   color: var(--subtle);
-  font-size: 0.53rem;
+  font-size: var(--font-caption);
   font-weight: 760;
   text-transform: uppercase;
 }
 .source-top strong {
   overflow: hidden;
-  font-size: 0.72rem;
+  font-size: var(--font-meta);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -419,12 +419,12 @@
   border-radius: 50%;
   color: #087f75;
   background: rgb(13 148 136 / 10%);
-  font-size: 0.58rem;
+  font-size: var(--font-caption);
   font-weight: 800;
 }
 .source-card > p {
   color: var(--muted);
-  font-size: 0.64rem;
+  font-size: var(--font-caption);
   line-height: 1.42;
 }
 .source-footer {
@@ -437,7 +437,7 @@
 .source-footer > span {
   overflow: hidden;
   color: var(--subtle);
-  font-size: 0.54rem;
+  font-size: var(--font-caption);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -451,7 +451,7 @@
   border-radius: 8px;
   color: var(--accent);
   background: var(--accent-softer);
-  font-size: 0.6rem;
+  font-size: var(--font-caption);
   font-weight: 730;
   text-decoration: none;
 }
@@ -485,11 +485,11 @@
 }
 .evidence-facts dt {
   color: var(--subtle);
-  font-size: 0.52rem;
+  font-size: var(--font-caption);
 }
 .evidence-facts dd {
   color: var(--text);
-  font-size: 0.6rem;
+  font-size: var(--font-caption);
   font-weight: 730;
 }
 .evidence-empty {
@@ -511,12 +511,12 @@
   stroke-width: 1.5;
 }
 .evidence-empty h3 {
-  font-size: 0.76rem;
+  font-size: var(--font-meta);
 }
 .evidence-empty p {
   margin-top: 0.1rem;
   color: var(--muted);
-  font-size: 0.61rem;
+  font-size: var(--font-caption);
   line-height: 1.4;
 }
 .vin-caveat {
@@ -538,7 +538,7 @@
   stroke-width: 1.7;
 }
 .vin-caveat p {
-  font-size: 0.59rem;
+  font-size: var(--font-caption);
   line-height: 1.45;
 }
 .vin-caveat strong {
@@ -575,7 +575,7 @@
   max-width: 48ch;
   margin-top: 0.25rem;
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: var(--font-meta);
   line-height: 1.5;
 }
 @keyframes vin-spin {
@@ -631,7 +631,7 @@
     background: var(--surface-solid);
   }
 }
-@media (max-width: 699px) {
+@media (max-width: 767px) {
   .vin-dialog[open] {
     align-items: end;
     padding: 0;
@@ -676,7 +676,7 @@
     margin-inline: 0.65rem;
   }
   .vin-identity code {
-    font-size: 0.74rem;
+    font-size: var(--font-meta);
     letter-spacing: 0.045em;
   }
   .vehicle-panel dl {

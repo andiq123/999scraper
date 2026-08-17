@@ -41,7 +41,7 @@ a {
   padding: 0.2rem;
   border-radius: 19px;
   color: var(--muted);
-  font-size: 0.59rem;
+  font-size: var(--font-caption);
   font-weight: 650;
   line-height: 1;
   text-decoration: none;
@@ -92,7 +92,7 @@ a,
   }
 }
 
-@media (max-width: 699px) {
+@media (max-width: 767px) {
   :host {
     padding: 0.3rem max(0.5rem, env(safe-area-inset-right)) max(0.35rem, env(safe-area-inset-bottom))
       max(0.5rem, env(safe-area-inset-left));
@@ -108,7 +108,7 @@ a,
     grid-template-rows: 24px auto;
     min-height: 50px;
     border-radius: 17px;
-    font-size: 0.56rem;
+    font-size: var(--font-caption);
   }
 
   .tab-icon {

@@ -136,7 +136,7 @@ export class SearchAlertService {
         { method: 'PUT', body: JSON.stringify({ intervalMinutes }) },
       );
       this.items.update((items) => items.map((item) => (item.id === id ? { ...item, ...schedule } : item)));
-      this.toast.success(`${alertIntervalLabel(schedule.intervalMinutes)}. Next run updated.`);
+      this.toast.success(`Schedule saved: ${alertIntervalLabel(schedule.intervalMinutes)}.`);
       return true;
     } catch (error) {
       this.toast.error(message(error));
@@ -154,7 +154,7 @@ export class SearchAlertService {
   }
 
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
-    const response = await fetch(this.endpoint + path, this.auth.withSession(init));
+    const response = await fetch(this.endpoint + path, this.auth.withSession({ cache: 'no-store', ...init }));
     if (response.status === 401) this.auth.expire();
     if (!response.ok) {
       const body = (await response.json().catch(() => ({}))) as { error?: string };

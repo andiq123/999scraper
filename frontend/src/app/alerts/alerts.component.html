@@ -88,16 +88,12 @@
               }
             }
             <div class="job-status" aria-label="Alert schedule and latest run">
-              <span class="next-run">
-                <svg aria-hidden="true" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 7v5l3 2" />
-                </svg>
+              <div class="schedule-row">
                 <label class="interval-control">
                   <span class="sr-only">Check frequency for {{ item.query }}</span>
                   <select
-                    [value]="item.intervalMinutes"
-                    (change)="changeInterval(item, $event)"
+                    [value]="selectedInterval(item)"
+                    (change)="chooseInterval(item, $event)"
                     [disabled]="updating().has(item.id)"
                   >
                     @for (option of intervalOptions; track option.value) {
@@ -110,12 +106,18 @@
                     <svg class="chevron" aria-hidden="true" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4" /></svg>
                   }
                 </label>
-                <span aria-hidden="true">·</span> Next
-                <time [attr.datetime]="item.nextCheckAt" [attr.title]="item.nextCheckAt | date: 'full'">
-                  {{ item.nextCheckAt | date: 'MMM d, h:mm a' }}
-                </time>
-                <strong>{{ nextRunCountdown(item.nextCheckAt) }}</strong>
-              </span>
+                <span class="next-run">
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 2" />
+                  </svg>
+                  <span>Next</span>
+                  <time [attr.datetime]="item.nextCheckAt" [attr.title]="item.nextCheckAt | date: 'full'">
+                    {{ item.nextCheckAt | date: 'MMM d, h:mm a' }}
+                  </time>
+                  <strong>{{ nextRunCountdown(item.nextCheckAt) }}</strong>
+                </span>
+              </div>
               @if (!item.lastCheckedAt) {
                 <span class="run-result pending">Waiting for first check</span>
               } @else if (lastRunChanged(item)) {
@@ -126,6 +128,27 @@
                 <span class="run-result unchanged">No changes last run</span>
               }
             </div>
+            @if (pendingInterval(); as pending) {
+              @if (pending.id === item.id) {
+                <div class="schedule-confirmation" role="group" aria-label="Confirm schedule change">
+                  <span
+                    >Change to <strong>{{ intervalLabel(pending.minutes) }}</strong
+                    >?</span
+                  >
+                  <div>
+                    <button class="btn btn-ghost btn-sm" type="button" (click)="cancelInterval()">Cancel</button>
+                    <button
+                      class="btn btn-primary btn-sm"
+                      type="button"
+                      (click)="confirmInterval(item)"
+                      [disabled]="updating().has(item.id)"
+                    >
+                      {{ updating().has(item.id) ? 'Saving…' : 'Confirm' }}
+                    </button>
+                  </div>
+                </div>
+              }
+            }
           </div>
           <div class="alert-actions" [class.confirming]="confirmingRemoval() === item.id">
             @if (confirmingRemoval() === item.id) {

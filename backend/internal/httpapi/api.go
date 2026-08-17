@@ -36,6 +36,7 @@ type API struct {
 	summaries  *loginLimiter
 	vinChecks  *loginLimiter
 	alertEdits *loginLimiter
+	alertTests *loginLimiter
 	vinDecoder *vinDecoder
 	rates      *currency.Service
 	alerts     *alerts.Service
@@ -47,7 +48,7 @@ func New(s *store.Store, a *auth.Service, sc *scraper.Scraper, c *cache.Cache, r
 	for _, origin := range allowedOrigins {
 		origins[origin] = struct{}{}
 	}
-	api := &API{store: s, auth: a, scraper: sc, cache: c, rates: rates, alerts: alertService, origins: origins, logger: logger, queries: newQueryGate(), logins: newLoginLimiter(), summaries: newRequestLimiter(60, time.Minute), vinChecks: newRequestLimiter(30, time.Minute), alertEdits: newRequestLimiter(5, time.Hour), vinDecoder: newVINDecoder()}
+	api := &API{store: s, auth: a, scraper: sc, cache: c, rates: rates, alerts: alertService, origins: origins, logger: logger, queries: newQueryGate(), logins: newLoginLimiter(), summaries: newRequestLimiter(60, time.Minute), vinChecks: newRequestLimiter(30, time.Minute), alertEdits: newRequestLimiter(30, time.Hour), alertTests: newRequestLimiter(5, time.Hour), vinDecoder: newVINDecoder()}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", api.health)
 	mux.HandleFunc("GET /api/health", api.health)
@@ -81,6 +82,7 @@ type subscriptionResponse struct {
 }
 
 func (a *API) searchSubscriptions(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "private, no-store")
 	items, err := a.alerts.List(r.Context(), accountID(r))
 	if err != nil {
 		a.internal(w, err)
@@ -189,7 +191,7 @@ func (a *API) updateSearchSubscription(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) testSearchSubscription(w http.ResponseWriter, r *http.Request) {
-	if !a.alertEdits.allow(accountID(r), time.Now()) {
+	if !a.alertTests.allow(accountID(r), time.Now()) {
 		w.Header().Set("Retry-After", "3600")
 		writeError(w, http.StatusTooManyRequests, "too many email alert tests; try again later")
 		return

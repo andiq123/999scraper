@@ -49,14 +49,14 @@ header h2 {
 }
 header small {
   color: var(--accent);
-  font-size: 0.64rem;
+  font-size: var(--font-caption);
   font-weight: 780;
   letter-spacing: 0.12em;
 }
 header p {
   margin-top: 0.18rem;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: var(--font-meta);
 }
 .alert-icon {
   display: grid;
@@ -112,11 +112,11 @@ header p {
 .alert-query small,
 .frequency {
   color: var(--subtle);
-  font-size: 0.67rem;
+  font-size: var(--font-meta);
 }
 .alert-query strong {
   overflow: hidden;
-  font-size: 0.85rem;
+  font-size: var(--font-body);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -125,7 +125,7 @@ header p {
   border-radius: 999px;
   color: var(--success);
   background: rgb(var(--success-rgb) / 10%);
-  font-size: 0.63rem;
+  font-size: var(--font-caption);
   font-weight: 760;
 }
 .saved-configuration {
@@ -146,11 +146,11 @@ header p {
   display: grid;
 }
 .configuration-heading strong {
-  font-size: 0.76rem;
+  font-size: var(--font-meta);
 }
 .configuration-heading small {
   color: var(--muted);
-  font-size: 0.64rem;
+  font-size: var(--font-caption);
 }
 .configuration-check {
   display: grid;
@@ -160,12 +160,12 @@ header p {
   border-radius: 9px;
   color: var(--success);
   background: rgb(var(--success-rgb) / 11%);
-  font-size: 0.72rem;
+  font-size: var(--font-meta);
   font-weight: 800;
 }
 .matching-count {
   color: var(--subtle);
-  font-size: 0.65rem;
+  font-size: var(--font-meta);
   font-weight: 700;
 }
 .configuration-chips {
@@ -182,7 +182,7 @@ header p {
   border-radius: 999px;
   color: var(--accent);
   background: var(--accent-softer);
-  font-size: 0.62rem;
+  font-size: var(--font-caption);
   font-weight: 680;
   line-height: 1.2;
 }
@@ -191,7 +191,7 @@ form {
   gap: 0.55rem;
 }
 form > label {
-  font-size: 0.78rem;
+  font-size: var(--font-meta);
   font-weight: 720;
 }
 .email-field,
@@ -238,7 +238,7 @@ form > label {
   color: var(--text);
   background: transparent;
   font: inherit;
-  font-size: 0.8rem;
+  font-size: var(--font-body);
   font-weight: 650;
   appearance: none;
   cursor: pointer;
@@ -253,7 +253,7 @@ form > label {
   align-items: center;
   gap: 0.35rem;
   color: var(--muted);
-  font-size: 0.67rem;
+  font-size: var(--font-meta);
 }
 .privacy-note svg {
   width: 14px;
@@ -274,7 +274,7 @@ form > label {
 .alert-loading {
   padding: 0.8rem;
   border-radius: 14px;
-  font-size: 0.75rem;
+  font-size: var(--font-meta);
 }
 .alert-error {
   color: var(--danger);
@@ -289,7 +289,7 @@ form > label {
   color: var(--muted);
 }
 .alert-unavailable code {
-  font-size: 0.68rem;
+  font-size: var(--font-meta);
 }
 .alert-loading {
   display: flex;
@@ -314,7 +314,7 @@ form > label {
   padding-top: 0.75rem;
   border-top: 1px solid var(--line);
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--font-meta);
   font-weight: 680;
   text-decoration: none;
 }
