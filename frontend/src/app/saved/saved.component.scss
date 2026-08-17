@@ -13,22 +13,44 @@ h1 {
   gap: 0.4rem;
   margin: 0 0.15rem 1rem;
 }
-.saved-origin-filter > span {
+.saved-filter-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.saved-filter-heading > span {
   color: var(--muted);
   font-size: 0.7rem;
   font-weight: 700;
 }
-.saved-origin-filter > div {
+.saved-filter-heading .btn {
+  min-height: 32px;
+}
+.saved-filter-heading svg {
+  width: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+.saved-filter-heading small {
+  color: inherit;
+  font-size: 0.62rem;
+  opacity: 0.72;
+}
+.saved-origin-filter [role='group'] {
   display: flex;
   gap: 0.4rem;
   overflow-x: auto;
   padding-bottom: 0.1rem;
   scrollbar-width: none;
 }
-.saved-origin-filter > div::-webkit-scrollbar {
+.saved-origin-filter [role='group']::-webkit-scrollbar {
   display: none;
 }
-.saved-origin-filter button {
+.saved-origin-filter [role='group'] button {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -44,19 +66,19 @@ h1 {
   font-weight: 700;
   cursor: pointer;
 }
-.saved-origin-filter button small {
+.saved-origin-filter [role='group'] button small {
   color: var(--subtle);
   font-size: 0.65rem;
 }
-.saved-origin-filter button.active {
+.saved-origin-filter [role='group'] button.active {
   border-color: var(--accent);
   color: white;
   background: var(--accent);
 }
-.saved-origin-filter button.active small {
+.saved-origin-filter [role='group'] button.active small {
   color: rgb(255 255 255 / 76%);
 }
-.saved-origin-filter button:disabled {
+.saved-origin-filter [role='group'] button:disabled {
   opacity: 0.48;
   cursor: not-allowed;
 }

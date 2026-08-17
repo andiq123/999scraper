@@ -146,6 +146,13 @@
   stroke-linejoin: round;
   stroke-width: 1.8;
 }
+.next-run time {
+  color: var(--muted);
+}
+.next-run strong {
+  color: var(--accent);
+  font-weight: 700;
+}
 .run-result::before {
   width: 6px;
   height: 6px;

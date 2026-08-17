@@ -93,7 +93,11 @@
                   <circle cx="12" cy="12" r="9" />
                   <path d="M12 7v5l3 2" />
                 </svg>
-                {{ intervalLabel(item.intervalMinutes) }} · Next {{ item.nextCheckAt | date: 'short' }}
+                {{ intervalLabel(item.intervalMinutes) }} · Next
+                <time [attr.datetime]="item.nextCheckAt" [attr.title]="item.nextCheckAt | date: 'full'">
+                  {{ item.nextCheckAt | date: 'MMM d, h:mm a' }}
+                </time>
+                <strong>{{ nextRunCountdown(item.nextCheckAt) }}</strong>
               </span>
               @if (!item.lastCheckedAt) {
                 <span class="run-result pending">Waiting for first check</span>

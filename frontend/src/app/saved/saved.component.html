@@ -6,7 +6,24 @@
   </header>
   @if (library.saved().length) {
     <section class="saved-origin-filter" aria-label="Filter saved listings by origin">
-      <span>Țara de origine</span>
+      <div class="saved-filter-heading">
+        <span>Țara de origine</span>
+        <button
+          class="btn btn-soft btn-primary btn-sm"
+          type="button"
+          (click)="downloadJSON()"
+          [disabled]="exporting() || !filteredSaved().length"
+          [attr.aria-label]="'Download ' + filteredSaved().length + ' visible saved listings as JSON'"
+        >
+          @if (exporting()) {
+            <span class="loading loading-spinner loading-xs" aria-hidden="true"></span>
+            Preparing {{ exportProgress().completed }}/{{ exportProgress().total }}
+          } @else {
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 4v11m-4-4 4 4 4-4M5 19h14" /></svg>
+            Download JSON <small>{{ filteredSaved().length }}</small>
+          }
+        </button>
+      </div>
       <div role="group" aria-label="Țara de origine">
         <button type="button" [class.active]="selectedOrigin() === null" (click)="selectedOrigin.set(null)">
           All <small>{{ library.saved().length }}</small>
