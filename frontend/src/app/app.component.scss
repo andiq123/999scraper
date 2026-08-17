@@ -12,7 +12,6 @@
   border-radius: 16px;
   color: white;
   background: rgb(var(--success-rgb) / 94%);
-  box-shadow: var(--shadow-lg);
   backdrop-filter: blur(20px) saturate(140%);
 }
 .app-toast .toast-mark {
@@ -41,7 +40,6 @@
   border-radius: 999px;
   color: white;
   background: rgb(63 70 84 / 90%);
-  box-shadow: var(--shadow-md);
   font-size: 0.68rem;
   font-weight: 680;
   transform: translateX(-50%);
@@ -62,46 +60,89 @@
   left: max(0.7rem, env(safe-area-inset-left));
   z-index: 1050;
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.65rem;
-  width: min(430px, calc(100vw - 1.4rem));
+  gap: 0.7rem;
+  width: min(460px, calc(100vw - 1.4rem));
   margin-left: auto;
-  padding: 0.55rem;
-  border: 1px solid rgb(255 255 255 / 78%);
-  border-radius: 18px;
-  background: rgb(248 250 254 / 96%);
-  box-shadow:
-    0 18px 48px rgb(24 32 51 / 18%),
-    inset 0 1px rgb(255 255 255 / 88%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  backdrop-filter: blur(20px) saturate(140%);
+  padding: 0.65rem;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--glass-thick);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  backdrop-filter: blur(24px) saturate(170%);
 }
 .update-mark {
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
   color: white;
   background: var(--accent);
-  font-weight: 800;
 }
-.update-card div {
+.update-mark svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+}
+.update-copy {
   display: grid;
+  min-width: 0;
   line-height: 1.25;
 }
-.update-card strong {
-  font-size: 0.78rem;
+.update-copy > span {
+  color: var(--accent);
+  font-size: 0.54rem;
+  font-weight: 780;
+  letter-spacing: 0.1em;
 }
-.update-card small {
+.update-copy strong {
+  font-size: 0.8rem;
+}
+.update-copy small {
+  overflow: hidden;
   color: var(--muted);
   font-size: 0.65rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .update-card button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   min-height: 38px;
   padding-inline: 0.7rem;
   font-size: 0.7rem;
+}
+.update-button-mark {
+  display: none;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgb(255 255 255 / 45%);
+  border-top-color: white;
+  border-radius: 50%;
+}
+.update-card.applying::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  border-radius: 999px;
+  content: '';
+  background: var(--accent);
+  transform-origin: left;
+  animation: update-progress 620ms ease-out both;
+}
+.update-card.applying .update-button-mark {
+  display: block;
+  animation: update-spin 0.7s linear infinite;
 }
 @media (prefers-reduced-motion: no-preference) {
   .banner-enter {
@@ -111,8 +152,19 @@
     animation: banner-leave var(--duration-fast) ease both;
     pointer-events: none;
   }
-  .banner-enter .update-mark {
-    animation: update-mark-enter 420ms var(--ease) 80ms both;
+  .update-enter {
+    animation: update-enter 460ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+  .update-leave {
+    animation: update-leave 240ms ease-in both;
+    pointer-events: none;
+  }
+  .update-enter .update-mark {
+    animation: update-mark-enter 520ms var(--ease) 90ms both;
+  }
+  .update-enter .update-copy,
+  .update-enter button {
+    animation: update-content-enter 380ms var(--ease) 110ms both;
   }
 }
 
@@ -131,6 +183,53 @@
 @keyframes update-mark-enter {
   from {
     opacity: 0;
-    transform: translateY(6px) rotate(-12deg) scale(0.82);
+    transform: translateY(8px) rotate(-18deg) scale(0.78);
+  }
+}
+@keyframes update-enter {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+}
+@keyframes update-leave {
+  to {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+@keyframes update-content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}
+@keyframes update-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+@keyframes update-progress {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@media (max-width: 399px) {
+  .update-card {
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    gap: 0.55rem;
+    padding: 0.55rem;
+  }
+  .update-mark {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+  .update-copy small {
+    max-width: 11rem;
+  }
+  .update-card button {
+    padding-inline: 0.6rem;
   }
 }

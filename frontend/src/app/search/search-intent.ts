@@ -39,7 +39,16 @@ export interface SearchIntent {
 export const fuelOptions = ['Benzină', 'Diesel', 'Hybrid', 'Electricitate', 'Gaz'] as const;
 export const transmissionOptions = ['Automată', 'Mecanică', 'Variator', 'Robotizată'] as const;
 export const drivetrainOptions = ['Din față', 'Din spate', '4x4'] as const;
-export const bodyTypeOptions = ['Sedan', 'SUV', 'Crossover', 'Hatchback', 'Universal', 'Coupe', 'Minivan'] as const;
+export const bodyTypeOptions = [
+  'Sedan',
+  'SUV',
+  'Crossover',
+  'Hatchback',
+  'Universal',
+  'Coupe',
+  'Minivan',
+  'Microvan',
+] as const;
 export const originCountryOptions: readonly VehicleOrigin[] = [
   'China',
   'Coreea',
@@ -48,7 +57,8 @@ export const originCountryOptions: readonly VehicleOrigin[] = [
   'Zona Euro',
   'Altă',
 ];
-export const storageOptions = [64, 128, 256, 512, 1024, 2048] as const;
+export const storageOptions = [16, 32, 64, 128, 256, 500, 512, 825, 1024, 2048] as const;
+export const latestVehicleYear = new Date().getFullYear() + 1;
 
 const vehicleWords = new Set([
   'autoturism',
@@ -79,7 +89,10 @@ const laptopWords = new Set([
   'asus',
   'ноутбук',
 ]);
+const explicitLaptopWords = new Set(['laptop', 'laptops', 'notebook', 'ultrabook', 'macbook', 'ноутбук']);
 const phoneWords = new Set([
+  'phone',
+  'mobile',
   'telefon',
   'telefonul',
   'smartphone',
@@ -96,6 +109,7 @@ const phoneWords = new Set([
   'телефон',
   'смартфон',
 ]);
+const explicitPhoneWords = new Set(['phone', 'mobile', 'telefon', 'telefonul', 'smartphone', 'телефон', 'смартфон']);
 const tvWords = new Set(['televizor', 'televizoare', 'television', 'smarttv', 'телевизор']);
 const propertyWords = new Set([
   'apartament',
@@ -178,6 +192,7 @@ const bodyTypes: ReadonlyArray<[string, readonly string[]]> = [
   ['Universal', ['wagon', 'estate', 'universal', 'универсал']],
   ['Coupe', ['coupe', 'купе']],
   ['Minivan', ['minivan', 'минивэн']],
+  ['Microvan', ['microvan', 'microbuz compact', 'микровэн']],
 ];
 const registrations: ReadonlyArray<['moldova' | 'other', readonly string[]]> = [
   [
@@ -188,8 +203,12 @@ const registrations: ReadonlyArray<['moldova' | 'other', readonly string[]]> = [
       'numere straine',
       'foreign registration',
       'foreign plates',
+      'vamuit',
+      'vămuit',
+      'customs cleared',
       'иностранная регистрация',
       'иностранные номера',
+      'растаможен',
     ],
   ],
   [
@@ -304,18 +323,23 @@ export function parseSearchIntent(input: string): SearchIntent {
         ? 'realEstate'
         : vehicleMatch
           ? 'vehicle'
-          : words.some((word) => laptopWords.has(word))
+          : words.some((word) => explicitLaptopWords.has(word))
             ? 'laptop'
             : words.some((word) => tvWords.has(word)) || plain.includes('smart tv')
               ? 'tv'
-              : words.some((word) => phoneWords.has(word))
+              : words.some((word) => explicitPhoneWords.has(word))
                 ? 'phone'
-                : 'generic';
+                : words.some((word) => laptopWords.has(word))
+                  ? 'laptop'
+                  : words.some((word) => phoneWords.has(word))
+                    ? 'phone'
+                    : 'generic';
 
-  const yearMatch =
+  const detectedYear =
     kind === 'vehicle'
       ? plain.match(/\b(19[5-9]\d|20[0-3]\d)(?:\s*(?:-|–|—|to|pana la)\s*(19[5-9]\d|20[0-3]\d))?\b/)
       : null;
+  const yearMatch = validVehicleYearMatch(detectedYear) ? detectedYear : null;
   const modelPattern =
     kind === 'iphone'
       ? /\biphone\s*(\d{1,2})(?:\s*(?:-|–|—|to)\s*(\d{1,2}))?\b/
@@ -486,6 +510,12 @@ function matchRange(match: RegExpMatchArray | null): NumberRange {
   if (!match) return { from: null, to: null };
   const from = Number(match[1]);
   return match[2] ? orderedRange(from, Number(match[2])) : { from, to: from };
+}
+
+function validVehicleYearMatch(match: RegExpMatchArray | null): match is RegExpMatchArray {
+  return Boolean(
+    match && Number(match[1]) <= latestVehicleYear && (!match[2] || Number(match[2]) <= latestVehicleYear),
+  );
 }
 
 function storageRange(match: RegExpMatchArray | null): NumberRange {

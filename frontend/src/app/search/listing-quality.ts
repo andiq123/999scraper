@@ -75,6 +75,7 @@ const propertyIdentityFields: ReadonlyArray<keyof Product> = [
   'buildingType',
 ];
 const currentYear = new Date().getFullYear();
+const scoreCache = new WeakMap<Product, number>();
 
 export function isVehicleListing(product: Product): boolean {
   return completed(product, vehicleIdentityFields) >= 2;
@@ -150,6 +151,14 @@ export function listingQuality(product: Product): ListingQuality {
 }
 
 export function listingQualityScore(product: Product): number {
+  const cached = scoreCache.get(product);
+  if (cached !== undefined) return cached;
+  const score = calculateListingQualityScore(product);
+  scoreCache.set(product, score);
+  return score;
+}
+
+function calculateListingQualityScore(product: Product): number {
   if (isWantedListing(product) || isPartsVehicleAd(product)) return 1;
   const profile = qualityProfile(product);
   const words = usefulDescriptionWords(product);
@@ -178,13 +187,32 @@ export function listingQualityScore(product: Product): number {
 }
 
 export function isWantedListing(product: Product): boolean {
-  const offer = fold(product.offerType ?? '');
-  return /\b(cumpar|cumparare|achizitionez|wanted|buying|куплю|купим|покупаю)\b/u.test(offer);
+  return hasPhrase(listingText(product), [
+    'cumpar',
+    'cumparare',
+    'achizitionez',
+    'wanted',
+    'buying',
+    'куплю',
+    'купим',
+    'покупаю',
+  ]);
 }
 
 export function isPartsVehicleAd(product: Product): boolean {
-  const category = fold(product.category ?? '');
-  return /dezmembr|caroserii|piese.{0,20}auto|auto.{0,20}piese|авторазбор|запчаст.{0,20}авто/u.test(category);
+  return /dezmembr|caroserii|piese.{0,20}auto|auto.{0,20}piese|авторазбор|запчаст.{0,20}авто/u.test(
+    listingText(product),
+  );
+}
+
+export function matchesListingCondition(product: Product, expected: 'new' | 'used'): boolean {
+  const explicit = fold(product.condition ?? '').trim();
+  const value = explicit || fold(product.title);
+  const used =
+    hasPhrase(value, ['uzat', 'folosit', 'rulaj', 'used', 'second hand', 'pre owned', 'б у']) ||
+    /подержанн\p{L}*/u.test(value);
+  if (expected === 'used') return used;
+  return !used && (hasPhrase(value, ['nou', 'noua', 'new', 'sigilat', 'sealed']) || /нов\p{L}*/u.test(value));
 }
 
 function qualityProfile(product: Product): QualityProfile {
@@ -195,7 +223,19 @@ function qualityProfile(product: Product): QualityProfile {
 }
 
 function isExchangeListing(product: Product): boolean {
-  return /\b(schimb|exchange|обмен)\b/u.test(fold(product.offerType ?? ''));
+  return hasPhrase(product.offerType ?? '', ['schimb', 'exchange', 'обмен']);
+}
+
+function listingText(product: Product): string {
+  return fold(`${product.offerType ?? ''} ${product.category ?? ''} ${product.title}`);
+}
+
+function hasPhrase(value: string, phrases: readonly string[]): boolean {
+  const searchable = ` ${fold(value)
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()} `;
+  return phrases.some((phrase) => searchable.includes(` ${fold(phrase)} `));
 }
 
 function hasSuspiciousMileage(product: Product): boolean {

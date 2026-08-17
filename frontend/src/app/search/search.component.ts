@@ -32,6 +32,7 @@ import {
   fold,
   fuelOptions,
   generationIn,
+  latestVehicleYear,
   originCountryOptions,
   parseSearchIntent,
   storageIn,
@@ -50,7 +51,7 @@ import {
   type SharedSearchFilters,
 } from './search-url-state';
 import { VINResearchService } from '../vin-research.service';
-import { isPartsVehicleAd, isWantedListing, listingQualityScore } from './listing-quality';
+import { isPartsVehicleAd, isWantedListing, listingQualityScore, matchesListingCondition } from './listing-quality';
 import { SearchAlertService } from '../search-alert.service';
 import { searchFilterChips, type SearchFilterChip } from './search-filter-chips';
 const carNoise = new Set([
@@ -251,6 +252,7 @@ export class SearchComponent implements OnDestroy {
   readonly bodyTypeOptions = bodyTypeOptions;
   readonly originCountryOptions = originCountryOptions;
   readonly storageOptions = storageOptions;
+  readonly vehicleYearMax = latestVehicleYear;
   readonly yearPresets: readonly RangePreset[] = [
     { label: 'Any', from: null, to: null },
     { label: '2010+', from: 2010, to: null },
@@ -292,7 +294,7 @@ export class SearchComponent implements OnDestroy {
   readonly marketCategories = marketCategories;
   readonly searchSuggestions = computed(() => suggestionsFor(this.query(), this.recentSearches.items()));
   readonly deviceTagOptions = computed(() =>
-    this.searchIntent().kind === 'iphone' ? ['pro', 'max', 'plus', 'mini'] : ['slim', 'pro', 'digital', 'disc'],
+    this.searchIntent().kind === 'iphone' ? ['pro', 'max', 'plus', 'mini', 'air'] : ['slim', 'pro', 'digital', 'disc'],
   );
 
   readonly rawProducts = signal<Product[]>([]);
@@ -1713,7 +1715,7 @@ export class SearchComponent implements OnDestroy {
         !inRange(screenValue(product), this.screenFrom(), this.screenTo())
       )
         return false;
-      if (this.condition().length && !this.condition().some((value) => conditionMatches(product.condition, value)))
+      if (this.condition().length && !this.condition().some((value) => matchesListingCondition(product, value)))
         return false;
       if (this.qualityMin() && listingQualityScore(product) < this.qualityMin()) return false;
       if (this.excludeNegotiable() && product.price == null) return false;
@@ -1747,7 +1749,7 @@ export class SearchComponent implements OnDestroy {
 }
 
 function tokens(value: string): string[] {
-  return value.toLocaleLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+  return fold(value).match(/[\p{L}\p{N}]+/gu) ?? [];
 }
 function productPriceLabel(product: Product): string {
   if (product.price == null) return product.priceString || 'Price negotiable';
@@ -1873,7 +1875,7 @@ function categoryMatches(product: Product, intent: SearchIntent): boolean {
     return (
       category.includes('telefon') ||
       Boolean(product.deviceModel || (product.brand && product.condition)) ||
-      Boolean(product.condition && /\b(telefon|smartphone|galaxy|redmi|pixel)\b/.test(title))
+      Boolean(product.condition && /\b(phone|mobile|telefon|smartphone|galaxy|redmi|pixel)\b/.test(title))
     );
   if (intent.kind === 'tv')
     return (
@@ -1953,10 +1955,6 @@ function screenValue(product: Product): number | null {
     (product.screen ? value.match(/\d{1,3}(?:[.,]\d)?/) : null);
   return match ? Number((match[1] ?? match[0]).replace(',', '.')) : null;
 }
-function conditionMatches(value: string | undefined, condition: 'new' | 'used'): boolean {
-  const normalized = fold(value ?? '');
-  return condition === 'new' ? normalized.includes('nou') : normalized.includes('uzat') || normalized.includes('rulaj');
-}
 function offerTypeMatches(value: string | undefined, mode: PropertyListingMode | null): boolean {
   if (!mode) return true;
   const normalized = fold(value ?? '');
@@ -1989,16 +1987,20 @@ function facetValues(
 }
 function registrationMatches(value: string | undefined, registration: 'moldova' | 'other'): boolean {
   const normalized = fold(value ?? '');
-  return registration === 'moldova' ? normalized === 'republica moldova' : normalized === 'alta';
+  return registration === 'moldova'
+    ? normalized === 'republica moldova'
+    : Boolean(normalized && normalized !== 'republica moldova');
 }
 function choiceMatches(value: string | undefined, expected: string): boolean {
   const actual = fold(value ?? '');
   const choice = fold(expected);
-  return choice === 'gaz'
-    ? actual.includes('gaz')
-    : choice === 'hybrid'
-      ? actual.includes('hybrid')
-      : actual.includes(choice);
+  return choice === 'benzina'
+    ? actual.includes('benzina') && !actual.includes('hybrid')
+    : choice === 'gaz'
+      ? actual.includes('gaz')
+      : choice === 'hybrid'
+        ? actual.includes('hybrid')
+        : actual.includes(choice);
 }
 function requiredQueryWords(value: string, intent: SearchIntent): string[] {
   const ignoredByKind: Partial<Record<SearchKind, string[]>> = {
@@ -2016,7 +2018,7 @@ function requiredQueryWords(value: string, intent: SearchIntent): string[] {
     iphone: ['iphone'],
     playstation: ['playstation'],
     laptop: ['laptop', 'laptops', 'notebook', 'ultrabook', 'ноутбук'],
-    phone: ['telefon', 'smartphone', 'телефон', 'смартфон'],
+    phone: ['phone', 'mobile', 'telefon', 'smartphone', 'телефон', 'смартфон'],
     tv: ['tv', 'televizor', 'televizoare', 'television', 'телевизор'],
     realEstate: [
       'apartament',

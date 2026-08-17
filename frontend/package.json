@@ -6,6 +6,7 @@
     "ng": "ng",
     "start": "node scripts/start.mjs",
     "build": "node scripts/build.mjs",
+    "check:pwa": "node scripts/check-pwa-config.mjs",
     "check:search-config": "node --experimental-strip-types scripts/check-search-filter-config.mjs",
     "watch": "node scripts/build.mjs --watch --configuration development",
     "format": "prettier --write \"src/**/*.{ts,html,scss,css}\" \"scripts/*.mjs\" \"*.json\"",

@@ -268,10 +268,13 @@ function isSearchState(value: unknown): value is SearchState {
     typeof state.onlyWithPhotos === 'boolean' &&
     (typeof state.onlyWithVIN === 'boolean' || state.onlyWithVIN === undefined) &&
     typeof state.searched === 'boolean' &&
-    typeof state.updatedAt === 'number' &&
-    typeof state.loadedPages === 'number' &&
-    typeof state.totalPages === 'number' &&
-    typeof state.scrollY === 'number' &&
+    Number.isFinite(state.updatedAt) &&
+    Number.isInteger(state.loadedPages) &&
+    state.loadedPages! >= 0 &&
+    Number.isInteger(state.totalPages) &&
+    state.totalPages! >= 0 &&
+    Number.isFinite(state.scrollY) &&
+    state.scrollY! >= 0 &&
     [
       state.yearFrom,
       state.yearTo,
@@ -318,7 +321,7 @@ function isSearchState(value: unknown): value is SearchState {
 }
 
 function isNullableNumber(value: unknown): value is number | null {
-  return value === null || typeof value === 'number';
+  return value === null || (typeof value === 'number' && Number.isFinite(value));
 }
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string');

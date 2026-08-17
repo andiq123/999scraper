@@ -10,12 +10,19 @@
     routerLinkActive="active"
     ariaCurrentWhenActive="page"
   >
-    <span class="tab-icon search-icon" aria-hidden="true"></span>
+    <svg class="tab-icon" aria-hidden="true" viewBox="0 0 24 24">
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="m15.5 15.5 4 4" />
+    </svg>
     <span>Search</span>
   </a>
   @if (auth.session()) {
     <a routerLink="/saved" routerLinkActive="active" ariaCurrentWhenActive="page">
-      <span class="tab-icon heart-icon" aria-hidden="true">♡</span>
+      <svg class="tab-icon" aria-hidden="true" viewBox="0 0 24 24">
+        <path
+          d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"
+        />
+      </svg>
       <span>Saved</span>
     </a>
   }
@@ -25,7 +32,10 @@
     ariaCurrentWhenActive="page"
     [attr.aria-label]="auth.session() ? 'Account' : 'Log in'"
   >
-    <span class="tab-icon account-icon" aria-hidden="true"></span>
+    <svg class="tab-icon" aria-hidden="true" viewBox="0 0 24 24">
+      <circle cx="12" cy="8" r="3.25" />
+      <path d="M5.5 20v-1.5A5.5 5.5 0 0 1 11 13h2a5.5 5.5 0 0 1 5.5 5.5V20Z" />
+    </svg>
     <span>{{ auth.ready() && !auth.session() ? 'Log in' : 'Account' }}</span>
   </a>
 </nav>

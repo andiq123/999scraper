@@ -1,5 +1,5 @@
 .history {
-  width: min(100% - 0.75rem, 760px);
+  max-width: 760px;
   margin: 1.5rem auto max(4rem, calc(2rem + env(safe-area-inset-bottom)));
 }
 header {
@@ -50,7 +50,7 @@ time {
 @media (hover: hover) and (pointer: fine) {
   li:hover {
     border-color: rgb(var(--accent-rgb) / 18%);
-    box-shadow: var(--shadow-md);
+    background: var(--surface-soft);
   }
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -58,12 +58,11 @@ time {
     animation: item-enter 0.32s var(--ease) both;
     transition:
       border-color var(--duration-fast) ease,
-      box-shadow var(--duration-fast) ease;
+      background-color var(--duration-fast) ease;
   }
 }
 @media (min-width: 600px) {
   .history {
-    width: min(760px, calc(100% - 2rem));
     margin-top: 2rem;
   }
   header {

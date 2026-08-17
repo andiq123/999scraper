@@ -1,49 +1,42 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
-import { concat, filter, interval, timer } from 'rxjs';
+import { filter, timer } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ToastService } from './toast.service';
+
+const UPDATE_INTERVAL = 6 * 60 * 60 * 1_000;
+const FOREGROUND_CHECK_INTERVAL = 30 * 60 * 1_000;
+const RELOAD_DELAY = 480;
 
 @Injectable({ providedIn: 'root' })
 export class PwaService {
   private readonly updates = inject(SwUpdate);
-  private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
+  private checking = false;
+  private lastCheckedAt = 0;
   readonly online = signal(typeof navigator === 'undefined' || navigator.onLine);
-  readonly installed = signal(false);
-  readonly installAvailable = signal(false);
-  readonly serviceWorkerEnabled = signal(this.updates.isEnabled);
   readonly updateReady = signal(false);
   readonly applyingUpdate = signal(false);
-  readonly updateMessage = signal('A newer version is ready. Refresh when you’re ready.');
+  readonly updateMessage = signal('Restart once to use the latest version.');
 
   constructor() {
     if (typeof window === 'undefined') return;
 
-    const standalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
-    const ios =
-      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    this.installed.set(standalone);
-    this.installAvailable.set(!standalone && ios);
-
-    const onInstalled = (): void => {
-      this.installAvailable.set(false);
-      this.installed.set(true);
-      this.toast.success('999 Search is installed.');
+    const onOnline = (): void => {
+      this.online.set(true);
+      void this.checkForUpdate(true);
     };
-    const onOnline = (): void => this.online.set(true);
     const onOffline = (): void => this.online.set(false);
+    const onVisible = (): void => {
+      if (document.visibilityState === 'visible') void this.checkForUpdate();
+    };
 
-    window.addEventListener('appinstalled', onInstalled);
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
+    document.addEventListener('visibilitychange', onVisible);
     this.destroyRef.onDestroy(() => {
-      window.removeEventListener('appinstalled', onInstalled);
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
+      document.removeEventListener('visibilitychange', onVisible);
     });
 
     if (this.updates.isEnabled) {
@@ -52,34 +45,42 @@ export class PwaService {
           filter((event): event is VersionReadyEvent => event.type === 'VERSION_READY'),
           takeUntilDestroyed(this.destroyRef),
         )
-        .subscribe(() => this.showUpdate('A newer version is ready. Refresh when you’re ready.'));
+        .subscribe(() => this.showUpdate('Restart once to use the latest version.'));
       this.updates.unrecoverable
         .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe(() => this.showUpdate('This version needs a refresh to recover.'));
+        .subscribe(() => this.showUpdate('Restart to restore the saved app.'));
 
-      // The worker checks on navigation too. A light six-hour poll keeps a long-open app fresh
-      // without adding work to the initial render or repeatedly waking the browser.
-      concat(timer(15_000), interval(6 * 60 * 60 * 1_000))
+      // Navigation already triggers checks; this covers long-lived installed sessions.
+      timer(15_000, UPDATE_INTERVAL)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(() => void this.checkForUpdate());
     }
   }
 
-  install(): void {
-    this.toast.success('In Safari, tap Share, then “Add to Home Screen”.');
-  }
-
   reloadForUpdate(): void {
     if (this.applyingUpdate()) return;
     this.applyingUpdate.set(true);
-    requestAnimationFrame(() => window.location.reload());
+    window.setTimeout(() => window.location.reload(), RELOAD_DELAY);
   }
 
-  private async checkForUpdate(): Promise<void> {
+  private async checkForUpdate(force = false): Promise<void> {
+    const now = Date.now();
+    if (
+      !this.updates.isEnabled ||
+      !this.online() ||
+      this.checking ||
+      (!force && now - this.lastCheckedAt < FOREGROUND_CHECK_INTERVAL)
+    )
+      return;
+
+    this.checking = true;
+    this.lastCheckedAt = now;
     try {
       await this.updates.checkForUpdate();
     } catch {
       // An update check is opportunistic; the existing app remains usable offline.
+    } finally {
+      this.checking = false;
     }
   }
 

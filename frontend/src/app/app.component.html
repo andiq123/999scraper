@@ -19,15 +19,22 @@
 @if (pwa.updateReady()) {
   <aside
     class="update-card alert"
-    animate.enter="banner-enter"
-    animate.leave="banner-leave"
+    animate.enter="update-enter"
+    animate.leave="update-leave"
+    [class.applying]="pwa.applyingUpdate()"
+    [attr.aria-busy]="pwa.applyingUpdate()"
     role="status"
     aria-live="polite"
     aria-atomic="true"
   >
-    <span class="update-mark" aria-hidden="true">↑</span>
-    <div>
-      <strong>Update ready</strong><small>{{ pwa.updateMessage() }}</small>
+    <span class="update-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <path d="M20 7v5a8 8 0 1 1-2.3-5.7L20 8.5" />
+        <path d="M20 3v5.5h-5.5" />
+      </svg>
+    </span>
+    <div class="update-copy">
+      <span>APP UPDATE</span><strong>New version ready</strong><small>{{ pwa.updateMessage() }}</small>
     </div>
     <button
       class="btn btn-primary btn-sm"
@@ -35,7 +42,8 @@
       (click)="pwa.reloadForUpdate()"
       [disabled]="pwa.applyingUpdate()"
     >
-      {{ pwa.applyingUpdate() ? 'Updating…' : 'Refresh now' }}
+      <span class="update-button-mark" aria-hidden="true"></span>
+      {{ pwa.applyingUpdate() ? 'Restarting…' : 'Update now' }}
     </button>
   </aside>
 }

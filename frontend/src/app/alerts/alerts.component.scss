@@ -1,5 +1,5 @@
 .alerts-page {
-  width: min(100% - 1rem, 820px);
+  max-width: 920px;
   margin-top: 1rem;
   margin-bottom: 2rem;
 }
@@ -85,7 +85,7 @@
 }
 .alert-item.has-changes {
   border-color: rgb(var(--success-rgb) / 30%);
-  background: linear-gradient(135deg, rgb(var(--success-rgb) / 4%), var(--surface-solid) 45%);
+  background: color-mix(in srgb, var(--surface-solid) 94%, var(--success));
 }
 .bell {
   display: grid;
@@ -314,7 +314,6 @@
 }
 @media (max-width: 599px) {
   .alerts-page {
-    width: calc(100% - 0.75rem);
     margin-top: 0.6rem;
   }
   .page-heading {

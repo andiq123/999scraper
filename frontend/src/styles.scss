@@ -1,10 +1,11 @@
 :root {
   color-scheme: light;
-  --canvas: #f2f2f7;
-  --canvas-deep: #f2f2f7;
-  --surface: rgb(255 255 255 / 92%);
+  --canvas: #f5f5f7;
+  --canvas-deep: #f2f2f5;
+  --surface: #fff;
   --surface-solid: #fff;
-  --surface-soft: #f2f2f7;
+  --surface-soft: rgb(120 120 128 / 8%);
+  --surface-selected: rgb(var(--accent-rgb) / 10%);
   --surface-raised: #fff;
   --text: #1c1c1e;
   --muted: #636366;
@@ -23,13 +24,17 @@
   --success-rgb: 52 199 89;
   --success: rgb(var(--success-rgb));
   --focus: rgb(var(--accent-rgb) / 18%);
+  --glass: rgb(248 248 252 / 72%);
+  --glass-thick: rgb(250 250 252 / 92%);
+  --glass-border: rgb(255 255 255 / 66%);
+  --glass-shadow: 0 8px 32px rgb(24 24 27 / 12%);
   --shadow-sm: none;
   --shadow-md: none;
   --shadow-lg: none;
-  --radius-xs: 9px;
-  --radius-sm: 12px;
-  --radius-md: 17px;
-  --radius-lg: 23px;
+  --radius-xs: 10px;
+  --radius-sm: 14px;
+  --radius-md: 20px;
+  --radius-lg: 26px;
   --control-height: 44px;
   --page-width: 1540px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -144,12 +149,14 @@ select {
   .search-page .search-form {
     position: sticky;
     top: max(0.4rem, env(safe-area-inset-top));
-    background: var(--surface-solid);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
+    border-color: var(--glass-border);
+    background: var(--glass-thick);
+    box-shadow: var(--glass-shadow) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(170%);
+    backdrop-filter: blur(24px) saturate(170%);
   }
   .search-page.search-page.search-page {
-    width: calc(100% - 1.5rem);
+    width: calc(100% - 2rem);
   }
   .search-page .smart-prompt .smart-controls {
     gap: 0.65rem;
@@ -235,7 +242,7 @@ select {
     padding: 0;
     border: 0;
     border-radius: 0;
-    background: rgb(20 29 45 / 38%);
+    background: rgb(28 28 30 / 30%);
     cursor: default;
     -webkit-backdrop-filter: blur(5px) saturate(85%);
     backdrop-filter: blur(5px) saturate(85%);
@@ -250,10 +257,12 @@ select {
     margin: 0;
     overflow-x: hidden;
     overflow-y: auto;
-    border: 1px solid rgb(255 255 255 / 72%);
-    border-radius: 24px 24px 0 0;
-    background: var(--surface-solid);
-    box-shadow: none;
+    border: 1px solid var(--glass-border);
+    border-radius: 28px 28px 0 0;
+    background: var(--glass-thick);
+    box-shadow: var(--glass-shadow);
+    -webkit-backdrop-filter: blur(28px) saturate(170%);
+    backdrop-filter: blur(28px) saturate(170%);
     overscroll-behavior: contain;
     transform: none;
   }
@@ -273,7 +282,7 @@ select {
     min-height: 58px;
     padding-block: 0.5rem;
     border-bottom: 1px solid var(--line);
-    background: rgb(255 255 255 / 94%);
+    background: var(--glass-thick);
     -webkit-backdrop-filter: blur(20px) saturate(150%);
     backdrop-filter: blur(20px) saturate(150%);
   }
@@ -403,7 +412,8 @@ summary:focus-visible {
 }
 .btn {
   min-height: var(--control-height);
-  border-color: transparent;
+  padding-inline: 0.9rem;
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   font-size: 0.76rem;
   font-weight: 720;
@@ -416,19 +426,19 @@ summary:focus-visible {
   box-shadow: none;
 }
 .btn-ghost {
-  border-color: var(--line);
+  border-color: transparent;
   color: var(--muted);
   background: var(--surface-soft);
   box-shadow: none;
 }
 .btn-soft.btn-primary {
-  border-color: rgb(var(--accent-rgb) / 12%);
+  border-color: transparent;
   color: var(--accent);
-  background: var(--accent-soft);
+  background: var(--surface-selected);
   box-shadow: none;
 }
 .btn-soft.btn-error {
-  border-color: rgb(var(--danger-rgb) / 12%);
+  border-color: transparent;
   color: var(--danger);
   background: rgb(var(--danger-rgb) / 7%);
   box-shadow: none;
@@ -440,7 +450,7 @@ summary:focus-visible {
 }
 .btn:disabled {
   cursor: not-allowed;
-  opacity: 0.48;
+  opacity: 0.52;
   box-shadow: none;
 }
 .toggle {
@@ -526,15 +536,15 @@ summary:focus-visible {
     box-shadow: none;
   }
   .btn-soft.btn-primary:not(:disabled):hover {
-    border-color: rgb(var(--accent-rgb) / 20%);
+    border-color: transparent;
     color: var(--accent-hover);
-    background: rgb(var(--accent-rgb) / 13%);
+    background: rgb(var(--accent-rgb) / 14%);
     box-shadow: none;
   }
   .btn-ghost:not(:disabled):hover {
-    border-color: var(--line-strong);
+    border-color: transparent;
     color: var(--text);
-    background: var(--surface-solid);
+    background: rgb(120 120 128 / 12%);
   }
   .btn-soft.btn-error:not(:disabled):hover {
     border-color: rgb(var(--danger-rgb) / 18%);
@@ -560,7 +570,7 @@ summary:focus-visible {
   height: 44px;
   border-radius: 14px;
   color: white;
-  background: linear-gradient(145deg, #4798ff, var(--accent) 58%, #1558d6);
+  background: var(--accent);
   box-shadow: none;
   font-size: 0.86rem;
 }
@@ -572,9 +582,6 @@ summary:focus-visible {
   .card,
   .btn,
   button,
-  [popover],
-  dialog > *,
-  app-nav nav,
   app-nav a,
   .search-suggestions,
   .smart-icon,
@@ -589,6 +596,10 @@ summary:focus-visible {
   .account-status > span
 ) {
   box-shadow: none !important;
+}
+
+:where([popover], dialog > *, app-nav nav, .update-card) {
+  box-shadow: var(--glass-shadow) !important;
 }
 
 @media (min-width: 700px) and (hover: hover) and (pointer: fine) {
@@ -607,13 +618,24 @@ summary:focus-visible {
 }
 
 .page-shell {
-  width: min(100% - 1.25rem, var(--page-width));
+  width: min(100% - 2rem, var(--page-width));
   margin-inline: auto;
 }
 @media (max-width: 699px) {
   .page-shell {
-    width: calc(100% - 1.5rem);
+    width: calc(100% - 2rem);
   }
+}
+.card {
+  border: 1px solid var(--line);
+  background: var(--surface-solid);
+}
+.route-page {
+  margin-bottom: max(2rem, env(safe-area-inset-bottom));
+}
+.page-heading,
+.account-heading {
+  margin-bottom: 1rem;
 }
 .page-heading h1 {
   color: var(--text);
@@ -632,6 +654,7 @@ summary:focus-visible {
 .page-heading > p:last-child,
 .page-heading > span {
   color: var(--muted);
+  font-size: 0.9rem;
 }
 .empty-state {
   border: 1px dashed var(--line-strong);
@@ -892,6 +915,27 @@ summary:focus-visible {
   }
 }
 
+@media (max-width: 699px) {
+  .btn-sm {
+    min-height: 44px;
+  }
+  .page-heading h1,
+  .account-heading h1 {
+    font-size: 2rem;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --glass: rgb(255 255 255 / 94%);
+    --glass-thick: #fff;
+    --glass-border: var(--line-strong);
+  }
+  .card {
+    border-color: var(--line-strong);
+  }
+}
+
 @media (display-mode: standalone) {
   a,
   button {
@@ -922,7 +966,7 @@ summary:focus-visible {
   min-height: 30px;
   padding: 0.25rem 0.5rem;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: 12px;
   color: var(--muted);
   background: rgb(255 255 255 / 72%);
   font-size: 0.66rem;
@@ -952,7 +996,7 @@ summary:focus-visible {
   min-height: 30px;
   padding: 0.25rem 0.5rem;
   border: 1px solid rgb(13 148 136 / 18%);
-  border-radius: 9px;
+  border-radius: 12px;
   color: #087f75;
   background: rgb(13 148 136 / 7%);
   font-size: 0.66rem;
@@ -974,7 +1018,7 @@ summary:focus-visible {
   min-height: 30px;
   padding: 0.25rem 0.5rem;
   border: 1px solid rgb(var(--accent-rgb) / 16%);
-  border-radius: 9px;
+  border-radius: 12px;
   color: var(--accent);
   background: var(--accent-softer);
   font-size: 0.66rem;

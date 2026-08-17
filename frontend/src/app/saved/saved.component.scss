@@ -58,7 +58,7 @@ h1 {
   min-height: 36px;
   padding: 0.38rem 0.65rem;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 999px;
   color: var(--muted);
   background: var(--surface-raised);
   font: inherit;
@@ -71,12 +71,13 @@ h1 {
   font-size: 0.65rem;
 }
 .saved-origin-filter [role='group'] button.active {
-  border-color: var(--accent);
-  color: white;
-  background: var(--accent);
+  border-color: rgb(var(--accent-rgb) / 14%);
+  color: var(--accent);
+  background: var(--surface-selected);
 }
 .saved-origin-filter [role='group'] button.active small {
-  color: rgb(255 255 255 / 76%);
+  color: currentColor;
+  opacity: 0.72;
 }
 .saved-origin-filter [role='group'] button:disabled {
   opacity: 0.48;
@@ -91,7 +92,7 @@ h1 {
   grid-column: 1 / -1;
   padding: 2rem 1rem;
   border: 1px dashed var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   text-align: center;
 }
 .filtered-empty h2 {

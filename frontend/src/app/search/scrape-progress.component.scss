@@ -11,7 +11,7 @@
   overflow: hidden;
   border: 1px solid rgb(var(--accent-rgb) / 14%);
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, rgb(255 255 255 / 98%), rgb(var(--accent-rgb) / 4%));
+  background: var(--surface-solid);
   box-shadow: var(--shadow-sm);
 }
 
@@ -106,7 +106,7 @@ button > span {
   width: var(--scrape-progress);
   min-width: 8px;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--accent), #4b8bff);
+  background: var(--accent);
 }
 .indeterminate .progress-track i {
   width: 34%;

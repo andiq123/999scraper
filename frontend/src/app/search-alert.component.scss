@@ -17,7 +17,7 @@
   place-items: center;
 }
 .alert-dialog::backdrop {
-  background: rgb(20 29 45 / 48%);
+  background: rgb(28 28 30 / 30%);
   -webkit-backdrop-filter: blur(7px) saturate(85%);
   backdrop-filter: blur(7px) saturate(85%);
   animation: alert-backdrop 180ms ease both;
@@ -28,10 +28,11 @@
   width: min(100%, 520px);
   max-height: min(88dvh, 760px);
   padding: 1.25rem;
-  border: 1px solid rgb(255 255 255 / 72%);
-  border-radius: 26px;
-  background: var(--surface-solid);
-  box-shadow: 0 28px 90px rgb(16 24 40 / 28%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--glass-thick);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  backdrop-filter: blur(28px) saturate(170%);
   overflow-y: auto;
   overscroll-behavior: contain;
   animation: alert-enter 260ms var(--ease) both;
@@ -64,8 +65,7 @@ header p {
   height: 46px;
   border-radius: 15px;
   color: white;
-  background: linear-gradient(145deg, #2563eb, #4f7df0);
-  box-shadow: 0 10px 24px rgb(var(--accent-rgb) / 24%);
+  background: var(--accent);
 }
 .alert-icon svg,
 .subscribe svg,

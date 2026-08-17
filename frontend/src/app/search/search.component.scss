@@ -1,6 +1,6 @@
 .search-page {
-  width: min(100% - 1rem, var(--page-width));
-  margin: 0.45rem auto calc(2rem + env(safe-area-inset-bottom));
+  width: min(100% - 2rem, var(--page-width));
+  margin: 1rem auto calc(2rem + env(safe-area-inset-bottom));
 }
 .search-form {
   position: relative;
@@ -8,30 +8,45 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: stretch;
-  gap: 0.25rem;
-  padding: 0.25rem;
-  border-radius: 14px;
-  box-shadow: var(--shadow-md);
+  gap: 0.2rem;
+  padding: 0.25rem 0.3rem;
+  border-radius: var(--radius-md);
+}
+.search-form:focus-within {
+  border-color: rgb(var(--accent-rgb) / 24%);
+  box-shadow: 0 0 0 3px var(--focus) !important;
 }
 .search-form input {
   width: 100%;
   min-width: 0;
-  min-height: 44px;
-  padding: 0.5rem 0.6rem;
+  min-height: 46px;
+  padding: 0.55rem 0.7rem;
   border: 0;
   background: transparent;
   font-size: 0.92rem;
+}
+.search-form input:focus-visible {
+  outline: 0;
 }
 .search-form input::placeholder {
   color: var(--subtle);
 }
 .search-form button {
-  min-height: 44px;
-  padding: 0.5rem 0.72rem;
-  border: 0;
-  border-radius: 10px;
+  min-height: 40px;
+  align-self: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-sm);
   font-weight: 730;
   cursor: pointer;
+}
+.search-submit svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.9;
 }
 .search-suggestions {
   position: absolute;
@@ -96,7 +111,7 @@
   padding: 0;
   border-color: rgb(var(--accent-rgb) / 14%);
   border-radius: 15px;
-  background: linear-gradient(145deg, rgb(250 252 255 / 97%), rgb(241 246 255 / 94%));
+  background: var(--surface-solid);
 }
 .smart-prompt > summary {
   display: grid;
@@ -132,9 +147,8 @@
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  color: white;
-  background: var(--accent);
-  box-shadow: 0 6px 14px rgb(var(--accent-rgb) / 20%);
+  color: var(--accent);
+  background: var(--surface-selected);
 }
 .smart-copy {
   display: grid;
@@ -153,10 +167,10 @@
 }
 .refine-label {
   padding: 0.24rem 0.48rem;
-  border: 1px solid rgb(var(--accent-rgb) / 9%);
+  border: 0;
   border-radius: 999px;
   color: var(--accent);
-  background: rgb(255 255 255 / 68%);
+  background: var(--surface-selected);
   font-size: 0.63rem;
   font-weight: 700;
   white-space: nowrap;
@@ -231,15 +245,16 @@
   border: 0;
   border-radius: 10px;
   color: var(--muted);
-  background: var(--surface-raised);
+  background: var(--surface-soft);
   font-size: 0.68rem;
   font-weight: 680;
   cursor: pointer;
   scroll-snap-align: start;
 }
 .choice-chips button.active {
-  color: white;
-  background: var(--accent);
+  color: var(--accent);
+  background: var(--surface-selected);
+  box-shadow: inset 0 0 0 1px rgb(var(--accent-rgb) / 12%);
 }
 .range-error {
   color: var(--danger);
@@ -374,9 +389,9 @@
   cursor: pointer;
 }
 .budget-presets button.active {
-  color: white;
-  background: var(--accent);
-  box-shadow: 0 5px 12px rgb(var(--accent-rgb) / 18%);
+  color: var(--accent);
+  background: var(--surface-selected);
+  box-shadow: inset 0 0 0 1px rgb(var(--accent-rgb) / 12%);
 }
 .dual-range {
   --from: 0%;
@@ -803,8 +818,8 @@
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  color: white;
-  background: var(--accent);
+  color: var(--accent);
+  background: var(--surface-selected);
   font-size: 1rem;
 }
 .resume-search > span:nth-child(2) {
@@ -948,7 +963,7 @@
   .search-form button {
     min-height: 46px;
     padding: 0.58rem 0.9rem;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
   }
   .workspace {
     gap: 0.7rem;
@@ -1025,9 +1040,6 @@
       transform var(--duration) var(--ease),
       border-color var(--duration-fast) ease;
   }
-  .choice-chips button.active {
-    box-shadow: 0 5px 12px rgb(var(--accent-rgb) / 18%);
-  }
   .dual-range,
   .dual-range input::-webkit-slider-thumb {
     transition:
@@ -1055,6 +1067,5 @@
   }
   .resume-search:hover {
     border-color: rgb(var(--accent-rgb) / 24%);
-    box-shadow: var(--shadow-sm);
   }
 }

@@ -17,7 +17,7 @@
   place-items: center;
 }
 .vin-dialog::backdrop {
-  background: rgb(18 27 43 / 38%);
+  background: rgb(28 28 30 / 30%);
   -webkit-backdrop-filter: blur(5px);
   backdrop-filter: blur(5px);
 }
@@ -25,12 +25,11 @@
   width: min(880px, 100%);
   max-height: min(88dvh, 900px);
   overflow-y: auto;
-  border: 1px solid rgb(255 255 255 / 78%);
-  border-radius: 24px;
-  background: rgb(248 250 253 / 97%);
-  box-shadow: 0 34px 90px rgb(16 24 40 / 28%);
-  -webkit-backdrop-filter: blur(28px) saturate(150%);
-  backdrop-filter: blur(28px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--glass-thick);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  backdrop-filter: blur(28px) saturate(170%);
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
 }
@@ -44,7 +43,7 @@
   gap: 0.7rem;
   padding: 0.85rem 1rem;
   border-bottom: 1px solid var(--line);
-  background: rgb(252 253 255 / 90%);
+  background: var(--glass-thick);
   -webkit-backdrop-filter: blur(20px) saturate(150%);
   backdrop-filter: blur(20px) saturate(150%);
 }
@@ -55,8 +54,7 @@
   height: 44px;
   border-radius: 14px;
   color: white;
-  background: linear-gradient(145deg, #17a99a, #0d9488);
-  box-shadow: 0 8px 20px rgb(13 148 136 / 22%);
+  background: #0d9488;
 }
 .vin-mark svg {
   width: 21px;
@@ -269,8 +267,7 @@
   padding: 0.8rem;
   border: 1px solid rgb(var(--accent-rgb) / 13%);
   border-radius: 16px;
-  background: linear-gradient(145deg, rgb(255 255 255 / 96%), rgb(var(--accent-rgb) / 4%));
-  box-shadow: var(--shadow-sm);
+  background: color-mix(in srgb, var(--surface-solid) 96%, var(--accent));
 }
 .section-heading {
   display: flex;
@@ -366,11 +363,10 @@
   border: 1px solid var(--line);
   border-radius: 15px;
   background: rgb(255 255 255 / 88%);
-  box-shadow: var(--shadow-sm);
 }
 .source-card.record {
   border-color: rgb(13 148 136 / 18%);
-  background: linear-gradient(145deg, rgb(255 255 255 / 96%), rgb(13 148 136 / 5%));
+  background: color-mix(in srgb, var(--surface-solid) 95%, #0d9488);
 }
 .source-top {
   display: grid;
@@ -617,15 +613,12 @@
       color 200ms ease,
       border-color 200ms ease,
       background-color 200ms ease,
-      box-shadow 260ms var(--ease),
-      transform 220ms var(--ease);
+      background-color 200ms ease;
   }
 }
 @media (hover: hover) and (pointer: fine) {
   .source-card:hover {
     border-color: rgb(var(--accent-rgb) / 18%);
-    box-shadow: 0 10px 26px rgb(23 32 51 / 8%);
-    transform: translateY(-1px);
   }
   .source-card.record:hover {
     border-color: rgb(13 148 136 / 28%);
@@ -647,7 +640,7 @@
     width: 100%;
     max-height: 94dvh;
     border-width: 1px 0 0;
-    border-radius: 24px 24px 0 0;
+    border-radius: 28px 28px 0 0;
     scrollbar-gutter: auto;
     animation-name: vin-sheet-enter;
   }
