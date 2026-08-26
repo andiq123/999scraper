@@ -1,6 +1,7 @@
 import { matchesVehicleCatalog } from './vehicle-catalog';
 
-export type SearchKind = 'generic' | 'vehicle' | 'iphone' | 'phone' | 'playstation' | 'laptop' | 'tv' | 'realEstate';
+export type SearchKind =
+  'generic' | 'vehicle' | 'evCharger' | 'iphone' | 'phone' | 'playstation' | 'laptop' | 'tv' | 'realEstate';
 
 export interface NumberRange {
   from: number | null;
@@ -74,6 +75,8 @@ const vehicleWords = new Set([
   'автомобиль',
   'автомобили',
 ]);
+const evChargerPattern =
+  /\b(?:evse|wallbox|nacs|chademo|ccs\s*2?|gb\s*\/\s*t|incarcator(?:e)?(?:\s+auto)?|incarcare\s+(?:auto|ev)|stati[ei]\s+de\s+incarcare|charging\s+(?:station|cable)|ev\s+charger|(?:type|tip)\s*[12])\b/u;
 const laptopWords = new Set([
   'laptop',
   'laptops',
@@ -314,6 +317,7 @@ export function parseSearchIntent(input: string): SearchIntent {
   const original = input.trim();
   const plain = fold(original);
   const words = tokens(plain);
+  const evChargerMatch = evChargerPattern.test(plain);
   const vehicleMatch = words.some((word) => vehicleWords.has(word)) || matchesVehicleCatalog(plain, words);
   const kind: SearchKind = words.includes('iphone')
     ? 'iphone'
@@ -321,19 +325,21 @@ export function parseSearchIntent(input: string): SearchIntent {
       ? 'playstation'
       : words.some((word) => propertyWords.has(word))
         ? 'realEstate'
-        : vehicleMatch
-          ? 'vehicle'
-          : words.some((word) => explicitLaptopWords.has(word))
-            ? 'laptop'
-            : words.some((word) => tvWords.has(word)) || plain.includes('smart tv')
-              ? 'tv'
-              : words.some((word) => explicitPhoneWords.has(word))
-                ? 'phone'
-                : words.some((word) => laptopWords.has(word))
-                  ? 'laptop'
-                  : words.some((word) => phoneWords.has(word))
-                    ? 'phone'
-                    : 'generic';
+        : evChargerMatch
+          ? 'evCharger'
+          : vehicleMatch
+            ? 'vehicle'
+            : words.some((word) => explicitLaptopWords.has(word))
+              ? 'laptop'
+              : words.some((word) => tvWords.has(word)) || plain.includes('smart tv')
+                ? 'tv'
+                : words.some((word) => explicitPhoneWords.has(word))
+                  ? 'phone'
+                  : words.some((word) => laptopWords.has(word))
+                    ? 'laptop'
+                    : words.some((word) => phoneWords.has(word))
+                      ? 'phone'
+                      : 'generic';
 
   const detectedYear =
     kind === 'vehicle'

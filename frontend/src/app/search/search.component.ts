@@ -205,6 +205,7 @@ export class SearchComponent implements OnDestroy {
   readonly excludeNegotiable = signal(false);
   readonly onlyWithPhotos = signal(false);
   readonly onlyWithVIN = signal(false);
+  readonly categories = signal<string[]>([]);
   readonly excludedWords = signal<string[]>([]);
   readonly excludedWord = signal('');
   readonly queryExclusions = signal<string[]>([]);
@@ -312,6 +313,9 @@ export class SearchComponent implements OnDestroy {
   readonly propertySectorOptions = computed(() =>
     facetValues(this.rawProducts(), (product) => product.sector, chisinauSectors),
   );
+  readonly categoryOptions = computed(() =>
+    countedFacetValues(this.rawProducts(), (product) => product.category, this.categories()),
+  );
   readonly propertyStateOptions = computed(() => facetValues(this.rawProducts(), (product) => product.propertyState));
   readonly buildingTypeOptions = computed(() => facetValues(this.rawProducts(), (product) => product.buildingType));
   readonly loading = signal(false);
@@ -359,6 +363,7 @@ export class SearchComponent implements OnDestroy {
     () =>
       ({
         vehicle: 'Smart vehicle filters',
+        evCharger: 'Smart EV charger filters',
         iphone: 'Smart iPhone filters',
         phone: 'Smart phone filters',
         playstation: 'Smart PlayStation filters',
@@ -382,6 +387,7 @@ export class SearchComponent implements OnDestroy {
           : '';
       return detail ? `${range} · ${detail}` : range;
     }
+    if (intent.kind === 'evCharger') return 'Chargers, cables and adapters from the correct 999 category.';
     if (intent.kind === 'iphone' || intent.kind === 'playstation')
       return rangeSummary(
         intent.kind === 'iphone' ? 'iPhone generations' : 'PlayStation generations',
@@ -489,6 +495,7 @@ export class SearchComponent implements OnDestroy {
       this.excludeNegotiable() ||
       this.onlyWithPhotos() ||
       this.onlyWithVIN() ||
+      this.categories().length > 0 ||
       this.excludedWords().length > 0 ||
       this.queryExclusions().length > 0 ||
       this.yearFrom() !== null ||
@@ -933,6 +940,8 @@ export class SearchComponent implements OnDestroy {
     else if (id === 'photos') this.onlyWithPhotos.set(false);
     else if (id === 'vin') this.onlyWithVIN.set(false);
     else if (id === 'fixed') this.excludeNegotiable.set(false);
+    else if (id.startsWith('category:'))
+      this.categories.update((values) => values.filter((value) => value !== id.slice(9)));
     else if (id === 'year') {
       this.yearFrom.set(null);
       this.yearTo.set(null);
@@ -1230,6 +1239,7 @@ export class SearchComponent implements OnDestroy {
     this.excludeNegotiable.set(false);
     this.onlyWithPhotos.set(false);
     this.onlyWithVIN.set(false);
+    this.categories.set([]);
     if (clearSavedWords) this.excludedWords.set([]);
     this.queryExclusions.set([]);
     this.yearFrom.set(null);
@@ -1306,6 +1316,7 @@ export class SearchComponent implements OnDestroy {
     this.excludeNegotiable.set(filters.excludeNegotiable);
     this.onlyWithPhotos.set(filters.onlyWithPhotos);
     this.onlyWithVIN.set(filters.onlyWithVIN);
+    this.categories.set(filters.categories);
     this.excludedWords.set(filters.excludedWords);
     this.queryExclusions.set(filters.queryExclusions);
     this.yearFrom.set(filters.yearFrom);
@@ -1466,6 +1477,7 @@ export class SearchComponent implements OnDestroy {
     this.excludeNegotiable.set(state.excludeNegotiable);
     this.onlyWithPhotos.set(state.onlyWithPhotos);
     this.onlyWithVIN.set(state.onlyWithVIN);
+    this.categories.set(state.categories);
     this.excludedWords.set(state.excludedWords);
     this.excludedWord.set(state.excludedWord);
     this.queryExclusions.set(state.queryExclusions);
@@ -1529,6 +1541,7 @@ export class SearchComponent implements OnDestroy {
       excludeNegotiable: this.excludeNegotiable(),
       onlyWithPhotos: this.onlyWithPhotos(),
       onlyWithVIN: this.onlyWithVIN(),
+      categories: this.categories(),
       excludedWords: this.excludedWords(),
       excludedWord: this.excludedWord(),
       queryExclusions: this.queryExclusions(),
@@ -1600,7 +1613,7 @@ export class SearchComponent implements OnDestroy {
         this.smartCleanup() &&
         (product.isBoosted ||
           isWantedListing(product) ||
-          !containsAll(titleWords, queryWords) ||
+          !matchesSmartSearch(product, titleWords, queryWords, intent) ||
           signatures.has(signature))
       )
         return false;
@@ -1718,6 +1731,8 @@ export class SearchComponent implements OnDestroy {
       if (this.condition().length && !this.condition().some((value) => matchesListingCondition(product, value)))
         return false;
       if (this.qualityMin() && listingQualityScore(product) < this.qualityMin()) return false;
+      if (this.categories().length && !this.categories().some((value) => facetMatches(product.category, value)))
+        return false;
       if (this.excludeNegotiable() && product.price == null) return false;
       if (this.onlyWithPhotos() && !product.thumbnailURL) return false;
       if (this.onlyWithVIN() && !product.vin) return false;
@@ -1860,11 +1875,12 @@ function isStorageIntent(intent: SearchIntent): boolean {
   return intent.kind === 'laptop' || intent.kind === 'phone';
 }
 function isStructuredIntent(intent: SearchIntent): boolean {
-  return ['laptop', 'phone', 'tv', 'realEstate'].includes(intent.kind);
+  return ['evCharger', 'laptop', 'phone', 'tv', 'realEstate'].includes(intent.kind);
 }
 function categoryMatches(product: Product, intent: SearchIntent): boolean {
   const category = fold(product.category ?? '');
   const title = fold(product.title);
+  if (intent.kind === 'evCharger') return isEVChargerProduct(product.categoryUrl ?? '', category, title);
   if (intent.kind === 'laptop')
     return (
       category.includes('laptop') ||
@@ -1886,6 +1902,25 @@ function categoryMatches(product: Product, intent: SearchIntent): boolean {
   const propertyCategory = /(apart|case|casa|teren|imobil|garaj|spati)/.test(category);
   const propertyDetails = Boolean(product.rooms || product.area || product.buildingType || product.sector);
   return (propertyCategory || propertyDetails) && isPropertyOffer(product.offerType);
+}
+function isEVChargerProduct(categoryUrl: string, category: string, title: string): boolean {
+  if (categoryUrl) return categoryUrl.replace(/^\/+|\/+$/g, '') === 'transport/chargers-for-cars';
+  if (category) return /incarcatoare auto|incarcatoare.*masini electrice/.test(category);
+  if (/\b(?:evse|wallbox)\b/.test(title)) return true;
+  return (
+    /\b(?:incarcator|statie|cablu|adaptor)\b/.test(title) &&
+    /\b(?:ev|electric|tesla|nacs|chademo|ccs\s*2?|(?:type|tip)\s*[12])\b/.test(title)
+  );
+}
+function matchesSmartSearch(
+  product: Product,
+  titleWords: string[],
+  queryWords: string[],
+  intent: SearchIntent,
+): boolean {
+  // 999 also searches descriptions. For this category, trust that match and
+  // keep only actual EV-charging listings instead of requiring every term in the title.
+  return intent.kind === 'evCharger' ? categoryMatches(product, intent) : containsAll(titleWords, queryWords);
 }
 function isPropertyOffer(value: string | undefined): boolean {
   return /(vand|vanzare|cumpar|inchiri|chirie|rent|sale|schimb|аренд|сда|прод|куп)/u.test(fold(value ?? ''));
@@ -1985,6 +2020,22 @@ function facetValues(
   }
   return [...values.values()].sort((a, b) => a.localeCompare(b, 'ro'));
 }
+function countedFacetValues(
+  products: readonly Product[],
+  picker: (product: Product) => string | undefined,
+  selected: readonly string[] = [],
+): Array<{ value: string; count: number }> {
+  const values = new Map<string, { value: string; count: number }>();
+  for (const value of selected) values.set(fold(value), { value, count: 0 });
+  for (const product of products) {
+    const value = picker(product)?.trim();
+    if (!value) continue;
+    const key = fold(value);
+    const current = values.get(key);
+    values.set(key, { value: current?.value ?? value, count: (current?.count ?? 0) + 1 });
+  }
+  return [...values.values()].sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'ro'));
+}
 function registrationMatches(value: string | undefined, registration: 'moldova' | 'other'): boolean {
   const normalized = fold(value ?? '');
   return registration === 'moldova'
@@ -2020,6 +2071,18 @@ function requiredQueryWords(value: string, intent: SearchIntent): string[] {
     laptop: ['laptop', 'laptops', 'notebook', 'ultrabook', 'ноутбук'],
     phone: ['phone', 'mobile', 'telefon', 'smartphone', 'телефон', 'смартфон'],
     tv: ['tv', 'televizor', 'televizoare', 'television', 'телевизор'],
+    evCharger: [
+      'incarcator',
+      'incarcatoare',
+      'charger',
+      'chargers',
+      'incarcare',
+      'charging',
+      'statie',
+      'station',
+      'auto',
+      'ev',
+    ],
     realEstate: [
       'apartament',
       'apartamente',

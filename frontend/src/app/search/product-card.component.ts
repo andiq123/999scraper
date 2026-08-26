@@ -74,7 +74,7 @@ export class ProductCardComponent {
       product.screen,
       product.resolution,
     ];
-    return [...vehicle, ...property, ...technology, product.condition]
+    return [...vehicle, ...property, ...technology, product.condition, product.category]
       .filter((value): value is string => Boolean(value))
       .slice(0, 3);
   });

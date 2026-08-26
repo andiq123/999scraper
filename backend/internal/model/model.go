@@ -103,6 +103,7 @@ type Product struct {
 	PropertyState               string   `json:"propertyState,omitempty"`
 	BuildingType                string   `json:"buildingType,omitempty"`
 	Category                    string   `json:"category,omitempty"`
+	CategoryURL                 string   `json:"categoryUrl,omitempty"`
 	Condition                   string   `json:"condition,omitempty"`
 	URLToProduct                string   `json:"urlToProduct"`
 }
@@ -125,10 +126,11 @@ type ListingSummary struct {
 }
 
 type ListingSummaryListing struct {
-	ID       string `json:"id"`
-	URL      string `json:"url"`
-	Title    string `json:"title"`
-	Status   string `json:"status,omitempty"`
-	Category string `json:"category,omitempty"`
-	Seller   string `json:"seller,omitempty"`
+	ID          string `json:"id"`
+	URL         string `json:"url"`
+	Title       string `json:"title"`
+	Status      string `json:"status,omitempty"`
+	Category    string `json:"category,omitempty"`
+	CategoryURL string `json:"categoryUrl,omitempty"`
+	Seller      string `json:"seller,omitempty"`
 }

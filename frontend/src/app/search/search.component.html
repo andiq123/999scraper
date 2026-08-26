@@ -775,6 +775,34 @@
         </select>
         <small>Category-aware and based only on information already loaded.</small>
       </label>
+      @if (categoryOptions().length) {
+        <fieldset class="price-filter category-filter">
+          <legend>
+            <span>Category</span>
+            <small>Detected from 999 results</small>
+          </legend>
+          <div class="choice-chips" aria-label="Listing categories">
+            <button
+              type="button"
+              [class.active]="categories().length === 0"
+              [attr.aria-pressed]="categories().length === 0"
+              (click)="categories.set([])"
+            >
+              Any
+            </button>
+            @for (option of categoryOptions(); track option.value) {
+              <button
+                type="button"
+                [class.active]="categories().includes(option.value)"
+                [attr.aria-pressed]="categories().includes(option.value)"
+                (click)="toggleChoice(categories, option.value)"
+              >
+                {{ option.value }} <small>{{ option.count }}</small>
+              </button>
+            }
+          </div>
+        </fieldset>
+      }
       <fieldset class="price-filter">
         <legend>
           <span>Price</span><output>{{ priceRangeLabel() }}</output>

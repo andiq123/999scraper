@@ -352,6 +352,12 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--focus);
 }
+.category-filter legend small,
+.category-filter .choice-chips small {
+  color: var(--subtle);
+  font-size: 0.6875rem;
+  font-weight: 560;
+}
 .price-filter {
   display: grid;
   gap: 0.55rem;

@@ -591,12 +591,13 @@ func (s *Scraper) summary(ad detailAdvert) model.ListingSummary {
 		Source:      "999.md",
 		RetrievedAt: time.Now().UTC(),
 		Listing: model.ListingSummaryListing{
-			ID:       ad.ID,
-			URL:      s.baseURL + "/ro/" + ad.ID,
-			Title:    strings.TrimSpace(ad.Title),
-			Status:   strings.TrimPrefix(ad.State, "AD_STATE_"),
-			Category: strings.TrimSpace(ad.SubCategory.Title.Translated),
-			Seller:   strings.TrimSpace(ad.Owner.Login),
+			ID:          ad.ID,
+			URL:         s.baseURL + "/ro/" + ad.ID,
+			Title:       strings.TrimSpace(ad.Title),
+			Status:      strings.TrimPrefix(ad.State, "AD_STATE_"),
+			Category:    strings.TrimSpace(ad.SubCategory.Title.Translated),
+			CategoryURL: strings.TrimSpace(ad.SubCategory.URL),
+			Seller:      strings.TrimSpace(ad.Owner.Login),
 		},
 		Details: make(map[string]map[string]any),
 	}
@@ -808,6 +809,7 @@ func (s *Scraper) product(ad advert) model.Product {
 		PropertyState:               featureText(ad.PropertyState.Value),
 		BuildingType:                featureText(ad.BuildingType.Value),
 		Category:                    strings.TrimSpace(ad.SubCategory.Title.Translated),
+		CategoryURL:                 strings.TrimSpace(ad.SubCategory.URL),
 		Condition:                   strings.TrimSpace(ad.Condition.Value.Translated),
 		URLToProduct:                s.baseURL + "/ro/" + ad.ID,
 	}

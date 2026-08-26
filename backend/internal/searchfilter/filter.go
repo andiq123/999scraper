@@ -21,6 +21,7 @@ type Filters struct {
 	ExcludeNegotiable                                                                     bool
 	OnlyWithPhotos                                                                        bool
 	OnlyWithVIN                                                                           bool
+	Categories                                                                            []string
 	ExcludedWords                                                                         []string
 	QueryExclusions                                                                       []string
 	YearFrom, YearTo                                                                      *float64
@@ -57,10 +58,10 @@ func Decode(value string) (Filters, error) {
 		return Filters{}, ErrInvalid
 	}
 	var version int
-	if json.Unmarshal(fields[0], &version) != nil || version < 1 || version > 4 {
+	if json.Unmarshal(fields[0], &version) != nil || version < 1 || version > 5 {
 		return Filters{}, ErrInvalid
 	}
-	want := map[int]int{1: 44, 2: 44, 3: 45, 4: 46}[version]
+	want := map[int]int{1: 44, 2: 44, 3: 45, 4: 46, 5: 47}[version]
 	if len(fields) != want {
 		return Filters{}, ErrInvalid
 	}
@@ -108,6 +109,11 @@ func Decode(value string) (Filters, error) {
 	if version >= 4 && decode(fields, 45, &result.QualityMin) != nil {
 		return Filters{}, ErrInvalid
 	}
+	if version >= 5 {
+		if result.Categories, err = stringsAt(fields, 46, false); err != nil {
+			return Filters{}, ErrInvalid
+		}
+	}
 	if !slices.Contains([]int{0, 5, 7, 9}, result.QualityMin) {
 		return Filters{}, ErrInvalid
 	}
@@ -120,11 +126,14 @@ func Apply(query, encoded string, products []model.Product, rates map[string]flo
 		return nil, err
 	}
 	queryWords := words(query)
+	evChargerSearch := isEVChargerQuery(query)
 	vehicleSearch := false
-	for _, product := range products {
-		if product.Make != "" && product.Model != "" && containsAll(words(product.Title), queryWords) {
-			vehicleSearch = true
-			break
+	if !evChargerSearch {
+		for _, product := range products {
+			if product.Make != "" && product.Model != "" && containsAll(words(product.Title), queryWords) {
+				vehicleSearch = true
+				break
+			}
 		}
 	}
 	seen := make(map[string]struct{}, len(products))
@@ -133,7 +142,7 @@ func Apply(query, encoded string, products []model.Product, rates map[string]flo
 		titleWords := words(product.Title)
 		if filters.SmartCleanup {
 			signature := fmt.Sprintf("%s|%v|%d", strings.Join(titleWords, " "), product.Price, product.Currency)
-			if product.IsBoosted || wanted(product) || !containsAll(titleWords, queryWords) {
+			if product.IsBoosted || wanted(product) || !smartSearchMatch(product, titleWords, queryWords, evChargerSearch) {
 				continue
 			}
 			if _, duplicate := seen[signature]; duplicate {
@@ -152,6 +161,13 @@ func Apply(query, encoded string, products []model.Product, rates map[string]flo
 	return result, nil
 }
 
+func smartSearchMatch(product model.Product, titleWords, queryWords []string, evChargerSearch bool) bool {
+	if evChargerSearch {
+		return isEVChargerProduct(product)
+	}
+	return containsAll(titleWords, queryWords)
+}
+
 func matches(filters Filters, product model.Product, rates map[string]float64) bool {
 	if !inRange(number(product.Year), filters.YearFrom, filters.YearTo) ||
 		!inRange(number(product.Mileage), filters.MileageFrom, filters.MileageTo) ||
@@ -162,7 +178,8 @@ func matches(filters Filters, product model.Product, rates map[string]float64) b
 		!anyChoice(product.Drivetrain, filters.Drivetrain) || !anyChoice(product.BodyType, filters.BodyType) ||
 		!anyFacet(product.OriginCountry, filters.OriginCountry) || !anyFacet(product.Sector, filters.PropertySector) ||
 		!anyFacet(product.PropertyState, filters.PropertyState) || !anyFacet(product.HousingStock, filters.HousingStock) ||
-		!anyFacet(product.ListingAuthor, filters.ListingAuthor) || !anyFacet(product.BuildingType, filters.BuildingType) {
+		!anyFacet(product.ListingAuthor, filters.ListingAuthor) || !anyFacet(product.BuildingType, filters.BuildingType) ||
+		!anyFacet(product.Category, filters.Categories) {
 		return false
 	}
 	if len(filters.Registration) > 0 && !slices.ContainsFunc(filters.Registration, func(choice string) bool {
@@ -223,6 +240,50 @@ var (
 		"запчасти": {}, "ремонт": {}, "аренда": {},
 	}
 )
+
+func isEVChargerQuery(query string) bool {
+	value := " " + strings.Join(words(query), " ") + " "
+	for _, phrase := range []string{
+		" evse ", " wallbox ", " nacs ", " chademo ", " ccs ", " ccs2 ", " gb t ", " incarcator ", " incarcatoare ",
+		" incarcare auto ", " statie de incarcare ", " charging station ", " charging cable ", " ev charger ",
+		" type 1 ", " type 2 ", " tip 1 ", " tip 2 ",
+	} {
+		if strings.Contains(value, phrase) {
+			return true
+		}
+	}
+	return false
+}
+
+func isEVChargerProduct(product model.Product) bool {
+	if strings.Trim(product.CategoryURL, "/") != "" {
+		return strings.Trim(product.CategoryURL, "/") == "transport/chargers-for-cars"
+	}
+	category := strings.Join(words(product.Category), " ")
+	if category != "" {
+		return strings.Contains(category, "incarcatoare auto") || strings.Contains(category, "incarcatoare pentru masini electrice")
+	}
+	title := " " + strings.Join(words(product.Title), " ") + " "
+	if strings.Contains(title, " evse ") || strings.Contains(title, " wallbox ") {
+		return true
+	}
+	hasProductWord := false
+	for _, word := range []string{" incarcator ", " statie ", " cablu ", " adaptor "} {
+		if strings.Contains(title, word) {
+			hasProductWord = true
+			break
+		}
+	}
+	if !hasProductWord {
+		return false
+	}
+	for _, marker := range []string{" ev ", " electric ", " tesla ", " nacs ", " chademo ", " ccs ", " ccs2 ", " gb t ", " type 1 ", " type 2 ", " tip 1 ", " tip 2 "} {
+		if strings.Contains(title, marker) {
+			return true
+		}
+	}
+	return false
+}
 
 func plausibleVehicle(product model.Product, title []string, rates map[string]float64) bool {
 	if product.Make == "" || product.Model == "" || product.Year == 0 || product.Price == nil || wanted(product) {

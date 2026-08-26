@@ -22,6 +22,7 @@ export function searchFilterChips(filters: SharedSearchFilters): SearchFilterChi
   if (filters.onlyWithPhotos) chips.push({ id: 'photos', label: 'With photos' });
   if (filters.onlyWithVIN) chips.push({ id: 'vin', label: 'VIN available' });
   if (filters.excludeNegotiable) chips.push({ id: 'fixed', label: 'Fixed price' });
+  addValues(chips, 'category', filters.categories, (value) => `Category: ${value}`);
   addRange(chips, 'year', 'Year', filters.yearFrom, filters.yearTo);
   addRange(chips, 'generation', 'Generation', filters.generationFrom, filters.generationTo);
   addRange(chips, 'storage', 'Storage', filters.storageFrom, filters.storageTo, ' GB');

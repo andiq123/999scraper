@@ -19,6 +19,7 @@ export interface SearchState {
   excludeNegotiable: boolean;
   onlyWithPhotos: boolean;
   onlyWithVIN: boolean;
+  categories: string[];
   excludedWords: string[];
   excludedWord: string;
   queryExclusions: string[];
@@ -209,6 +210,7 @@ function readStoredState(key: string): SearchState | null {
       ...value,
       qualityMin: value.qualityMin ?? 0,
       onlyWithVIN: value.onlyWithVIN ?? false,
+      categories: choiceArray(value.categories),
       fuel: choiceArray(value.fuel),
       transmission: choiceArray(value.transmission),
       drivetrain: choiceArray(value.drivetrain),
@@ -307,6 +309,7 @@ function isSearchState(value: unknown): value is SearchState {
       'housingStock',
       'listingAuthor',
       'buildingType',
+      'categories',
     ].every((key) => isStringChoice(raw[key])) &&
     isEnumChoice(raw['registration'], ['moldova', 'other']) &&
     isEnumChoice(raw['originCountry'], ['China', 'Coreea', 'Japonia', 'SUA', 'Zona Euro', 'Altă']) &&

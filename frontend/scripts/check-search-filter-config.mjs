@@ -8,6 +8,7 @@ const filters = {
   excludeNegotiable: true,
   onlyWithPhotos: true,
   onlyWithVIN: true,
+  categories: ['Autoturisme'],
   excludedWords: ['dealer'],
   queryExclusions: ['parts'],
   yearFrom: 2020,
@@ -59,6 +60,7 @@ for (const expected of [
   'Origin: SUA',
   'Origin: Zona Euro',
   'Used',
+  'Category: Autoturisme',
 ]) {
   assert(labels.includes(expected), `missing visible saved configuration: ${expected}`);
 }

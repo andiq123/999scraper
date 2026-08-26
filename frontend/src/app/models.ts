@@ -94,6 +94,7 @@ export interface Product {
   propertyState?: string;
   buildingType?: string;
   category?: string;
+  categoryUrl?: string;
   condition?: string;
   urlToProduct: string;
 }
