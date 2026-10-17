@@ -28,15 +28,15 @@ backend/.env       Backend runtime configuration (ignored by Git)
 Docker Desktop is the only local requirement on macOS. The launcher starts Docker when needed and brings up every service:
 
 ```sh
-cp frontend/.env.example frontend/.env # only when frontend/.env does not already exist
-cp backend/.env.example backend/.env # only when backend/.env does not exist
 ./start.sh
 ```
 
-Configuration is split by service ownership and both files are ignored by Git. `frontend/.env` contains browser-safe settings (`FRONTEND_PORT`, `API_URL`, and `VIN_SEARCH_ENGINE_ID`); `backend/.env` contains backend runtime configuration and secrets such as `JWT_SECRET` and `FRONTEND_URL`. `FRONTEND_URL` is the single CORS source of truth and accepts comma-separated exact origins when local and deployed frontends must both reach the API. `./start.sh` validates both files and passes the frontend file explicitly to Docker Compose. Each container loads only its own environment file, and Angular compiles the public frontend settings into the browser bundle. PostgreSQL and Redis local addresses are supplied automatically by Docker Compose.
+`./start.sh` creates missing `frontend/.env` and `backend/.env` files from their examples, generates a private 256-bit signing key for the backend, and preserves existing files. Configuration is split by service ownership and both files are ignored by Git. `frontend/.env` contains browser-safe settings (`FRONTEND_PORT`, `API_URL`, and `VIN_SEARCH_ENGINE_ID`); `backend/.env` contains backend runtime configuration and secrets such as `JWT_SECRET` and `FRONTEND_URL`. `FRONTEND_URL` is the single CORS source of truth and accepts comma-separated exact origins when local and deployed frontends must both reach the API. `./start.sh` validates both files and passes the frontend file explicitly to Docker Compose. Each container loads only its own environment file, and Angular compiles the public frontend settings into the browser bundle. PostgreSQL and Redis local addresses are supplied automatically by Docker Compose.
 
 - Frontend: <http://localhost:4200>
 - Backend health: <http://localhost:8081/api/health>
+
+Local `API_URL=/api/` uses the Angular development proxy: Docker routes to `backend:8080`, while direct development routes to `127.0.0.1:8081`. You can open `http://<your-computer-LAN-IP>:4200` on an iPhone on the same network; API calls stay on that same origin. The API port remains available for direct health checks. For a detached stack, run `docker compose --env-file frontend/.env up -d --build --wait` after the environment files have been created.
 
 Search is public and needs no account. Log in only to save listings, sync excluded-word preferences, and retain search history. There are no usernames, passwords, roles, or admins: press **Register** once, save the generated six-digit code, then use it to log in. The code is shown once and only its keyed cryptographic fingerprint is stored. Login attempts are rate-limited, and a successful login returns a signed JWT that the frontend keeps in local storage.
 
@@ -46,11 +46,19 @@ VIN research decodes vehicle identity through NHTSA and discovers auction-detail
 
 Authenticated users can subscribe to the current shareable search and receive email when listings enter or leave its newest result page. Each alert stores its latest product snapshot and compares it atomically after every successful check; an empty upstream response is retried instead of being treated as a mass removal. Configure `SMTP_FROM_EMAIL` and `SMTP_APP_PASSWORD` only in `backend/.env` or the backend deployment environment; these values are never exposed to the browser or stored in the database. SMTP host, STARTTLS, and port 587 are inferred for Gmail, Outlook, Yahoo, and iCloud. The UI asks only for the recipient address and a safe check interval, sends a confirmation email before activating the alert, and supports up to 10 alerts per account. The alert manager can send a clearly labelled design preview through the real delivery path without changing the stored snapshot or schedule.
 
+Search and saved lists initially render 36 cards and reveal further batches with **Show more**. Sorting, filtering, alerts, and exports continue to use the entire matching collection. Expanded search views survive refreshes and browser history, and reopening the same cached query with shareable filters reuses its loaded data. Partial searches are labelled explicitly; failed searches keep a retry action visible. Photos load lazily and fall back to a placeholder when unavailable. Main navigation and category icons use local SVGs, and reduced-motion preferences are respected without animating whole result lists.
+
 Every result card shows an explainable 1–10 **Ad quality** score using a category-aware profile for vehicles, electronics, real estate, or general marketplace items. It evaluates sale intent, category, useful description content, photos, price, and the structured specifications already returned by search. Repeated dealer boilerplate and generic finance, schedule, profile, or delivery copy are measured separately and reduce the score progressively, so a concise item-specific description can outrank a long promotional one. Vehicle-only signals such as VIN, accident/repair/document warnings, and implausible mileage never leak into other categories. Buyer/wanted and parts/dismantling ads are scored 1/10 and removed by Smart cleanup. No extra detail-page request is made. Tapping the score shows its strongest signals and concerns. **Best ad quality** sorting and the **Minimum ad quality** thresholds (5+, 7+, or 9+) work for every category and are stored in the normal shareable search URL and Back/Forward state.
 
-Press Ctrl+C to remove the project containers, network, database and dependency/build volumes, and locally built images. The Redis search cache is intentionally ephemeral. Docker Desktop itself stays open.
+Press Ctrl+C to stop and remove the project containers and network. Database data and dependency/build volumes are preserved for the next run. To intentionally reset all local data, run `docker compose --env-file frontend/.env down --volumes --remove-orphans`. The Redis search cache is intentionally ephemeral. Docker Desktop itself stays open.
 
 For non-local use, inject production backend configuration through the deployment platform. Login uses a bearer JWT stored by the frontend, so it works across the Vercel frontend and a separate HTTPS API origin without cookies.
+
+## Connection recovery
+
+Login returns you to the requested screen, including search filters. Temporary connection failures keep the stored login and offer a reconnect action; invalid credentials are removed. Private API calls bypass browser caching and have a 15-second timeout. Search streams keep loaded listings visible on failure and detect missing completion events or 90 seconds without stream data. Exchange-rate failures can be retried from search results.
+
+Run `npm run check:api-flow` and `npm run check:account-flow` from `frontend/` for connection, stream, session-isolation, and login-destination regression checks. Both use isolated fixtures and require no live API or stored credentials.
 
 ## Why SSE
 

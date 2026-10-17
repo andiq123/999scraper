@@ -1,15 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { environment } from '../../environments/environment';
-import { Product } from '../models';
 import { AuthService } from '../auth/auth.service';
-
-export interface SearchEvent {
-  type: 'start' | 'chunk' | 'done' | 'error';
-  products?: Product[];
-  loadedPages?: number;
-  totalPages?: number;
-  message?: string;
-}
+import { readSearchStream, type SearchEvent } from './search-stream';
+export type { SearchEvent } from './search-stream';
 
 @Injectable({ providedIn: 'root' })
 export class SearchService {
@@ -36,36 +29,7 @@ export class SearchService {
       throw new Error('The search service returned an invalid stream.');
     }
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let pending = '';
-    try {
-      while (!signal.aborted) {
-        const { value, done } = await reader.read();
-        pending = (pending + decoder.decode(value, { stream: !done })).replace(/\r\n/g, '\n');
-        const frames = pending.split('\n\n');
-        pending = frames.pop() ?? '';
-        for (const frame of frames) this.emit(frame, emit);
-        if (done) break;
-      }
-      if (pending.trim()) this.emit(pending, emit);
-    } finally {
-      reader.releaseLock();
-    }
-  }
-
-  private emit(frame: string, emit: (event: SearchEvent) => void): void {
-    const data = frame
-      .split('\n')
-      .filter((line) => line.startsWith('data:'))
-      .map((line) => line.slice(5).trimStart())
-      .join('\n');
-    if (!data) return;
-    try {
-      emit(JSON.parse(data) as SearchEvent);
-    } catch {
-      throw new Error('The search service returned a malformed event.');
-    }
+    await readSearchStream(response.body, signal, emit);
   }
 
   private async errorMessage(response: Response): Promise<string> {

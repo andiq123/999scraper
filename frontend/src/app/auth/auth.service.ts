@@ -2,6 +2,8 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { environment } from '../../environments/environment';
 import { Registration, Session } from '../models';
+import { ApiError, requestJson } from '../api-request';
+import { returnPath } from './return-path';
 
 const tokenKey = '999scraper.session';
 
@@ -13,13 +15,21 @@ export class AuthService {
 
   readonly session = signal<Session | null>(null);
   readonly ready = signal(false);
+  readonly restoreError = signal<string | null>(null);
 
   restore(): Promise<boolean> {
     if (this.session()) {
       this.ready.set(true);
       return Promise.resolve(true);
     }
-    return (this.restoreRequest ??= this.loadSession().finally(() => this.ready.set(true)));
+    if (this.restoreRequest) return this.restoreRequest;
+    const request = this.loadSession();
+    this.restoreRequest = request;
+    void request.finally(() => {
+      if (this.restoreRequest === request) this.restoreRequest = undefined;
+      this.ready.set(true);
+    });
+    return request;
   }
 
   async login(code: string): Promise<void> {
@@ -27,15 +37,20 @@ export class AuthService {
       method: 'POST',
       body: JSON.stringify({ code }),
     });
-    if (!token) throw new Error('The server did not return a session token.');
+    if (!token || typeof token !== 'string' || !session.id || typeof session.id !== 'string') {
+      throw new Error('The server returned an invalid login. Please try again.');
+    }
     this.writeToken(token);
-    this.restoreRequest = Promise.resolve(true);
     this.session.set(session);
+    this.restoreError.set(null);
     this.ready.set(true);
   }
 
-  register(): Promise<Registration> {
-    return this.request('register', { method: 'POST', body: '{}' });
+  async register(): Promise<Registration> {
+    const registration = await this.request<Registration>('register', { method: 'POST', body: '{}' });
+    if (!registration || !/^[0-9]{6}$/.test(registration.code))
+      throw new Error('The server returned an invalid login code. Please try again.');
+    return registration;
   }
 
   async logout(): Promise<void> {
@@ -44,8 +59,19 @@ export class AuthService {
   }
 
   expire(): void {
+    const destination = returnPath(this.router.url);
     this.clearSession();
-    void this.router.navigateByUrl('/login');
+    void this.router.navigate(['/login'], { queryParams: { returnUrl: destination } });
+  }
+
+  async requestPrivate<T>(path: string, init?: RequestInit): Promise<T> {
+    const token = this.readToken();
+    try {
+      return await requestJson<T>(environment.apiUrl + path, this.withSession({ ...init, cache: 'no-store' }));
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401 && token === this.readToken()) this.expire();
+      throw error;
+    }
   }
 
   withSession(init: RequestInit = {}): RequestInit {
@@ -57,25 +83,28 @@ export class AuthService {
   }
 
   private async loadSession(): Promise<boolean> {
-    if (!this.readToken()) return false;
+    const token = this.readToken();
+    if (!token) return false;
+    this.restoreError.set(null);
     try {
       const session = await this.request<Session | null>('current');
+      if (token !== this.readToken()) return !!this.session();
+      if (session !== null && (!session?.id || typeof session.id !== 'string')) {
+        throw new Error('The account response couldn’t be read. Please retry the connection.');
+      }
       this.session.set(session);
       if (!session) this.clearSession();
       return session !== null;
-    } catch {
-      this.clearSession();
+    } catch (error) {
+      if (token !== this.readToken()) return !!this.session();
+      if (error instanceof ApiError && error.status === 401) this.clearSession();
+      else this.restoreError.set(error instanceof Error ? error.message : 'Couldn’t reconnect to your account.');
       return false;
     }
   }
 
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
-    const response = await fetch(this.url + path, this.withSession(init));
-    if (!response.ok) {
-      const body = await response.json().catch(() => ({}));
-      throw new Error(body.error || `Request failed (${response.status}).`);
-    }
-    return response.status === 204 ? (undefined as T) : response.json();
+    return requestJson<T>(this.url + path, this.withSession({ ...init, cache: 'no-store' }));
   }
 
   private readToken(): string | null {
@@ -102,5 +131,6 @@ export class AuthService {
     }
     this.restoreRequest = undefined;
     this.session.set(null);
+    this.restoreError.set(null);
   }
 }

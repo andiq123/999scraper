@@ -15,10 +15,12 @@ import { ToastService } from '../toast.service';
 import { VINResearchService } from '../vin-research.service';
 import { listingQuality } from './listing-quality';
 import { AuthService } from '../auth/auth.service';
+import { IconComponent } from '../icon.component';
 
 @Component({
   selector: 'app-product-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [IconComponent],
   templateUrl: './product-card.component.html',
   styleUrl: './product-card.component.scss',
 })
@@ -29,6 +31,7 @@ export class ProductCardComponent {
   readonly auth = inject(AuthService);
   readonly product = input.required<Product>();
   readonly saved = input(false);
+  readonly saving = input(false);
   readonly eager = input(false);
   readonly priority = input(false);
   readonly convertedPrice = input('');
@@ -37,10 +40,12 @@ export class ProductCardComponent {
   readonly newlyRevealed = input(false);
   readonly changeState = input<'new' | 'removed' | 'price' | null>(null);
   readonly previousPrice = input('');
+  readonly allowExclusion = input(false);
   readonly exclude = output<string>();
   readonly save = output<Product>();
   readonly bulkSelect = output<Product>();
   readonly selectedWord = signal('');
+  readonly failedImage = signal<string | null>(null);
   readonly copyState = signal<'idle' | 'loading' | 'ready' | 'copied'>('idle');
   readonly copyRank = computed(() => this.summaries.rank(this.product().id));
   readonly openRank = computed(() => this.summaries.openRank(this.product().id));

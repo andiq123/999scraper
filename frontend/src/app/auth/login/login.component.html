@@ -1,8 +1,18 @@
 <main class="auth-card card bg-base-100 shadow-sm route-page">
+  <div class="intro-brand" aria-label="999 Market search"><span>999</span><strong>Market search</strong></div>
   <h1>Log in</h1>
   <p>Enter your six-digit code.</p>
+  @if (auth.restoreError(); as message) {
+    <div class="auth-notice" role="alert">
+      <strong>Your login is saved</strong>
+      <p>{{ message }}</p>
+      <button class="btn btn-soft btn-primary" type="button" (click)="reconnect()" [disabled]="submitting()">
+        {{ submitting() ? 'Connecting…' : 'Retry connection' }}
+      </button>
+    </div>
+  }
   <form autocomplete="on" (submit)="submit($event)">
-    <label class="sr-only" for="login-code">Private login code</label>
+    <label for="login-code">Private login code</label>
     <input
       class="input input-bordered"
       id="login-code"
@@ -15,14 +25,19 @@
       spellcheck="false"
       placeholder="000000"
       [value]="code()"
+      [attr.aria-invalid]="error() ? 'true' : null"
+      [attr.aria-describedby]="error() ? 'login-error' : null"
       (input)="updateCode($event)"
     />
+    @if (error(); as message) {
+      <p class="auth-error" id="login-error" role="alert">{{ message }}</p>
+    }
     <button class="btn btn-primary" type="submit" [disabled]="code().length !== 6 || submitting()">
       {{ submitting() ? 'Logging in…' : 'Log in' }}
     </button>
   </form>
   <div class="auth-alternative">
     <span>New here?</span>
-    <a class="btn btn-ghost" routerLink="/register">Create a login code</a>
+    <a class="btn btn-ghost" routerLink="/register" [queryParams]="{ returnUrl }">Create a login code</a>
   </div>
 </main>

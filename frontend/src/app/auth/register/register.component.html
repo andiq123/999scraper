@@ -1,13 +1,19 @@
 <main class="auth-card card bg-base-100 shadow-sm route-page">
+  <div class="intro-brand" aria-label="999 Market search"><span>999</span><strong>Market search</strong></div>
   @if (code()) {
     <section class="auth-state" animate.enter="reveal-enter" animate.leave="reveal-leave">
       <h1>Your login code</h1>
       <p>Save these six digits. They are shown once.</p>
       <code aria-label="Your six-digit login code">{{ code() }}</code>
-      <button class="btn btn-primary" type="button" (click)="copy()">
+      <button
+        class="btn btn-primary"
+        type="button"
+        (click)="copy()"
+        [attr.aria-label]="copied() ? 'Code copied' : 'Copy login code'"
+      >
         {{ copied() ? 'Copied' : 'Copy code' }}
       </button>
-      <a routerLink="/login">Go to login</a>
+      <a routerLink="/login" [queryParams]="{ returnUrl }">Go to login</a>
     </section>
   } @else {
     <section class="auth-state" animate.enter="reveal-enter" animate.leave="reveal-leave">
@@ -16,6 +22,13 @@
       <button class="btn btn-primary" type="button" (click)="create()" [disabled]="creating()">
         {{ creating() ? 'Creating…' : 'Register' }}
       </button>
+      <div class="auth-alternative">
+        <span>Already have a code?</span>
+        <a class="btn btn-ghost" routerLink="/login" [queryParams]="{ returnUrl }">Log in</a>
+      </div>
     </section>
+  }
+  @if (error(); as message) {
+    <p class="auth-error" role="alert">{{ message }}</p>
   }
 </main>

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Local 999scraper stack: Docker Desktop -> data -> Air/Go API + Angular UI.
-# Ctrl+C removes the project containers, network, volumes, and locally built image.
+# Ctrl+C stops the stack and preserves local accounts and saved listings.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -73,26 +73,41 @@ ensure_docker() {
   ok "Docker engine ready"
 }
 
+ensure_environment() {
+  if [ ! -f "$FRONTEND_ENV_FILE" ]; then
+    cp "$ROOT/frontend/.env.example" "$FRONTEND_ENV_FILE"
+    ok "Created frontend/.env with local defaults"
+  fi
+  if [ ! -f "$BACKEND_ENV_FILE" ]; then
+    local jwt_secret
+    jwt_secret="$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')"
+    (umask 077; sed "s/local-development-key-change-me-please/$jwt_secret/" "$ROOT/backend/.env.example" > "$BACKEND_ENV_FILE")
+    ok "Created backend/.env with a private generated signing key"
+  fi
+  compose config --quiet || die "Invalid Docker configuration. Review frontend/.env and backend/.env."
+}
+
 cleanup() {
   [ "$CLEANED" -eq 1 ] && return 0
   CLEANED=1
   trap - INT TERM EXIT
 
-  printf "\n${YELLOW}${BOLD}Stopping and removing the local stack...${RESET}\n"
+  printf "\n${YELLOW}${BOLD}Stopping the local stack...${RESET}\n"
   if docker_ready; then
-    compose down --volumes --remove-orphans --rmi local || true
+    compose down --remove-orphans || true
   else
     warn "Docker stopped before project resources could be removed"
   fi
-  printf "${GREEN}${BOLD}All project containers, data volumes, and local images removed.${RESET}\n"
+  printf "${GREEN}${BOLD}Project stopped. Local data and build caches are preserved.${RESET}\n"
 }
 
 main() {
   [ "$#" -eq 0 ] || die "This launcher takes no arguments; run ./start.sh and use Ctrl+C to stop it."
-  [ -f "$FRONTEND_ENV_FILE" ] || die "Missing frontend/.env. Copy frontend/.env.example to frontend/.env and review the local values."
-  [ -f "$BACKEND_ENV_FILE" ] || die "Missing backend/.env. Copy backend/.env.example to backend/.env and review the local values."
   cd "$ROOT"
   ensure_docker
+  ensure_environment
+  local frontend_port
+  frontend_port="$(compose config --environment | sed -n 's/^FRONTEND_PORT=//p')"
 
   trap cleanup EXIT
   trap 'exit 130' INT
@@ -100,10 +115,10 @@ main() {
 
   log "docker" "starting data services, Air backend, and Angular frontend"
   printf "${BOLD}Config:${RESET}   frontend/.env for Angular, backend/.env for Go\n"
-  printf "${BOLD}Frontend:${RESET} http://localhost:4200 (live reload)\n"
+  printf "${BOLD}Frontend:${RESET} http://localhost:%s (live reload)\n" "$frontend_port"
   printf "${BOLD}Backend:${RESET}  http://localhost:8081/api/health (Air live reload)\n"
   printf "${BOLD}Account:${RESET}  press Register once, then save the generated login code\n"
-  printf "${BOLD}Stop:${RESET}     Ctrl+C removes the complete project stack and local data\n\n"
+  printf "${BOLD}Stop:${RESET}     Ctrl+C stops the stack and keeps your local data\n\n"
 
   compose up --build --remove-orphans
 }

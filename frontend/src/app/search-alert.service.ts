@@ -1,6 +1,5 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, effect, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { environment } from '../environments/environment';
 import { AuthService } from './auth/auth.service';
 import { Product, SearchSubscription, SearchSubscriptionsResponse } from './models';
 import { ToastService } from './toast.service';
@@ -34,8 +33,9 @@ export class SearchAlertService {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
-  private readonly endpoint = environment.apiUrl + 'subscriptions';
   private draft: AlertDraft | null = null;
+  private loadRequest?: Promise<void>;
+  private account = this.auth.session()?.id ?? null;
 
   readonly visible = signal(false);
   readonly loading = signal(false);
@@ -51,12 +51,40 @@ export class SearchAlertService {
   readonly recipientEmail = signal('');
   readonly error = signal<string | null>(null);
 
+  constructor() {
+    effect(() => this.syncAccount());
+  }
+
+  private syncAccount(): string | null {
+    const account = this.auth.session()?.id ?? null;
+    if (account !== this.account) {
+      this.account = account;
+      this.draft = null;
+      this.loadRequest = undefined;
+      this.visible.set(false);
+      this.loading.set(false);
+      this.loaded.set(false);
+      this.saving.set(false);
+      this.available.set(null);
+      this.items.set([]);
+      this.query.set('');
+      this.filterParam.set('');
+      this.matchingCount.set(0);
+      this.recipientEmail.set('');
+      this.checkIntervalMinutes.set(15);
+      this.intervalMinutes.set(15);
+      this.error.set(null);
+    }
+    return account;
+  }
+
   async open(query: string, filterParam: string, currentProducts: Product[]): Promise<void> {
     if (!(await this.auth.restore())) {
       this.toast.success('Log in to receive private search alerts.');
-      await this.router.navigate(['/login']);
+      await this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
       return;
     }
+    const account = this.syncAccount();
     const snapshotProducts = [...new Map(currentProducts.map((product) => [product.id, product])).values()].slice(
       0,
       1000,
@@ -74,6 +102,7 @@ export class SearchAlertService {
     this.error.set(null);
     this.visible.set(true);
     await this.load();
+    if (account !== this.auth.session()?.id) return;
     const existing = this.items().find((item) => item.query === query && (item.filterParam ?? '') === filterParam);
     this.recipientEmail.set(existing?.recipientEmail ?? this.items()[0]?.recipientEmail ?? '');
     this.intervalMinutes.set(existing?.intervalMinutes ?? this.checkIntervalMinutes());
@@ -86,15 +115,24 @@ export class SearchAlertService {
   }
 
   async load(): Promise<void> {
-    if (this.loading()) return;
+    if (!(await this.auth.restore())) return;
+    const account = this.syncAccount();
+    if (this.loadRequest) return this.loadRequest;
+    const request = this.loadForAccount(account);
+    this.loadRequest = request;
+    try {
+      await request;
+    } finally {
+      if (this.loadRequest === request) this.loadRequest = undefined;
+    }
+  }
+
+  private async loadForAccount(account: string | null): Promise<void> {
     this.loading.set(true);
     this.error.set(null);
     try {
-      if (!(await this.auth.restore())) {
-        this.items.set([]);
-        return;
-      }
       const response = await this.request<SearchSubscriptionsResponse>('');
+      if (account !== this.auth.session()?.id) return;
       if (response.items.some((item) => !validAlertInterval(item.intervalMinutes))) {
         throw new Error('The server returned an invalid alert schedule.');
       }
@@ -102,15 +140,18 @@ export class SearchAlertService {
       this.checkIntervalMinutes.set(response.checkIntervalMinutes);
       this.items.set(response.items);
     } catch (error) {
-      this.error.set(message(error));
+      if (account === this.auth.session()?.id) this.error.set(message(error));
     } finally {
-      this.loaded.set(true);
-      this.loading.set(false);
+      if (account === this.auth.session()?.id) {
+        this.loaded.set(true);
+        this.loading.set(false);
+      }
     }
   }
 
   async subscribe(): Promise<void> {
-    if (!this.draft || this.saving()) return;
+    const account = this.syncAccount();
+    if (!account || !this.draft || this.saving()) return;
     this.saving.set(true);
     this.error.set(null);
     try {
@@ -122,58 +163,62 @@ export class SearchAlertService {
           intervalMinutes: this.intervalMinutes(),
         }),
       });
+      if (account !== this.auth.session()?.id) return;
       this.items.update((items) => [item, ...items.filter((candidate) => candidate.id !== item.id)]);
       this.toast.success('Search alert enabled. Email will be sent only when results change.');
       this.visible.set(false);
     } catch (error) {
-      this.error.set(message(error));
+      if (account === this.auth.session()?.id) this.error.set(message(error));
     } finally {
-      this.saving.set(false);
+      if (account === this.auth.session()?.id) this.saving.set(false);
     }
   }
 
   async remove(id: string): Promise<void> {
+    const account = this.syncAccount();
+    if (!account) return;
     try {
       await this.request<void>(`/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (account !== this.auth.session()?.id) return;
       this.items.update((items) => items.filter((item) => item.id !== id));
       this.toast.success('Search alert stopped and its saved snapshot was removed.');
     } catch (error) {
-      this.toast.error(message(error));
+      if (account === this.auth.session()?.id) this.toast.error(message(error));
     }
   }
 
   async updateInterval(id: string, intervalMinutes: number): Promise<boolean> {
+    const account = this.syncAccount();
+    if (!account) return false;
     try {
       const schedule = await this.request<{ intervalMinutes: number; nextCheckAt: string }>(
         `/${encodeURIComponent(id)}`,
         { method: 'PUT', body: JSON.stringify({ intervalMinutes }) },
       );
+      if (account !== this.auth.session()?.id) return false;
       this.items.update((items) => items.map((item) => (item.id === id ? { ...item, ...schedule } : item)));
       this.toast.success(`Schedule saved: ${alertIntervalLabel(schedule.intervalMinutes)}.`);
       return true;
     } catch (error) {
-      this.toast.error(message(error));
+      if (account === this.auth.session()?.id) this.toast.error(message(error));
       return false;
     }
   }
 
   async sendTest(id: string): Promise<void> {
+    const account = this.syncAccount();
+    if (!account) return;
     try {
       await this.request<void>(`/${encodeURIComponent(id)}/test`, { method: 'POST' });
+      if (account !== this.auth.session()?.id) return;
       this.toast.success('Test email sent. Check your inbox.');
     } catch (error) {
-      this.toast.error(message(error));
+      if (account === this.auth.session()?.id) this.toast.error(message(error));
     }
   }
 
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
-    const response = await fetch(this.endpoint + path, this.auth.withSession({ cache: 'no-store', ...init }));
-    if (response.status === 401) this.auth.expire();
-    if (!response.ok) {
-      const body = (await response.json().catch(() => ({}))) as { error?: string };
-      throw new Error(body.error || `Request failed (${response.status}).`);
-    }
-    return response.status === 204 ? (undefined as T) : response.json();
+    return this.auth.requestPrivate<T>('subscriptions' + path, init);
   }
 }
 

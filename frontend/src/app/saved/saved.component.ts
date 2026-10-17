@@ -5,6 +5,7 @@ import { UserDataService } from '../user-data.service';
 import { Product } from '../models';
 import { ListingSummaryService, type BulkDownloadProgress } from '../listing-summary.service';
 import { ToastService } from '../toast.service';
+import { listingBatchSize } from '../listing-view';
 
 @Component({
   selector: 'app-saved',
@@ -15,6 +16,9 @@ import { ToastService } from '../toast.service';
 })
 export class SavedComponent {
   readonly library = inject(UserDataService);
+  readonly listingBatchSize = listingBatchSize;
+  readonly loading = signal(true);
+  readonly failed = signal(false);
   private readonly summaries = inject(ListingSummaryService);
   private readonly toast = inject(ToastService);
   readonly selectedOrigin = signal<'SUA' | 'Zona Euro' | null>(null);
@@ -33,12 +37,33 @@ export class SavedComponent {
       'Zona Euro': saved.filter((item) => item.product.originCountry === 'Zona Euro').length,
     };
   });
+  readonly visibleSaved = computed(() => this.filteredSaved().slice(0, this.library.savedRenderLimit()));
+  readonly hasOriginFilter = computed(() =>
+    Boolean(this.selectedOrigin() || this.originCounts().SUA || this.originCounts()['Zona Euro']),
+  );
+  readonly remainingSaved = computed(() => this.filteredSaved().length - this.visibleSaved().length);
+
+  showMore(): void {
+    this.library.savedRenderLimit.update((count) => count + listingBatchSize);
+  }
 
   constructor() {
-    void this.library.loadSaved();
+    void this.load();
+  }
+
+  async load(): Promise<void> {
+    this.loading.set(true);
+    this.failed.set(false);
+    try {
+      await this.library.loadSaved();
+    } catch {
+      this.failed.set(true);
+    } finally {
+      this.loading.set(false);
+    }
   }
   toggle(product: Product): void {
-    void this.library.toggleSaved(product);
+    void this.library.toggleSaved(product).catch(() => this.toast.error('Could not update saved listings. Try again.'));
   }
 
   async downloadJSON(): Promise<void> {

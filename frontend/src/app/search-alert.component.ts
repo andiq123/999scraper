@@ -3,11 +3,12 @@ import { RouterLink } from '@angular/router';
 import { SearchAlertService, alertIntervalOptions } from './search-alert.service';
 import { searchAlertConfiguration } from './search/search-filter-chips';
 import { decodeSearchFilters } from './search/search-url-state';
+import { IconComponent } from './icon.component';
 
 @Component({
   selector: 'app-search-alert',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink],
+  imports: [RouterLink, IconComponent],
   templateUrl: './search-alert.component.html',
   styleUrl: './search-alert.component.scss',
 })

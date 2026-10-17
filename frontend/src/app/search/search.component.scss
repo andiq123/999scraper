@@ -1,5 +1,5 @@
 .search-page {
-  width: min(100% - 2rem, var(--page-width));
+  width: min(100% - max(1rem, env(safe-area-inset-left)) - max(1rem, env(safe-area-inset-right)), var(--page-width));
   margin: 1rem auto calc(2rem + env(safe-area-inset-bottom));
 }
 .search-form {
@@ -106,7 +106,7 @@
   font-weight: 620;
 }
 .smart-prompt {
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
   overflow: clip;
   padding: 0;
   border-color: rgb(var(--accent-rgb) / 14%);
@@ -115,7 +115,7 @@
 }
 .smart-prompt > summary {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.55rem;
   min-height: 52px;
@@ -163,16 +163,6 @@
   font-size: 0.75rem;
   font-weight: 520;
   text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.refine-label {
-  padding: 0.24rem 0.48rem;
-  border: 0;
-  border-radius: 999px;
-  color: var(--accent);
-  background: var(--surface-selected);
-  font-size: 0.6875rem;
-  font-weight: 700;
   white-space: nowrap;
 }
 .smart-controls {
@@ -526,7 +516,7 @@
   line-height: 1.35;
 }
 .vin-filter:has(input:checked) {
-  color: #087f75;
+  color: var(--teal);
 }
 .word-filters {
   margin-top: 0.2rem;
@@ -672,6 +662,7 @@
 }
 .result-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
   min-height: 32px;
@@ -783,24 +774,6 @@
   color: var(--text);
   font-size: 1.3rem;
   letter-spacing: -0.025em;
-}
-.welcome {
-  display: grid;
-  justify-items: center;
-  padding: 2.25rem 1rem;
-  color: var(--muted);
-  text-align: center;
-}
-.welcome h2 {
-  margin-bottom: 0.2rem;
-  color: var(--text);
-  font-size: 1.05rem;
-  letter-spacing: -0.025em;
-}
-.welcome p {
-  max-width: 38ch;
-  font-size: 0.75rem;
-  line-height: 1.45;
 }
 .resume-search {
   display: grid;
@@ -953,7 +926,7 @@
 
 @media (min-width: 768px) {
   .search-page {
-    width: min(100% - 2rem, var(--page-width));
+    width: min(100% - max(1rem, env(safe-area-inset-left)) - max(1rem, env(safe-area-inset-right)), var(--page-width));
     margin-top: 0.6rem;
   }
   .search-form {

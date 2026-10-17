@@ -18,19 +18,17 @@ const defaults: UiPreferences = {
 export class UiPreferencesService {
   private readonly preferences = signal(readPreferences());
   private readonly deviceTheme = window.matchMedia('(prefers-color-scheme: dark)');
-  private themeTimer: number | undefined;
 
   readonly appearance = computed(() => this.preferences().appearance);
 
   constructor() {
-    this.applyAppearance(false);
+    this.applyAppearance();
     const followDevice = () => {
-      if (this.appearance() === 'system') this.applyAppearance(true);
+      if (this.appearance() === 'system') this.applyAppearance();
     };
     this.deviceTheme.addEventListener('change', followDevice);
     inject(DestroyRef).onDestroy(() => {
       this.deviceTheme.removeEventListener('change', followDevice);
-      window.clearTimeout(this.themeTimer);
     });
   }
 
@@ -46,7 +44,7 @@ export class UiPreferencesService {
   setAppearance(appearance: Appearance): void {
     if (this.appearance() === appearance) return;
     this.save({ ...this.preferences(), appearance });
-    this.applyAppearance(true);
+    this.applyAppearance();
   }
 
   private save(preferences: UiPreferences): void {
@@ -58,16 +56,11 @@ export class UiPreferencesService {
     }
   }
 
-  private applyAppearance(animate: boolean): void {
+  private applyAppearance(): void {
     const dark = this.appearance() === 'dark' || (this.appearance() === 'system' && this.deviceTheme.matches);
     const root = document.documentElement;
-    if (animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      root.classList.add('theme-changing');
-      window.clearTimeout(this.themeTimer);
-      this.themeTimer = window.setTimeout(() => root.classList.remove('theme-changing'), 240);
-    }
     root.dataset['colorMode'] = dark ? 'dark' : 'light';
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#24252b' : '#f5f5f7');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#12171f' : '#f3f5f7');
   }
 }
 

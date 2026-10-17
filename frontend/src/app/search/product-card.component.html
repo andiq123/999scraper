@@ -18,7 +18,7 @@
     (click)="recordOpen()"
   ></a>
   <div class="media">
-    @if (product().thumbnailURL) {
+    @if (product().thumbnailURL && failedImage() !== product().thumbnailURL) {
       <img
         [src]="product().thumbnailURL"
         alt=""
@@ -28,9 +28,10 @@
         [attr.loading]="eager() ? 'eager' : 'lazy'"
         [attr.fetchpriority]="priority() ? 'high' : 'auto'"
         decoding="async"
+        (error)="failedImage.set(product().thumbnailURL)"
       />
     } @else {
-      <div class="placeholder" aria-hidden="true">No image</div>
+      <div class="placeholder" aria-hidden="true"><app-icon name="image" /><span>No photo available</span></div>
     }
     @if (bulkMode()) {
       <button
@@ -96,66 +97,31 @@
     @if (product().year) {
       <span class="year">{{ product().year }}</span>
     }
-    <button
-      class="copy-json copy-json-image"
-      type="button"
-      [disabled]="copyState() === 'loading'"
-      (click)="copyJSON()"
-      [attr.aria-label]="copyState() === 'loading' ? 'Loading listing details' : 'Copy listing JSON information'"
-    >
-      <span class="copy-json-icon" aria-hidden="true">
-        @if (copyState() === 'loading') {
-          <span class="mini-spinner"></span>
-        } @else if (copyState() === 'copied') {
-          <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
-        } @else {
-          <svg viewBox="0 0 24 24">
-            <path
-              d="M8 4H6a2 2 0 0 0-2 2v3c0 1.7-.7 3-2 3 1.3 0 2 1.3 2 3v3a2 2 0 0 0 2 2h2M16 4h2a2 2 0 0 1 2 2v3c0 1.7.7 3 2 3-1.3 0-2 1.3-2 3v3a2 2 0 0 1-2 2h-2"
-            />
-          </svg>
-        }
-      </span>
-      <span class="copy-json-label">{{
-        copyState() === 'loading'
-          ? 'Loading details'
-          : copyState() === 'copied'
-            ? 'JSON copied'
-            : copyState() === 'ready'
-              ? 'Copy JSON'
-              : 'Copy JSON info'
-      }}</span>
-    </button>
   </div>
-  @if (auth.session()) {
-    <button
-      class="save"
-      type="button"
-      [class.saved]="saved()"
-      (click)="save.emit(product())"
-      [attr.aria-label]="saved() ? 'Remove from saved listings' : 'Save listing'"
-      [attr.aria-pressed]="saved()"
-    >
-      <span aria-hidden="true"
-        ><svg viewBox="0 0 24 24">
-          <path
-            d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"
-          /></svg
-      ></span>
-    </button>
-  }
+  <button
+    class="save"
+    type="button"
+    [disabled]="saving()"
+    [attr.aria-busy]="saving()"
+    [class.saved]="saved()"
+    (click)="save.emit(product())"
+    [attr.aria-label]="
+      saved() ? 'Remove from saved listings' : auth.session() ? 'Save listing' : 'Log in to save listing'
+    "
+    [attr.aria-pressed]="saved()"
+  >
+    <span aria-hidden="true"
+      ><svg viewBox="0 0 24 24">
+        <path
+          d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"
+        /></svg
+    ></span>
+  </button>
   <div class="copy">
     <h2 [title]="product().title">
-      @for (word of titleWords(); track $index) {
-        <button
-          type="button"
-          [attr.popovertarget]="popoverId()"
-          (click)="chooseWord(word)"
-          [attr.aria-label]="'Exclude ' + word + ' from results'"
-        >
-          {{ word }}
-        </button>
-      }
+      <a [href]="product().urlToProduct" target="_blank" rel="noopener noreferrer" (click)="recordOpen()">{{
+        product().title
+      }}</a>
     </h2>
     <div class="card-meta">
       @if (metadata().length) {
@@ -201,8 +167,19 @@
         }
       </div>
       <div class="card-actions">
+        @if (allowExclusion()) {
+          <button
+            class="word-menu"
+            type="button"
+            [attr.popovertarget]="popoverId() + '-words'"
+            aria-label="Hide listings by a title word"
+            title="Hide listings by a title word"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10m-7 6h4" /></svg>
+          </button>
+        }
         <button
-          class="copy-json-mobile"
+          class="copy-json-action"
           type="button"
           [disabled]="copyState() === 'loading'"
           (click)="copyJSON()"
@@ -238,6 +215,28 @@
   </div>
 </article>
 
+@if (allowExclusion()) {
+  <div class="word-picker" popover="auto" [attr.id]="popoverId() + '-words'">
+    <header>
+      <h3>Hide listings with a word</h3>
+      <button
+        type="button"
+        [attr.popovertarget]="popoverId() + '-words'"
+        popovertargetaction="hide"
+        aria-label="Close word selection"
+      >
+        ×
+      </button>
+    </header>
+    <p>Choose a title word to exclude from this search.</p>
+    <div>
+      @for (word of titleWords(); track $index) {
+        <button type="button" [attr.popovertarget]="popoverId()" (click)="chooseWord(word)">{{ word }}</button>
+      }
+    </div>
+  </div>
+}
+
 @if (quality(); as quality) {
   <div class="quality-popover" popover="auto" [attr.id]="qualityPopoverId()">
     <header>
@@ -259,7 +258,7 @@
       </button>
     </header>
     <p class="quality-note">
-      Combines ad completeness with explicitly disclosed risks. It is a screening aid, not a vehicle inspection.
+      Based on the listing’s details and any disclosed concerns. Always verify the item with the seller.
     </p>
     @if (quality.strengths.length) {
       <section>
@@ -284,12 +283,14 @@
   </div>
 }
 
-<div class="exclude-popover" popover="auto" [attr.id]="popoverId()" #popover>
-  <span class="popover-mark" aria-hidden="true">−</span>
-  <h3>Hide “{{ selectedWord() }}”?</h3>
-  <p>Listings containing this exact word will disappear now and stay excluded from this search.</p>
-  <div>
-    <button type="button" popovertargetaction="hide" [attr.popovertarget]="popoverId()">Cancel</button>
-    <button class="exclude" type="button" (click)="applyExclusion()">Exclude word</button>
+@if (allowExclusion()) {
+  <div class="exclude-popover" popover="auto" [attr.id]="popoverId()" #popover>
+    <span class="popover-mark" aria-hidden="true">−</span>
+    <h3>Hide “{{ selectedWord() }}”?</h3>
+    <p>Listings containing this exact word will disappear now and stay excluded from this search.</p>
+    <div>
+      <button type="button" popovertargetaction="hide" [attr.popovertarget]="popoverId()">Cancel</button>
+      <button class="exclude" type="button" (click)="applyExclusion()">Exclude word</button>
+    </div>
   </div>
-</div>
+}

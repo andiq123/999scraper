@@ -54,6 +54,8 @@ import { VINResearchService } from '../vin-research.service';
 import { isPartsVehicleAd, isWantedListing, listingQualityScore, matchesListingCondition } from './listing-quality';
 import { SearchAlertService } from '../search-alert.service';
 import { searchFilterChips, type SearchFilterChip } from './search-filter-chips';
+import { IconComponent } from '../icon.component';
+import { canReuseSearchSnapshot, listingBatchSize, listingLimit } from '../listing-view';
 const carNoise = new Set([
   'accesorii',
   'acumulator',
@@ -169,9 +171,9 @@ const listingAuthorOptions = ['Persoană fizică', 'Agenție', 'Dezvoltator imob
 @Component({
   selector: 'app-search',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ProductCardComponent, RangeFilterComponent, ScrapeProgressComponent],
+  imports: [ProductCardComponent, RangeFilterComponent, ScrapeProgressComponent, IconComponent],
   templateUrl: './search.component.html',
-  styleUrl: './search.component.scss',
+  styleUrls: ['./search.component.scss', './_search-landing.scss'],
 })
 export class SearchComponent implements OnDestroy {
   private readonly searchService = inject(SearchService);
@@ -193,6 +195,8 @@ export class SearchComponent implements OnDestroy {
   private draftHadPrice = false;
   private lastSyncedSearchURL = '';
   private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
+  private filterSummary?: HTMLElement;
+  readonly mobileLayout = signal(window.matchMedia('(max-width: 767px)').matches);
 
   readonly query = signal('');
   readonly suggestionsOpen = signal(false);
@@ -319,6 +323,9 @@ export class SearchComponent implements OnDestroy {
   readonly propertyStateOptions = computed(() => facetValues(this.rawProducts(), (product) => product.propertyState));
   readonly buildingTypeOptions = computed(() => facetValues(this.rawProducts(), (product) => product.buildingType));
   readonly loading = signal(false);
+  readonly searchError = signal<string | null>(null);
+  readonly renderLimit = signal(listingBatchSize);
+  readonly listingBatchSize = listingBatchSize;
   readonly searched = signal(false);
   readonly bulkMode = signal(false);
   readonly bulkSelected = signal<ReadonlySet<string>>(new Set());
@@ -328,6 +335,9 @@ export class SearchComponent implements OnDestroy {
   readonly bulkWarningThreshold = 40;
   readonly loadedPages = signal(0);
   readonly totalPages = signal(0);
+  readonly incompleteSearch = computed(
+    () => this.searched() && !this.loading() && this.loadedPages() > 0 && this.totalPages() > this.loadedPages(),
+  );
   readonly progress = computed(() =>
     this.totalPages() ? Math.round((this.loadedPages() / this.totalPages()) * 100) : 0,
   );
@@ -468,6 +478,38 @@ export class SearchComponent implements OnDestroy {
     const visible = new Set(this.products().map((product) => product.id));
     return (this.alertChanges()?.priceChanges ?? []).filter((change) => !visible.has(change.after.id));
   });
+  readonly listingItems = computed(() => [
+    ...this.alertRemovedProducts().map((product) => ({
+      key: 'removed-' + product.id,
+      product,
+      change: 'removed' as const,
+      supplemental: true,
+      previousPrice: '',
+    })),
+    ...this.alertAddedProducts().map((product) => ({
+      key: 'added-' + product.id,
+      product,
+      change: 'new' as const,
+      supplemental: true,
+      previousPrice: '',
+    })),
+    ...this.alertPriceChangedProducts().map(({ after: product }) => ({
+      key: 'repriced-' + product.id,
+      product,
+      change: 'price' as const,
+      supplemental: true,
+      previousPrice: this.alertPreviousPrice(product.id),
+    })),
+    ...this.products().map((product) => ({
+      key: product.id,
+      product,
+      change: this.alertChangeState(product.id),
+      supplemental: false,
+      previousPrice: this.alertPreviousPrice(product.id),
+    })),
+  ]);
+  readonly visibleListings = computed(() => this.listingItems().slice(0, this.renderLimit()));
+  readonly remainingListings = computed(() => this.listingItems().length - this.visibleListings().length);
   readonly priceRangeUpdating = computed(() => this.loading() && this.availablePrices().length > 0);
   readonly hiddenCount = computed(() => this.rawProducts().length - this.products().length);
   readonly visiblePriceSummary = computed(() => {
@@ -607,9 +649,10 @@ export class SearchComponent implements OnDestroy {
     const replay = this.route.snapshot.queryParamMap.get('q')?.trim();
     const alertID = this.route.snapshot.queryParamMap.get('alert');
     const sharedFilters = decodeSearchFilters(this.route.snapshot.queryParamMap.get('filters'));
-    const canRestore = cached && !sharedFilters && (!replay || replay === cached.activeQuery);
-    if (canRestore) {
+    const canRestore = canReuseSearchSnapshot(cached, replay, alertID);
+    if (canRestore && cached) {
       this.restore(cached);
+      if (sharedFilters) this.applySharedFilters(sharedFilters);
       afterNextRender(() =>
         window.requestAnimationFrame(() => window.scrollTo({ top: cached.scrollY, behavior: 'instant' })),
       );
@@ -646,7 +689,6 @@ export class SearchComponent implements OnDestroy {
     this.newlyRevealed.set(new Set());
     this.controller?.abort();
     this.searchState.save(this.snapshot(window.scrollY), true);
-    document.documentElement.style.removeProperty('--page-scroll-lock');
     document.documentElement.classList.remove('filter-sheet-open');
   }
 
@@ -679,8 +721,42 @@ export class SearchComponent implements OnDestroy {
 
   @HostListener('document:keydown.escape')
   closeMobileFilterSheet(): void {
-    if (!window.matchMedia('(max-width: 767px)').matches) return;
+    if (!this.mobileLayout() || !document.documentElement.classList.contains('filter-sheet-open')) return;
     this.closeMobileFilterSheets();
+  }
+
+  @HostListener('window:resize')
+  updateMobileLayout(): void {
+    const mobile = window.matchMedia('(max-width: 767px)').matches;
+    if (mobile && !this.mobileLayout()) this.closeMobileFilterSheets();
+    this.mobileLayout.set(mobile);
+    this.syncMobileFilterChrome();
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  keepFilterFocus(event: KeyboardEvent): void {
+    if (event.key !== 'Tab' || !this.mobileLayout()) return;
+    const sheet = document.querySelector<HTMLDetailsElement>(
+      'app-search details.filters[open], app-search details.smart-prompt[open]',
+    );
+    if (!sheet) return;
+    const controls = [
+      ...sheet.querySelectorAll<HTMLElement>(
+        'summary, button:not(:disabled), input:not(:disabled), select:not(:disabled), a[href]',
+      ),
+    ].filter((element) => element.getClientRects().length > 0);
+    const first = controls[0];
+    const last = controls.at(-1);
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last?.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first?.focus();
+    } else if (!sheet.contains(document.activeElement)) {
+      event.preventDefault();
+      first?.focus();
+    }
   }
 
   closeMobileFilterSheets(event?: Event): void {
@@ -692,6 +768,7 @@ export class SearchComponent implements OnDestroy {
       .querySelectorAll<HTMLDetailsElement>('app-search details.filters[open], app-search details.smart-prompt[open]')
       .forEach((sheet) => (sheet.open = false));
     this.syncMobileFilterChrome();
+    this.filterSummary?.focus({ preventScroll: true });
   }
 
   async search(event?: SubmitEvent): Promise<void> {
@@ -742,6 +819,8 @@ export class SearchComponent implements OnDestroy {
     this.newlyRevealed.set(new Set());
     this.controller?.abort();
     this.ids.clear();
+    this.renderLimit.set(listingBatchSize);
+    this.searchError.set(null);
     this.rawProducts.set([]);
     this.activeQuery.set(intent.sourceQuery);
     this.activeIntent.set(intent);
@@ -764,7 +843,7 @@ export class SearchComponent implements OnDestroy {
         this.receive(streamEvent),
       );
     } catch (error) {
-      if (!controller.signal.aborted) this.toast.error(error instanceof Error ? error.message : 'Search failed.');
+      if (!controller.signal.aborted) this.searchError.set(error instanceof Error ? error.message : 'Search failed.');
     } finally {
       if (this.controller === controller) {
         this.controller = undefined;
@@ -777,6 +856,19 @@ export class SearchComponent implements OnDestroy {
     this.controller?.abort();
     this.controller = undefined;
     this.loading.set(false);
+  }
+
+  showMoreListings(): void {
+    const previousCount = this.visibleListings().length;
+    const scrollY = window.scrollY;
+    this.renderLimit.update((count) => count + listingBatchSize);
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: scrollY, behavior: 'instant' });
+      document
+        .querySelectorAll<HTMLElement>('.result-feed .grid app-product-card')
+        [previousCount]?.querySelector<HTMLElement>('.row-link')
+        ?.focus({ preventScroll: true });
+    });
   }
 
   openSearchAlert(): void {
@@ -1029,7 +1121,7 @@ export class SearchComponent implements OnDestroy {
   async toggleSaved(product: Product): Promise<void> {
     if (!this.auth.session()) {
       this.toast.error('Log in with a private code to save listings.');
-      await this.router.navigateByUrl('/login');
+      await this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
       return;
     }
     try {
@@ -1139,13 +1231,17 @@ export class SearchComponent implements OnDestroy {
   }
 
   rememberPanel(panel: CollapsiblePanel, event: Event): void {
-    const open = (event.currentTarget as HTMLDetailsElement).open;
+    const details = event.currentTarget as HTMLDetailsElement;
+    const open = details.open;
     this.uiPreferences.setOpen(panel, open);
     if (panel === 'filters' || panel === 'smartRefinement') {
       if (open && window.matchMedia('(max-width: 767px)').matches) {
         const otherPanel = panel === 'filters' ? 'smart-prompt' : 'filters';
+        this.uiPreferences.setOpen(panel === 'filters' ? 'smartRefinement' : 'filters', false);
         const other = document.querySelector<HTMLDetailsElement>(`app-search details.${otherPanel}[open]`);
         if (other) other.open = false;
+        this.filterSummary = details.querySelector<HTMLElement>('summary') ?? undefined;
+        this.filterSummary?.focus({ preventScroll: true });
       }
       this.syncMobileFilterChrome();
     }
@@ -1155,8 +1251,6 @@ export class SearchComponent implements OnDestroy {
     const mobile = window.matchMedia('(max-width: 767px)').matches;
     const active = mobile && (this.uiPreferences.isOpen('filters') || this.uiPreferences.isOpen('smartRefinement'));
     document.documentElement.classList.toggle('filter-sheet-open', active);
-    if (active) document.documentElement.style.setProperty('--page-scroll-lock', 'hidden');
-    else document.documentElement.style.removeProperty('--page-scroll-lock');
   }
 
   toggleRegistration(value: 'moldova' | 'other'): void {
@@ -1283,6 +1377,8 @@ export class SearchComponent implements OnDestroy {
   }
 
   private startFreshWorkspace(): void {
+    this.renderLimit.set(listingBatchSize);
+    this.searchError.set(null);
     this.controller?.abort();
     this.controller = undefined;
     this.resetFilters(false);
@@ -1445,7 +1541,7 @@ export class SearchComponent implements OnDestroy {
     }
     if (event.type === 'error') {
       this.loading.set(false);
-      this.toast.error(event.message || 'Search ended early.');
+      this.searchError.set(event.message || 'Search ended early.');
     }
     if (event.type !== 'chunk') return;
     const additions = (event.products ?? []).filter((product) => {
@@ -1467,6 +1563,8 @@ export class SearchComponent implements OnDestroy {
   }
 
   private restore(state: SearchState): void {
+    this.renderLimit.set(listingLimit(state.renderLimit));
+    this.searchError.set(typeof state.searchError === 'string' ? state.searchError : null);
     this.newlyRevealed.set(new Set());
     this.query.set(state.query);
     this.searchAssist.set(null);
@@ -1588,6 +1686,8 @@ export class SearchComponent implements OnDestroy {
       totalPages: this.totalPages(),
       scrollY,
       updatedAt: Date.now(),
+      renderLimit: this.renderLimit(),
+      searchError: this.searchError(),
     };
   }
 

@@ -60,10 +60,9 @@ header p {
   width: 46px;
   height: 46px;
   border-radius: 15px;
-  color: white;
+  color: var(--on-accent);
   background: var(--accent);
 }
-.alert-icon svg,
 .subscribe svg,
 .email-field svg,
 .interval-field svg,
@@ -78,8 +77,8 @@ header p {
 .close {
   display: grid;
   place-items: center;
-  width: 42px;
-  min-height: 42px;
+  width: 44px;
+  min-height: 44px;
   padding: 0;
   border: 0;
   border-radius: 13px;
@@ -134,7 +133,7 @@ header p {
 }
 .configuration-heading {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 0.55rem;
 }
@@ -158,11 +157,6 @@ header p {
   background: rgb(var(--success-rgb) / 11%);
   font-size: var(--font-meta);
   font-weight: 800;
-}
-.matching-count {
-  color: var(--subtle);
-  font-size: var(--font-meta);
-  font-weight: 700;
 }
 .configuration-chips {
   display: flex;
@@ -284,8 +278,8 @@ form > label {
   margin-top: 0.25rem;
   color: var(--muted);
 }
-.alert-unavailable code {
-  font-size: var(--font-meta);
+.alert-unavailable .btn {
+  margin-top: 0.65rem;
 }
 .alert-loading {
   display: flex;
@@ -321,8 +315,8 @@ form > label {
   }
   .alert-sheet {
     width: 100%;
-    max-height: min(92dvh, 760px);
-    padding: 1rem 0.9rem calc(1rem + env(safe-area-inset-bottom));
+    max-height: min(calc(100dvh - max(1rem, env(safe-area-inset-top))), 760px);
+    padding: 1.25rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
     border-width: 1px 0 0;
     border-radius: 28px 28px 0 0;
     animation-name: alert-sheet-enter;
@@ -357,5 +351,33 @@ form > label {
 @keyframes alert-spin {
   to {
     transform: rotate(1turn);
+  }
+}
+
+@media (max-width: 767px) {
+  header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.75rem;
+  }
+  .alert-icon {
+    display: none;
+  }
+  header h2 {
+    font-size: 1.4rem;
+  }
+  .subscribe {
+    min-height: 50px;
+  }
+  .manage-link {
+    min-height: 44px;
+    align-items: center;
+  }
+  .privacy-note {
+    align-items: start;
+    line-height: 1.5;
+  }
+  .privacy-note svg {
+    flex: none;
+    margin-top: 0.2rem;
   }
 }

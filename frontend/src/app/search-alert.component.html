@@ -7,36 +7,35 @@
 >
   <section class="alert-sheet">
     <header>
-      <span class="alert-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
-      </span>
+      <span class="alert-icon"><app-icon name="bell" /></span>
       <div>
         <small>SEARCH ALERT</small>
         <h2 id="search-alert-title">Email search updates</h2>
         <p>Know when listings enter or leave the latest results.</p>
       </div>
       <button class="close" type="button" (click)="alerts.close()" [disabled]="alerts.saving()" aria-label="Close">
-        <span aria-hidden="true">×</span>
+        <app-icon name="close" />
       </button>
     </header>
 
     <div class="alert-query">
-      <span aria-hidden="true">⌕</span>
+      <span><app-icon name="search" /></span>
       <div>
         <small>Current search</small><strong>{{ alerts.query() }}</strong>
       </div>
-      <span class="live-dot">Live</span>
+      <span class="live-dot"
+        >{{ alerts.matchingCount() }} {{ alerts.matchingCount() === 1 ? 'match' : 'matches' }}</span
+      >
     </div>
 
     @if (configuration().length) {
       <section class="saved-configuration" aria-labelledby="saved-configuration-title">
         <div class="configuration-heading">
-          <span class="configuration-check" aria-hidden="true">✓</span>
+          <span class="configuration-check"><app-icon name="check" /></span>
           <div>
             <strong id="saved-configuration-title">Saved configuration</strong>
             <small>Reopens with every filter applied</small>
           </div>
-          <span class="matching-count">{{ alerts.matchingCount() }} now</span>
         </div>
         <div class="configuration-chips" aria-label="Applied search filters">
           @for (filter of configuration(); track filter.id) {
@@ -48,10 +47,17 @@
 
     @if (alerts.loading()) {
       <div class="alert-loading" role="status"><span></span> Checking email alerts…</div>
+    } @else if (alerts.error() && alerts.available() === null) {
+      <div class="alert-unavailable" role="alert">
+        <strong>Alerts couldn’t load</strong>
+        <p>{{ alerts.error() }}</p>
+        <button class="btn btn-soft btn-primary" type="button" (click)="alerts.load()">Try again</button>
+      </div>
     } @else if (alerts.available() === false) {
       <div class="alert-unavailable" role="status">
-        <strong>Email sender is not configured</strong>
-        <p>Add <code>SMTP_FROM_EMAIL</code> and <code>SMTP_APP_PASSWORD</code> to the backend environment.</p>
+        <strong>Email alerts are unavailable</strong>
+        <p>Your search is ready. You can keep browsing and saving listings.</p>
+        <button class="btn btn-soft btn-primary" type="button" (click)="alerts.load()">Check again</button>
       </div>
     } @else {
       <form (submit)="submit($event)" novalidate>
@@ -118,9 +124,9 @@
 
     @if (alerts.items().length) {
       <a class="manage-link" routerLink="/alerts" (click)="alerts.close()"
-        >Manage {{ alerts.items().length }} active alert{{ alerts.items().length === 1 ? '' : 's' }}
-        <span aria-hidden="true">›</span></a
-      >
+        >Manage {{ alerts.items().length }} alert{{ alerts.items().length === 1 ? '' : 's' }}
+        <app-icon name="chevronRight"
+      /></a>
     }
   </section>
 </dialog>

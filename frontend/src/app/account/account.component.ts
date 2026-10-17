@@ -4,6 +4,7 @@ import { AuthService } from '../auth/auth.service';
 import { environment } from '../../environments/environment';
 import { AlertsComponent } from '../alerts/alerts.component';
 import { UiPreferencesService } from '../ui-preferences.service';
+import { IconComponent } from '../icon.component';
 
 interface HealthStatus {
   status: 'ok' | 'degraded';
@@ -13,7 +14,7 @@ interface HealthStatus {
 @Component({
   selector: 'app-account',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, AlertsComponent],
+  imports: [RouterLink, AlertsComponent, IconComponent],
   templateUrl: './account.component.html',
   styleUrl: './account.component.scss',
 })
@@ -25,6 +26,17 @@ export class AccountComponent {
   readonly unavailable = signal(false);
   readonly latency = signal<number | null>(null);
   readonly lastChecked = signal<Date | null>(null);
+  readonly reconnecting = signal(false);
+
+  async reconnect(): Promise<void> {
+    if (this.reconnecting()) return;
+    this.reconnecting.set(true);
+    try {
+      await Promise.all([this.auth.restore(), this.refreshStatus()]);
+    } finally {
+      this.reconnecting.set(false);
+    }
+  }
 
   private readonly destroyRef = inject(DestroyRef);
   private request: AbortController | null = null;
@@ -56,7 +68,15 @@ export class AccountComponent {
         signal: request.signal,
       });
       const body = (await response.json()) as HealthStatus;
-      if (!body.services || typeof body.services.backend !== 'boolean') throw new Error('Invalid health response');
+      if (
+        !body.services ||
+        !['backend', 'database', 'redis'].every(
+          (key) => typeof body.services[key as keyof HealthStatus['services']] === 'boolean',
+        ) ||
+        !['ok', 'degraded'].includes(body.status) ||
+        (body.status === 'ok' && !response.ok)
+      )
+        throw new Error('Invalid health response');
       this.health.set(body);
       this.unavailable.set(false);
       this.latency.set(Math.max(1, Math.round(performance.now() - started)));

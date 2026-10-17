@@ -1,26 +1,34 @@
 <main class="account-page page-shell route-page">
   <header class="account-heading">
     <h1>Account & settings</h1>
-    <p>{{ auth.session() ? 'Your private search space.' : 'Search freely. Sign in only to keep things.' }}</p>
+    <p>
+      {{
+        auth.session()
+          ? 'Your private search space.'
+          : auth.restoreError()
+            ? 'Reconnect to your private search space.'
+            : 'Search freely. Sign in only to keep things.'
+      }}
+    </p>
   </header>
 
   @if (auth.session()) {
     <section class="account-state card bg-base-100 shadow-sm">
       <div class="account-status">
-        <span aria-hidden="true">✓</span>
+        <span><app-icon name="check" /></span>
         <div><strong>Signed in</strong><small>Your saved listings and history are available.</small></div>
       </div>
       <nav class="account-list" aria-label="Account destinations">
         <a routerLink="/saved"
-          ><span aria-hidden="true">♡</span
+          ><span><app-icon name="heart" /></span
           ><span><strong>Saved listings</strong><small>Everything you kept</small></span
-          ><b aria-hidden="true">›</b></a
-        >
+          ><app-icon name="chevronRight"
+        /></a>
         <a routerLink="/history"
-          ><span aria-hidden="true">↺</span
+          ><span><app-icon name="history" /></span
           ><span><strong>Search history</strong><small>Your previous searches</small></span
-          ><b aria-hidden="true">›</b></a
-        >
+          ><app-icon name="chevronRight"
+        /></a>
       </nav>
       <button class="logout btn btn-soft btn-error" type="button" (click)="auth.logout()">Log out</button>
     </section>
@@ -28,12 +36,26 @@
   } @else {
     <section class="account-state card bg-base-100 shadow-sm">
       <div class="account-status guest">
-        <span aria-hidden="true">6</span>
-        <div><strong>One private code</strong><small>No name, email, or password required.</small></div>
+        <span><app-icon [name]="auth.restoreError() ? 'refresh' : 'shield'" /></span>
+        <div>
+          <strong>{{ auth.restoreError() ? 'Your login is saved' : 'One private code' }}</strong
+          ><small>{{
+            auth.restoreError() ? 'Retry when the connection is available.' : 'No name, email, or password required.'
+          }}</small>
+        </div>
       </div>
       <div class="account-actions">
-        <a class="btn btn-primary" routerLink="/login">Log in with code</a>
-        <a class="btn btn-ghost" routerLink="/register">Register · get a code</a>
+        @if (auth.restoreError(); as message) {
+          <p role="alert">{{ message }}</p>
+          <button class="btn btn-primary" type="button" (click)="reconnect()" [disabled]="reconnecting()">
+            {{ reconnecting() ? 'Connecting…' : 'Retry connection' }}
+          </button>
+        } @else {
+          <a class="btn btn-primary" routerLink="/login" [queryParams]="{ returnUrl: '/account' }">Log in with code</a>
+          <a class="btn btn-ghost" routerLink="/register" [queryParams]="{ returnUrl: '/account' }"
+            >Register · get a code</a
+          >
+        }
       </div>
       <p class="guest-note">You can always search without an account.</p>
     </section>
@@ -93,7 +115,7 @@
         </small>
       </div>
       <button class="btn btn-soft btn-primary btn-sm" type="button" (click)="refreshStatus()" [disabled]="checking()">
-        <span aria-hidden="true">↻</span>{{ checking() ? 'Checking…' : 'Refresh' }}
+        <app-icon name="refresh" />{{ checking() ? 'Checking…' : 'Refresh' }}
       </button>
     </header>
     <div class="service-list" aria-label="Application services">

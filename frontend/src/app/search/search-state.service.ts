@@ -66,6 +66,8 @@ export interface SearchState {
   totalPages: number;
   scrollY: number;
   updatedAt: number;
+  renderLimit?: number;
+  searchError?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })

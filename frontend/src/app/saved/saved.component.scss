@@ -1,5 +1,5 @@
 .saved-page {
-  margin-top: 1.5rem;
+  margin-top: 1.25rem;
   margin-bottom: max(5rem, env(safe-area-inset-bottom));
 }
 header {
@@ -17,7 +17,7 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 1rem;
 }
 .saved-filter-heading > span {
   color: var(--muted);
@@ -55,7 +55,7 @@ h1 {
   align-items: center;
   gap: 0.4rem;
   flex: none;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0.38rem 0.65rem;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -86,7 +86,7 @@ h1 {
 .grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0.5rem;
+  gap: 1rem;
 }
 .filtered-empty {
   grid-column: 1 / -1;
@@ -104,7 +104,7 @@ h1 {
   font-size: var(--font-body);
 }
 .empty {
-  padding: 3.5rem 1rem;
+  padding: 2.5rem 1rem;
 }
 .empty h2 {
   margin-bottom: 0.3rem;
@@ -112,7 +112,8 @@ h1 {
 .empty p {
   color: var(--muted);
 }
-.empty a {
+.empty a,
+.empty button {
   margin-top: 1rem;
 }
 @media (min-width: 768px) {
@@ -120,14 +121,14 @@ h1 {
     margin-top: 2rem;
   }
   .grid {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
   }
 }
 
 @media (max-width: 767px) {
   .saved-page {
-    margin-top: 0.8rem;
+    margin-top: 1.25rem;
   }
   header,
   .saved-origin-filter {
@@ -138,5 +139,29 @@ h1 {
   }
   .saved-origin-filter {
     margin-bottom: 0.8rem;
+  }
+}
+
+@media (max-width: 767px) {
+  header {
+    margin-bottom: 1.5rem;
+  }
+  .saved-origin-filter {
+    padding: 1rem;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--surface-solid);
+  }
+  .saved-filter-heading {
+    align-items: start;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .empty {
+    padding: 3rem 1.25rem;
+  }
+  .empty p {
+    margin-top: 0.6rem;
+    line-height: 1.6;
   }
 }

@@ -10,6 +10,7 @@ bin/
 coverage/
 
 # Logs and local tooling
+/work/
 *.log
 .idea/
 .vscode/

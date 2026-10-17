@@ -7,11 +7,12 @@ import { ToastService } from './toast.service';
 import { VINResearchComponent } from './vin-research.component';
 import { SearchAlertComponent } from './search-alert.component';
 import { UiPreferencesService } from './ui-preferences.service';
+import { IconComponent } from './icon.component';
 
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NavComponent, RouterOutlet, VINResearchComponent, SearchAlertComponent],
+  imports: [NavComponent, RouterOutlet, VINResearchComponent, SearchAlertComponent, IconComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
 })

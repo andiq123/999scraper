@@ -6,7 +6,7 @@ fieldset {
   display: grid;
   gap: 0.42rem;
   min-width: 0;
-  padding: 0.55rem;
+  padding: 0.85rem;
   border: 1px solid var(--line);
   border-radius: 13px;
   background: var(--surface-solid);
@@ -18,13 +18,13 @@ legend {
   width: 100%;
   padding: 0;
   color: var(--muted);
-  font-size: var(--font-meta);
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 output {
   overflow: hidden;
   color: var(--accent);
-  font-size: var(--font-meta);
+  font-size: 0.8125rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -39,13 +39,13 @@ output {
 }
 .presets button {
   flex: 1 0 auto;
-  min-height: 32px;
+  min-height: 44px;
   padding: 0.25rem 0.5rem;
   border: 0;
   border-radius: 9px;
   color: var(--muted);
   background: var(--surface-soft);
-  font-size: var(--font-meta);
+  font-size: 0.8125rem;
   font-weight: 680;
   cursor: pointer;
 }
@@ -125,7 +125,7 @@ output {
   border-radius: 10px;
   outline: 0;
   background: var(--surface-solid);
-  font-size: var(--font-meta);
+  font-size: 0.8125rem;
 }
 .inputs input:focus {
   border-color: var(--accent);

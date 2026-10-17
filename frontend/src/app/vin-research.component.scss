@@ -47,8 +47,8 @@
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  color: white;
-  background: #0d9488;
+  color: var(--on-accent);
+  background: var(--teal);
 }
 .vin-mark svg {
   width: 21px;
@@ -58,7 +58,7 @@
   stroke-width: 1.8;
 }
 .trusted-label {
-  color: #087f75;
+  color: var(--teal);
   font-size: var(--font-caption);
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -107,7 +107,7 @@
 }
 .vin-search > span {
   padding-left: 0.55rem;
-  color: #0d9488;
+  color: var(--teal);
   font-size: var(--font-caption);
   font-weight: 820;
   letter-spacing: 0.08em;
@@ -144,8 +144,8 @@
   padding: 0.5rem 0.75rem;
   border: 0;
   border-radius: 11px;
-  color: white;
-  background: #0d9488;
+  color: var(--on-accent);
+  background: var(--teal);
   font-size: var(--font-meta);
   font-weight: 740;
   cursor: pointer;
@@ -183,7 +183,7 @@
   min-width: 0;
 }
 .vin-identity small {
-  color: #087f75;
+  color: var(--teal);
   font-size: var(--font-caption);
   font-weight: 750;
 }
@@ -205,7 +205,7 @@
   padding: 0.35rem 0.55rem;
   border: 1px solid rgb(13 148 136 / 16%);
   border-radius: 10px;
-  color: #087f75;
+  color: var(--teal);
   background: var(--surface-solid);
   font-size: var(--font-meta);
   font-weight: 730;
@@ -249,7 +249,7 @@
   width: 15px;
   height: 15px;
   border: 2px solid rgb(13 148 136 / 20%);
-  border-top-color: #0d9488;
+  border-top-color: var(--teal);
   border-radius: 50%;
   animation: vin-spin 0.7s linear infinite;
 }
@@ -378,7 +378,7 @@
   background: var(--accent-softer);
 }
 .record .source-icon {
-  color: #087f75;
+  color: var(--teal);
   background: rgb(13 148 136 / 10%);
 }
 .source-icon svg {
@@ -411,7 +411,7 @@
   width: 21px;
   height: 21px;
   border-radius: 50%;
-  color: #087f75;
+  color: var(--teal);
   background: rgb(13 148 136 / 10%);
   font-size: var(--font-caption);
   font-weight: 800;
@@ -551,7 +551,7 @@
   height: 54px;
   margin-bottom: 0.7rem;
   border-radius: 17px;
-  color: #0d9488;
+  color: var(--teal);
   background: rgb(13 148 136 / 9%);
 }
 .vin-welcome svg {
@@ -631,14 +631,14 @@
   }
   .vin-dialog[open] .vin-shell {
     width: 100%;
-    max-height: 94dvh;
+    max-height: calc(100dvh - max(1rem, env(safe-area-inset-top)));
     border-width: 1px 0 0;
     border-radius: 28px 28px 0 0;
     scrollbar-gutter: auto;
     animation-name: vin-sheet-enter;
   }
   .vin-header {
-    grid-template-columns: 38px minmax(0, 1fr) 38px;
+    grid-template-columns: 38px minmax(0, 1fr) 44px;
     gap: 0.55rem;
     padding: 0.7rem;
   }
@@ -692,5 +692,29 @@
   from {
     opacity: 0.8;
     transform: translateY(100%);
+  }
+}
+
+@media (max-width: 767px) {
+  .vin-close {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+  .vin-header {
+    padding: 1rem;
+  }
+  .vin-search {
+    margin: 1rem 1rem 0.5rem;
+  }
+  .vin-identity,
+  .vehicle-panel,
+  .source-section,
+  .vin-caveat,
+  .evidence-empty {
+    margin-inline: 1rem;
+  }
+  .source-footer a {
+    min-height: 44px;
   }
 }

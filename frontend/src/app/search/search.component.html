@@ -1,11 +1,17 @@
 <main class="search-page">
+  <header class="search-heading" [class.has-results]="searched() || loading()">
+    <div class="market-brand"><span>999</span><strong>Market search</strong></div>
+    <h1>{{ searched() || loading() ? 'Search results' : 'Good finds. Less noise.' }}</h1>
+    @if (!searched() && !loading()) {
+      <p>A calmer way to explore the 999 marketplace.</p>
+    }
+  </header>
   <form class="search-form card bg-base-100 shadow-sm" (submit)="search($event)">
     <label class="sr-only" for="search-query">Search 999.md</label>
     <input
       class="input input-ghost"
       #searchInput
       id="search-query"
-      autofocus
       autocomplete="off"
       enterkeyhint="search"
       role="combobox"
@@ -13,7 +19,7 @@
       aria-controls="search-suggestions"
       [attr.aria-expanded]="showSearchSuggestions()"
       [attr.aria-activedescendant]="activeSuggestionId()"
-      placeholder="Try ‘Corolla automatic under 10k EUR -piese’"
+      placeholder="What are you looking for?"
       [value]="query()"
       (focus)="openSearchSuggestions()"
       (blur)="closeSearchSuggestions()"
@@ -40,10 +46,7 @@
             priceRangeInvalid()))
       "
     >
-      <svg aria-hidden="true" viewBox="0 0 24 24">
-        <circle cx="10.75" cy="10.75" r="6.25"></circle>
-        <path d="m15.5 15.5 4.25 4.25"></path>
-      </svg>
+      <app-icon name="search" />
       <span>{{ newSearchPending() ? 'Update' : 'Search' }}</span>
     </button>
     @if (showSearchSuggestions()) {
@@ -61,15 +64,18 @@
               (mouseenter)="activeSuggestionIndex.set(index)"
               (click)="chooseSuggestion(suggestion)"
             >
-              <span class="suggestion-icon" aria-hidden="true">{{
-                suggestion.kind === 'recent'
-                  ? '↺'
-                  : suggestion.kind === 'refine'
-                    ? '＋'
-                    : suggestion.kind === 'direct'
-                      ? '→'
-                      : '⌕'
-              }}</span>
+              <span class="suggestion-icon"
+                ><app-icon
+                  [name]="
+                    suggestion.kind === 'recent'
+                      ? 'history'
+                      : suggestion.kind === 'refine'
+                        ? 'sliders'
+                        : suggestion.kind === 'direct'
+                          ? 'chevronRight'
+                          : 'search'
+                  "
+              /></span>
               <strong>{{ suggestion.label }}</strong>
               <small>{{ suggestion.hint }}</small>
             </button>
@@ -78,6 +84,9 @@
       </ul>
     }
   </form>
+  @if (!searched() && !loading()) {
+    <p class="search-hint">Try a name, a budget, or both. <span>“Corolla under 10k EUR”</span></p>
+  }
 
   @if (searchAssist()) {
     <aside class="search-update" animate.enter="reveal-enter" animate.leave="reveal-leave" role="status">
@@ -116,19 +125,18 @@
       animate.enter="reveal-enter"
       animate.leave="reveal-leave"
       aria-live="polite"
-      [attr.role]="uiPreferences.isOpen('smartRefinement') ? 'dialog' : null"
-      [attr.aria-modal]="uiPreferences.isOpen('smartRefinement') ? 'true' : null"
+      [attr.role]="mobileLayout() && uiPreferences.isOpen('smartRefinement') ? 'dialog' : null"
+      [attr.aria-modal]="mobileLayout() && uiPreferences.isOpen('smartRefinement') ? 'true' : null"
       aria-label="Smart filters"
       [open]="uiPreferences.isOpen('smartRefinement')"
       (toggle)="rememberPanel('smartRefinement', $event)"
     >
       <summary>
-        <span class="smart-icon" aria-hidden="true">✦</span>
+        <span class="smart-icon"><app-icon name="sparkles" /></span>
         <span class="smart-copy"
           ><strong>{{ smartTitle() }}</strong
           ><small>{{ smartSummary() }}</small></span
         >
-        <span class="refine-label">Smart filters</span>
         <span class="sheet-done">Done</span>
       </summary>
 
@@ -731,22 +739,17 @@
     </details>
   }
 
-  <div class="workspace">
+  <div class="workspace" [class.is-welcome]="!searched() && !loading()">
     <details
       class="filters card bg-base-100 shadow-sm"
-      [attr.role]="uiPreferences.isOpen('filters') ? 'dialog' : null"
-      [attr.aria-modal]="uiPreferences.isOpen('filters') ? 'true' : null"
+      [attr.role]="mobileLayout() && uiPreferences.isOpen('filters') ? 'dialog' : null"
+      [attr.aria-modal]="mobileLayout() && uiPreferences.isOpen('filters') ? 'true' : null"
       aria-label="More filters"
       [open]="uiPreferences.isOpen('filters')"
       (toggle)="rememberPanel('filters', $event)"
     >
       <summary>
-        <span class="filters-title"
-          ><svg aria-hidden="true" viewBox="0 0 24 24">
-            <path d="M4 7h5m6 0h5M9 7a3 3 0 1 0 6 0 3 3 0 0 0-6 0ZM4 17h9m6 0h1m-7 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z" />
-          </svg>
-          More filters</span
-        >
+        <span class="filters-title"><app-icon name="sliders" />More filters</span>
         @if (activeFilterChips().length) {
           <small>{{ activeFilterChips().length }} active</small>
         }
@@ -974,7 +977,40 @@
       </button>
     </details>
 
-    <section class="result-feed" aria-label="Search results">
+    <section class="result-feed" aria-label="Search results" [attr.aria-busy]="loading()">
+      @if (searched() && currency.unavailable()) {
+        <div class="search-status" role="status">
+          <app-icon name="warning" />
+          <p>Currency conversion is unavailable. Price filters may leave out listings in other currencies.</p>
+          <button
+            class="btn btn-soft btn-primary btn-sm"
+            type="button"
+            (click)="currency.load()"
+            [disabled]="currency.loading()"
+          >
+            {{ currency.loading() ? 'Connecting…' : 'Retry rates' }}
+          </button>
+        </div>
+      }
+      @if (searchError(); as message) {
+        <div class="search-error" role="alert">
+          <app-icon name="warning" />
+          <div>
+            <strong>Search couldn’t finish</strong>
+            <p>{{ message }}</p>
+            @if (products().length) {
+              <small>Your loaded results are still available.</small>
+            }
+          </div>
+          <button class="btn btn-soft btn-primary btn-sm" type="button" (click)="search()">Retry search</button>
+        </div>
+      } @else if (incompleteSearch()) {
+        <div class="search-status" role="status">
+          <app-icon name="history" />
+          <p>Partial results · {{ loadedPages() }} of {{ totalPages() }} pages loaded</p>
+          <button class="btn btn-soft btn-primary btn-sm" type="button" (click)="search()">Search again</button>
+        </div>
+      }
       @if (loading()) {
         <app-scrape-progress
           animate.enter="reveal-enter"
@@ -1020,7 +1056,7 @@
         <div class="result-bar" animate.enter="reveal-enter" animate.leave="reveal-leave">
           <div class="result-summary">
             <p>
-              <strong>{{ products().length }}</strong> shown
+              <strong>{{ products().length }}</strong> {{ products().length === 1 ? 'match' : 'matches' }}
               @if (newlyRevealed().size) {
                 <span>· {{ newlyRevealed().size }} newly shown</span>
               } @else if (hiddenCount()) {
@@ -1033,7 +1069,7 @@
               (click)="startOver()"
               aria-label="Clear this search and start over"
             >
-              <span aria-hidden="true">×</span> Start over
+              <app-icon name="close" /> Start over
             </button>
           </div>
           @if (visiblePriceSummary()) {
@@ -1049,17 +1085,12 @@
               [disabled]="loading()"
               [attr.aria-label]="loading() ? 'Email alerts are available when this search finishes' : 'Email alerts'"
             >
-              <svg aria-hidden="true" viewBox="0 0 24 24">
-                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
-              </svg>
+              <app-icon name="bell" />
               {{ loading() ? 'Finishing…' : 'Email alerts' }}
             </button>
             @if (activeVehicleSearch()) {
               <button class="vin-research-trigger" type="button" (click)="vinResearch.open()">
-                <svg aria-hidden="true" viewBox="0 0 24 24">
-                  <circle cx="10.5" cy="10.5" r="5.5" />
-                  <path d="m15 15 4.5 4.5M8 10.5h5" />
-                </svg>
+                <app-icon name="search" />
                 VIN research
               </button>
             }
@@ -1070,7 +1101,7 @@
               [disabled]="bulkDownloading()"
               [attr.aria-pressed]="bulkMode()"
             >
-              <span aria-hidden="true">JSON</span> {{ bulkMode() ? 'Cancel' : 'Bulk JSON' }}
+              <app-icon name="code" /> {{ bulkMode() ? 'Cancel' : 'Bulk JSON' }}
             </button>
           </div>
         </div>
@@ -1147,52 +1178,37 @@
           </div>
         }
         <div class="grid">
-          @for (product of alertRemovedProducts(); track 'removed-' + product.id) {
-            <app-product-card animate.enter="reveal-enter" [product]="product" [changeState]="'removed'" />
-          }
-          @for (product of alertAddedProducts(); track 'added-' + product.id) {
+          @for (item of visibleListings(); track item.key; let index = $index) {
             <app-product-card
-              animate.enter="reveal-enter"
-              [product]="product"
-              [saved]="library.savedIds().has(product.id)"
-              [convertedPrice]="currency.label(product, priceCurrency())"
-              [changeState]="'new'"
-              (save)="toggleSaved($event)"
-              (exclude)="addExclusion($event)"
-            />
-          }
-          @for (change of alertPriceChangedProducts(); track 'repriced-' + change.after.id) {
-            <app-product-card
-              animate.enter="reveal-enter"
-              [product]="change.after"
-              [saved]="library.savedIds().has(change.after.id)"
-              [convertedPrice]="currency.label(change.after, priceCurrency())"
-              [changeState]="'price'"
-              [previousPrice]="alertPreviousPrice(change.after.id)"
-              (save)="toggleSaved($event)"
-              (exclude)="addExclusion($event)"
-            />
-          }
-          @for (product of products(); track product.id; let index = $index) {
-            <app-product-card
-              animate.enter="reveal-enter"
-              [product]="product"
-              [saved]="library.savedIds().has(product.id)"
-              [eager]="index < 6"
+              [product]="item.product"
+              [saved]="library.savedIds().has(item.product.id)"
+              [saving]="library.savingIds().has(item.product.id)"
+              [eager]="index < 3"
               [priority]="index === 0"
-              [convertedPrice]="currency.label(product, priceCurrency())"
-              [bulkMode]="bulkMode()"
-              [bulkSelected]="bulkSelected().has(product.id)"
-              [newlyRevealed]="newlyRevealed().has(product.id)"
-              [changeState]="alertChangeState(product.id)"
-              [previousPrice]="alertPreviousPrice(product.id)"
+              [convertedPrice]="currency.label(item.product, priceCurrency())"
+              [bulkMode]="bulkMode() && !item.supplemental"
+              [bulkSelected]="bulkSelected().has(item.product.id)"
+              [newlyRevealed]="newlyRevealed().has(item.product.id)"
+              [changeState]="item.change"
+              [previousPrice]="item.previousPrice"
+              [allowExclusion]="item.change !== 'removed'"
               (bulkSelect)="toggleBulkSelection($event)"
               (save)="toggleSaved($event)"
               (exclude)="addExclusion($event)"
             />
           }
         </div>
-      } @else if (searched() && !loading()) {
+        @if (listingItems().length > listingBatchSize) {
+          <footer class="feed-pagination">
+            <p aria-live="polite">{{ visibleListings().length }} of {{ listingItems().length }} listings</p>
+            @if (remainingListings()) {
+              <button class="btn btn-soft btn-primary" type="button" (click)="showMoreListings()">
+                Show {{ remainingListings() < listingBatchSize ? remainingListings() : listingBatchSize }} more
+              </button>
+            }
+          </footer>
+        }
+      } @else if (searched() && !loading() && !searchError()) {
         <div class="empty empty-state" animate.enter="reveal-enter" animate.leave="reveal-leave">
           <h2>No products found</h2>
           <p>Try a broader search or fewer filters.</p>
@@ -1205,13 +1221,26 @@
         </div>
       } @else if (loading()) {
         <div class="spinner" animate.enter="reveal-enter" animate.leave="reveal-leave" aria-label="Loading"></div>
-      } @else {
+      } @else if (!searched()) {
         <div class="welcome">
-          <div class="intro-brand" aria-label="999 Search"><span>999</span><strong>Search</strong></div>
-          <h2>Search the marketplace</h2>
-          <p>
-            Browse without an account. Log in only when you want to save a listing or keep your cleanup preferences.
-          </p>
+          <div class="quick-categories" aria-label="Popular categories">
+            <button type="button" (click)="runCategory('automobile')" class="category-car">
+              <span><app-icon name="car" /></span>
+              <strong>Vehicles</strong><small>Find your next drive</small>
+            </button>
+            <button type="button" (click)="runCategory('telefon')" class="category-phone">
+              <span><app-icon name="phone" /></span>
+              <strong>Phones</strong><small>A little upgrade</small>
+            </button>
+            <button type="button" (click)="runCategory('laptop')" class="category-laptop">
+              <span><app-icon name="laptop" /></span>
+              <strong>Computers</strong><small>Work, play, create</small>
+            </button>
+            <button type="button" (click)="runCategory('apartament')" class="category-home">
+              <span><app-icon name="home" /></span>
+              <strong>Homes</strong><small>Room for what’s next</small>
+            </button>
+          </div>
           @if (searchState.lastSearch(); as last) {
             <button
               class="resume-search"
@@ -1219,12 +1248,12 @@
               (click)="resumeLastSearch()"
               aria-label="Return to your last search"
             >
-              <span aria-hidden="true">↶</span>
+              <app-icon name="history" />
               <span
                 ><strong>Back to last search</strong
                 ><small>{{ last.query || last.activeQuery }} · {{ last.products.length }} cached</small></span
               >
-              <span aria-hidden="true">›</span>
+              <app-icon name="chevronRight" />
             </button>
           }
           @if (recentSearches.items().length) {
@@ -1250,6 +1279,9 @@
               }
             </div>
           </details>
+          @if (auth.ready() && !auth.session()) {
+            <p class="welcome-note">Browse freely. A private code lets you save your favourites.</p>
+          }
         </div>
       }
     </section>

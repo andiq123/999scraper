@@ -1,19 +1,21 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink, UrlTree } from '@angular/router';
 import { SearchAlertService, alertIntervalOptions } from '../search-alert.service';
 import { searchAlertConfiguration } from '../search/search-filter-chips';
 import { decodeSearchFilters } from '../search/search-url-state';
 import type { SearchSubscription } from '../models';
+import { IconComponent } from '../icon.component';
 
 @Component({
   selector: 'app-alerts',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, DatePipe, IconComponent],
   templateUrl: './alerts.component.html',
   styleUrl: './alerts.component.scss',
 })
 export class AlertsComponent {
+  private readonly router = inject(Router);
   readonly alerts = inject(SearchAlertService);
   readonly embedded = input(false);
   readonly removing = signal<ReadonlySet<string>>(new Set());
@@ -25,6 +27,7 @@ export class AlertsComponent {
   readonly changesAvailable = computed(() => this.alerts.items().filter((item) => this.changeCount(item) > 0).length);
   readonly intervalOptions = alertIntervalOptions;
   private readonly clock = window.setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
     const now = Date.now();
     this.now.set(now);
     if (this.alerts.items().some((item) => Date.parse(item.nextCheckAt) <= now)) void this.alerts.load();
@@ -134,7 +137,9 @@ export class AlertsComponent {
     return `in ${days}d${hours % 24 ? ` ${hours % 24}h` : ''}`;
   }
 
-  searchPath(item: SearchSubscription): string {
-    return `${item.searchPath}&alert=${encodeURIComponent(item.id)}`;
+  searchPath(item: SearchSubscription): UrlTree {
+    const url = this.router.parseUrl(item.searchPath);
+    url.queryParams = { ...url.queryParams, alert: item.id };
+    return url;
   }
 }

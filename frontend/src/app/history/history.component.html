@@ -5,12 +5,27 @@
     <p>Your latest 200 searches, newest first.</p>
   </header>
 
-  @if (items().length) {
+  @if (loading()) {
+    <section class="page-loading" role="status">
+      <span class="sr-only">Loading search history…</span>
+      @for (row of [1, 2, 3]; track row) {
+        <div class="skeleton-row" aria-hidden="true"></div>
+      }
+    </section>
+  } @else if (failed()) {
+    <section class="empty empty-state" role="alert">
+      <h2>History couldn’t load</h2>
+      <p>Please check your connection and try again.</p>
+      <button class="button btn btn-primary" type="button" (click)="load()">Try again</button>
+    </section>
+  } @else if (items().length) {
     <ol animate.enter="reveal-enter" animate.leave="reveal-leave">
       @for (item of items(); track item.id) {
         <li class="card bg-base-100 shadow-sm" animate.leave="reveal-leave">
-          <a routerLink="/" [queryParams]="{ q: item.query }">{{ item.query }}</a
-          ><time [attr.datetime]="item.searchedAt">{{ item.searchedAt | date: 'medium' }}</time>
+          <a routerLink="/" [queryParams]="{ q: item.query }"
+            ><strong>{{ item.query }}</strong
+            ><time [attr.datetime]="item.searchedAt">{{ item.searchedAt | date: 'medium' }}</time></a
+          >
         </li>
       }
     </ol>

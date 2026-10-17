@@ -6,11 +6,14 @@
     "ng": "ng",
     "start": "node scripts/start.mjs",
     "build": "node scripts/build.mjs",
+    "check:listing-view": "node --experimental-strip-types scripts/check-listing-view.mjs",
     "check:pwa": "node scripts/check-pwa-config.mjs",
     "check:search-config": "node --experimental-strip-types scripts/check-search-filter-config.mjs",
     "watch": "node scripts/build.mjs --watch --configuration development",
     "format": "prettier --write \"src/**/*.{ts,html,scss,css}\" \"scripts/*.mjs\" \"*.json\"",
-    "format:check": "prettier --check \"src/**/*.{ts,html,scss,css}\" \"scripts/*.mjs\" \"*.json\""
+    "format:check": "prettier --check \"src/**/*.{ts,html,scss,css}\" \"scripts/*.mjs\" \"*.json\"",
+    "check:api-flow": "node --experimental-strip-types scripts/check-api-flow.mjs",
+    "check:account-flow": "node --experimental-strip-types scripts/check-account-flow.mjs"
   },
   "private": true,
   "overrides": {

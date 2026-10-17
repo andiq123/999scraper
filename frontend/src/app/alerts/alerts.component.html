@@ -23,7 +23,7 @@
     </section>
   } @else if (alerts.error() && !alerts.items().length) {
     <section class="alerts-state unavailable card bg-base-100 shadow-sm" role="alert">
-      <span aria-hidden="true">!</span>
+      <span><app-icon name="warning" /></span>
       <div>
         <strong>Could not load search alerts</strong>
         <p>{{ alerts.error() }}</p>
@@ -31,6 +31,16 @@
       </div>
     </section>
   } @else if (alerts.items().length) {
+    @if (alerts.error(); as message) {
+      <div class="alerts-state unavailable card bg-base-100" role="alert">
+        <span><app-icon name="warning" /></span>
+        <div>
+          <strong>Alerts couldn’t refresh</strong>
+          <p>{{ message }} Your last loaded alerts are shown below.</p>
+          <button class="btn btn-soft btn-primary btn-sm" type="button" (click)="alerts.load()">Try again</button>
+        </div>
+      </div>
+    }
     <div class="alerts-summary" [class.paused]="alerts.available() === false" role="status">
       <span aria-hidden="true"></span>
       <strong>
@@ -40,7 +50,7 @@
       </strong>
       <small>{{
         alerts.available() === false
-          ? 'Email delivery is unavailable until the sender is configured.'
+          ? 'Email delivery is temporarily unavailable.'
           : changesAvailable()
             ? changesAvailable() + ' with changes ready to review.'
             : 'Only these searches will run in the background.'
@@ -54,11 +64,9 @@
           animate.enter="reveal-enter"
           animate.leave="reveal-leave"
         >
-          <span class="bell" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
-          </span>
+          <span class="bell"><app-icon name="bell" /></span>
           <div class="alert-copy">
-            <a [href]="searchPath(item)"
+            <a [routerLink]="searchPath(item)"
               ><strong>{{ item.query }}</strong></a
             >
             <small>{{ item.recipientEmail }}</small>
@@ -153,7 +161,7 @@
               </button>
             } @else {
               @if (changeCount(item) > 0) {
-                <a class="btn btn-primary btn-sm" [href]="searchPath(item)">Review</a>
+                <a class="btn btn-primary btn-sm" [routerLink]="searchPath(item)">Review</a>
               }
               <button
                 class="btn btn-soft btn-primary btn-sm"
@@ -187,15 +195,16 @@
     </section>
   } @else if (alerts.available() === false) {
     <section class="alerts-state unavailable card bg-base-100 shadow-sm">
-      <span aria-hidden="true">!</span>
+      <span><app-icon name="bell" /></span>
       <div>
-        <strong>Email sender needs configuration</strong>
-        <p>Add the sender email and app password to the backend environment before creating alerts.</p>
+        <strong>Email alerts are unavailable</strong>
+        <p>You can keep searching and saving listings.</p>
+        <button class="btn btn-soft btn-primary btn-sm" type="button" (click)="alerts.load()">Check again</button>
       </div>
     </section>
   } @else {
     <section class="empty-alerts card bg-base-100 shadow-sm">
-      <span aria-hidden="true">♧</span>
+      <span><app-icon name="bell" /></span>
       <h2>No active alerts</h2>
       <p>Run a search, choose your filters, then press <strong>Email alerts</strong>.</p>
       <a class="btn btn-primary" routerLink="/">Start a search</a>
