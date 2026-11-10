@@ -1,23 +1,29 @@
-<nav aria-label="Primary navigation">
+<nav aria-label="Primary navigation" [style.--index]="index()">
+  <span class="thumb" aria-hidden="true"></span>
   <a
     routerLink="/"
-    [routerLinkActiveOptions]="{
-      paths: 'exact',
-      queryParams: 'ignored',
-      matrixParams: 'ignored',
-      fragment: 'ignored',
-    }"
-    routerLinkActive="active"
-    ariaCurrentWhenActive="page"
+    [class.active]="index() === 0"
+    [attr.aria-current]="index() === 0 ? 'page' : null"
+    (click)="choose(0, $event)"
   >
     <app-icon class="tab-icon" name="search" />
     <span>Search</span>
   </a>
-  <a routerLink="/saved" routerLinkActive="active" ariaCurrentWhenActive="page">
+  <a
+    routerLink="/saved"
+    [class.active]="index() === 1"
+    [attr.aria-current]="index() === 1 ? 'page' : null"
+    (click)="choose(1, $event)"
+  >
     <app-icon class="tab-icon" name="heart" />
     <span>Saved</span>
   </a>
-  <a routerLink="/account" [class.active]="accountActive()" [attr.aria-current]="accountActive() ? 'page' : null">
+  <a
+    routerLink="/account"
+    [class.active]="index() === 2"
+    [attr.aria-current]="index() === 2 ? 'page' : null"
+    (click)="choose(2, $event)"
+  >
     <app-icon class="tab-icon" name="user" />
     <span>Account</span>
   </a>

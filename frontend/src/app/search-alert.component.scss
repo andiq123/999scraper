@@ -17,7 +17,7 @@
   place-items: center;
 }
 .alert-dialog::backdrop {
-  background: rgb(28 28 30 / 30%);
+  background: rgb(0 0 0 / 40%);
   animation: alert-backdrop 180ms ease both;
 }
 .alert-sheet {
@@ -26,12 +26,12 @@
   width: min(100%, 520px);
   max-height: min(88dvh, 760px);
   padding: 1.25rem;
-  border: 1px solid var(--glass-border);
+  border: 0;
   border-radius: var(--radius-lg);
   background: var(--glass-thick);
   overflow-y: auto;
   overscroll-behavior: contain;
-  animation: alert-enter 260ms var(--ease) both;
+  animation: alert-enter var(--medium) var(--spring) both;
 }
 header {
   display: grid;
@@ -46,8 +46,8 @@ header h2 {
 header small {
   color: var(--accent);
   font-size: var(--font-caption);
-  font-weight: 780;
-  letter-spacing: 0.12em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 header p {
   margin-top: 0.18rem;
@@ -121,7 +121,7 @@ header p {
   color: var(--success);
   background: rgb(var(--success-rgb) / 10%);
   font-size: var(--font-caption);
-  font-weight: 760;
+  font-weight: 600;
 }
 .saved-configuration {
   display: grid;
@@ -182,7 +182,7 @@ form {
 }
 form > label {
   font-size: var(--font-meta);
-  font-weight: 720;
+  font-weight: 600;
 }
 .email-field,
 .interval-field {
@@ -192,17 +192,16 @@ form > label {
   gap: 0.55rem;
   min-height: 50px;
   padding-inline: 0.85rem;
-  border: 1px solid var(--line-strong);
-  border-radius: 14px;
-  background: var(--surface-solid);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--fill);
   transition:
     border-color var(--duration-fast),
     box-shadow var(--duration-fast);
 }
 .email-field:focus-within,
 .interval-field:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px var(--focus);
+  box-shadow: 0 0 0 3px var(--focus);
 }
 .email-field svg,
 .interval-field svg {
@@ -318,7 +317,7 @@ form > label {
     max-height: min(calc(100dvh - max(1rem, env(safe-area-inset-top))), 760px);
     padding: 1.25rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
     border-width: 1px 0 0;
-    border-radius: 28px 28px 0 0;
+    border-radius: 1.25rem 1.25rem 0 0;
     animation-name: alert-sheet-enter;
   }
   header p {

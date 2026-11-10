@@ -3,11 +3,12 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
 import { SearchHistory } from '../models';
+import { IconComponent } from '../icon.component';
 
 @Component({
   selector: 'app-history',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, IconComponent],
   templateUrl: './history.component.html',
   styleUrl: './history.component.scss',
 })

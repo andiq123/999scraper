@@ -14,23 +14,26 @@
     </section>
   } @else if (failed()) {
     <section class="empty empty-state" role="alert">
+      <app-icon name="warning" />
       <h2>History couldn’t load</h2>
       <p>Please check your connection and try again.</p>
       <button class="button btn btn-primary" type="button" (click)="load()">Try again</button>
     </section>
   } @else if (items().length) {
-    <ol animate.enter="reveal-enter" animate.leave="reveal-leave">
+    <ol class="stagger">
       @for (item of items(); track item.id) {
-        <li class="card bg-base-100 shadow-sm" animate.leave="reveal-leave">
+        <li animate.leave="reveal-leave">
           <a routerLink="/" [queryParams]="{ q: item.query }"
             ><strong>{{ item.query }}</strong
-            ><time [attr.datetime]="item.searchedAt">{{ item.searchedAt | date: 'medium' }}</time></a
-          >
+            ><time [attr.datetime]="item.searchedAt">{{ item.searchedAt | date: 'medium' }}</time
+            ><app-icon name="chevronRight"
+          /></a>
         </li>
       }
     </ol>
   } @else {
     <div class="empty empty-state" animate.enter="reveal-enter" animate.leave="reveal-leave">
+      <app-icon name="history" />
       <h2>No searches yet</h2>
       <p>Your searches will appear here.</p>
       <a class="button btn btn-primary" routerLink="/">Start searching</a>

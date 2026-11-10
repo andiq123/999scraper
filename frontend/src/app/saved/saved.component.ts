@@ -6,11 +6,12 @@ import { Product } from '../models';
 import { ListingSummaryService, type BulkDownloadProgress } from '../listing-summary.service';
 import { ToastService } from '../toast.service';
 import { listingBatchSize } from '../listing-view';
+import { IconComponent } from '../icon.component';
 
 @Component({
   selector: 'app-saved',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, ProductCardComponent],
+  imports: [RouterLink, ProductCardComponent, IconComponent],
   templateUrl: './saved.component.html',
   styleUrl: './saved.component.scss',
 })

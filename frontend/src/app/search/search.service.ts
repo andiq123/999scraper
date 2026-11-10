@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { environment } from '../../environments/environment';
 import { AuthService } from '../auth/auth.service';
+import { reportBackend } from '../connection';
 import { readSearchStream, type SearchEvent } from './search-stream';
 export type { SearchEvent } from './search-stream';
 
@@ -21,7 +22,11 @@ export class SearchService {
         body: JSON.stringify({ productSearchCriteria: query, extractVINFromDescription }),
         signal,
       }),
-    );
+    ).catch((error: unknown) => {
+      if (error instanceof TypeError) reportBackend();
+      throw error;
+    });
+    reportBackend(response.status);
     if (response.status === 401) this.auth.expire();
     if (!response.ok) throw new Error(await this.errorMessage(response));
     if (!response.body) throw new Error('Streaming is unavailable in this browser.');

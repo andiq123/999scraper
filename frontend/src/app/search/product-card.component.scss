@@ -4,8 +4,9 @@ article {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  border-radius: 20px;
-  background: var(--surface-solid);
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
   content-visibility: auto;
   contain-intrinsic-size: auto 340px;
 }
@@ -83,11 +84,10 @@ img,
   position: absolute;
   right: 0.5rem;
   bottom: 0.5rem;
-  padding: 0.2rem 0.45rem;
-  border: 1px solid rgb(255 255 255 / 62%);
-  border-radius: 8px;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
   color: white;
-  background: #172033;
+  background: rgb(0 0 0 / 62%);
   font-size: 0.75rem;
   font-weight: 750;
 }
@@ -111,11 +111,11 @@ img,
   align-items: baseline;
   gap: 0.08rem;
   min-height: 44px;
-  padding: 0.5rem 0.65rem;
-  border: 1px solid rgb(255 255 255 / 72%);
-  border-radius: 9px;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-radius: 999px;
   color: white;
-  background: #172033;
+  background: rgb(0 0 0 / 62%);
   cursor: pointer;
 }
 .quality-score strong {
@@ -128,14 +128,14 @@ img,
   opacity: 0.78;
 }
 .quality-score.excellent {
-  background: #23845b;
+  background: #248a3d;
 }
 .quality-score.good {
   color: var(--on-accent);
   background: var(--accent);
 }
 .quality-score.fair {
-  background: #8f5c15;
+  background: #b25000;
 }
 .quality-score:focus-visible {
   outline: 2px solid white;
@@ -145,11 +145,11 @@ img,
 .open-rank,
 .newly-shown,
 .alert-change {
-  padding: 0.25rem 0.48rem;
-  border: 1px solid rgb(255 255 255 / 65%);
-  border-radius: 8px;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
   color: rgb(255 255 255 / 88%);
-  background: #172033;
+  background: rgb(0 0 0 / 62%);
+  animation: pop var(--medium) var(--spring) backwards;
   font-size: 0.6875rem;
   font-weight: 760;
   letter-spacing: 0.02em;
@@ -186,8 +186,8 @@ img,
   min-height: 44px;
   padding: 0;
   border: 0;
-  border-radius: 12px;
-  background: var(--glass-thick);
+  border-radius: 50%;
+  background: var(--material-raised);
   cursor: pointer;
 }
 .bulk-selector span {
@@ -196,7 +196,7 @@ img,
   width: 24px;
   height: 24px;
   border: 2px solid var(--line-strong);
-  border-radius: 7px;
+  border-radius: 50%;
   color: white;
   font-size: 0.75rem;
   font-weight: 800;
@@ -217,15 +217,15 @@ img,
   max-width: none;
   margin: 0;
   padding: 1rem;
-  border: 1px solid var(--glass-border);
-  border-radius: 22px;
+  border: 0;
+  border-radius: 1.25rem;
   opacity: 0;
   color: var(--text);
   background: var(--glass-thick);
   transform: translateY(14px) scale(0.98);
   transition:
-    opacity 0.2s var(--ease),
-    transform 0.24s var(--ease),
+    opacity var(--medium) var(--spring),
+    transform var(--medium) var(--spring),
     overlay 0.2s allow-discrete,
     display 0.2s allow-discrete;
 }
@@ -240,7 +240,7 @@ img,
   }
 }
 .quality-popover::backdrop {
-  background: rgb(20 29 45 / 24%);
+  background: rgb(0 0 0 / 40%);
 }
 .quality-popover header {
   display: grid;
@@ -272,7 +272,7 @@ img,
   min-height: 40px;
   padding: 0;
   border: 0;
-  border-radius: 12px;
+  border-radius: 50%;
   color: var(--muted);
   background: var(--surface-soft);
   cursor: pointer;
@@ -383,9 +383,10 @@ img,
   place-items: center;
   width: 40px;
   height: 40px;
-  border: 1px solid var(--glass-border);
-  border-radius: 11px;
-  background: var(--glass-thick);
+  border-radius: 50%;
+  background: var(--material-raised);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
 }
 .save svg {
   width: 17px;
@@ -399,7 +400,13 @@ img,
   fill: currentColor;
 }
 .save.saved {
-  color: var(--danger);
+  color: var(--down);
+}
+.save.saved svg {
+  animation: pop var(--medium) var(--spring);
+}
+.save:active span {
+  scale: 0.9;
 }
 .mini-spinner {
   width: 11px;
@@ -480,12 +487,12 @@ h2 a {
   align-items: center;
   gap: 0.28rem;
   min-height: 44px;
-  padding: 0.3rem 0.4rem 0.3rem 0.6rem;
-  border: 1px solid rgb(var(--vin-rgb) / 20%);
-  border-radius: 10px;
+  padding: 0.3rem 0.4rem 0.3rem 0.75rem;
+  border: 0;
+  border-radius: 999px;
   outline: 0;
   color: var(--muted);
-  background: rgb(var(--vin-rgb) / 7%);
+  background: rgb(var(--vin-rgb) / 11%);
   cursor: pointer;
 }
 .vin-row:focus-visible {
@@ -518,7 +525,7 @@ h2 a {
   width: 25px;
   height: 25px;
   margin: -0.05rem -0.05rem -0.05rem 0.02rem;
-  border-radius: 7px;
+  border-radius: 50%;
   color: rgb(var(--vin-rgb));
   background: var(--surface-raised);
 }
@@ -539,12 +546,11 @@ h2 a {
   gap: 0.09rem;
   width: max-content;
   max-width: min(205px, calc(100vw - 2rem));
-  padding: 0.42rem 0.52rem;
-  border: 1px solid rgb(255 255 255 / 72%);
-  border-radius: 9px;
+  padding: 0.42rem 0.65rem;
+  border-radius: 0.6rem;
   opacity: 0;
   color: white;
-  background: #172033;
+  background: #2c2c2e;
   transform: translate(-50%, 4px);
   visibility: hidden;
   pointer-events: none;
@@ -669,16 +675,16 @@ h2 a {
   max-width: none;
   margin: 0;
   padding: 1.1rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom));
-  border: 1px solid var(--glass-border);
-  border-radius: 24px;
+  border: 0;
+  border-radius: 1.25rem;
   opacity: 0;
   color: var(--text);
   background: var(--glass-thick);
   transform: translateY(16px) scale(0.98);
   text-align: center;
   transition:
-    opacity 0.22s var(--ease),
-    transform 0.22s var(--ease),
+    opacity var(--medium) var(--spring),
+    transform var(--medium) var(--spring),
     overlay 0.22s allow-discrete,
     display 0.22s allow-discrete;
 }
@@ -694,7 +700,7 @@ h2 a {
 }
 .exclude-popover::backdrop {
   opacity: 0;
-  background: rgb(20 29 45 / 25%);
+  background: rgb(0 0 0 / 40%);
   transition:
     opacity 0.22s ease,
     overlay 0.22s allow-discrete,
@@ -714,9 +720,9 @@ h2 a {
   width: 38px;
   height: 38px;
   margin: 0 auto 0.75rem;
-  border-radius: 12px;
-  color: var(--danger);
-  background: rgb(201 56 56 / 10%);
+  border-radius: 0.6rem;
+  color: #fff;
+  background: var(--down);
   font-size: 1.3rem;
   font-weight: 700;
 }
@@ -738,19 +744,19 @@ h2 a {
 .exclude-popover button {
   min-height: 48px;
   border: 0;
-  border-radius: 13px;
-  color: var(--muted);
-  background: var(--surface-soft);
-  font-weight: 700;
+  border-radius: 999px;
+  color: var(--tint);
+  background: var(--fill);
+  font-weight: 600;
   cursor: pointer;
 }
 .exclude-popover .exclude {
   color: white;
-  background: var(--danger);
+  background: var(--down);
 }
 @media (hover: hover) and (pointer: fine) {
   article:hover {
-    border-color: rgb(var(--accent-rgb) / 18%);
+    border-color: var(--line-strong);
   }
   .save:not(.saved):hover {
     color: var(--accent);
@@ -770,8 +776,7 @@ h2 a {
   }
 
   .vin-row:hover {
-    border-color: rgb(var(--vin-rgb) / 32%);
-    background: rgb(var(--vin-rgb) / 11%);
+    background: rgb(var(--vin-rgb) / 17%);
   }
   .vin-row:hover .vin-action {
     background: var(--surface-solid);
@@ -869,7 +874,15 @@ h2 a {
 .copy-json-action,
 .word-menu {
   min-height: 44px;
-  border-radius: 12px;
+  border-radius: 999px;
+  transition:
+    background-color var(--quick) var(--spring),
+    scale var(--quick) var(--spring);
+}
+.footer a:active,
+.copy-json-action:active,
+.word-menu:active {
+  scale: 0.94;
 }
 .footer a {
   gap: 0.4rem;
@@ -906,13 +919,13 @@ h2 a {
   margin-inline: auto;
   padding: 1.25rem;
   overflow-y: auto;
-  border: 1px solid var(--line);
-  border-radius: 24px;
+  border: 0;
+  border-radius: 1.25rem;
   color: var(--text);
   background: var(--surface-solid);
 }
 .word-picker::backdrop {
-  background: rgb(15 23 42 / 30%);
+  background: rgb(0 0 0 / 40%);
 }
 .word-picker header {
   display: flex;
@@ -934,9 +947,9 @@ h2 a {
 }
 .word-picker button {
   min-height: 44px;
-  padding-inline: 0.75rem;
+  padding-inline: 0.9rem;
   border: 0;
-  border-radius: 12px;
+  border-radius: 999px;
   background: var(--surface-soft);
   cursor: pointer;
 }

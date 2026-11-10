@@ -13,6 +13,7 @@
     </section>
   } @else if (failed()) {
     <section class="empty empty-state" role="alert">
+      <app-icon name="warning" />
       <h2>Saved listings couldn’t load</h2>
       <p>Please check your connection and try again.</p>
       <button class="btn btn-primary" type="button" (click)="load()">Try again</button>
@@ -65,7 +66,7 @@
         </div>
       }
     </section>
-    <div class="grid" animate.enter="reveal-enter" animate.leave="reveal-leave">
+    <div class="grid stagger">
       @for (item of visibleSaved(); track item.product.id; let index = $index) {
         <app-product-card
           [product]="item.product"
@@ -76,7 +77,8 @@
           (save)="toggle($event)"
         />
       } @empty {
-        <section class="filtered-empty">
+        <section class="filtered-empty empty-state">
+          <app-icon name="search" />
           <h2>No saved listings from this origin</h2>
           <p>Try the other origin or show all saved listings.</p>
         </section>
@@ -92,6 +94,7 @@
     }
   } @else {
     <section class="empty empty-state" animate.enter="reveal-enter" animate.leave="reveal-leave">
+      <app-icon name="heart" />
       <h2>Nothing saved yet</h2>
       <p>Use the heart on any result to keep it here.</p>
       <a class="btn btn-primary" routerLink="/">Start searching</a>

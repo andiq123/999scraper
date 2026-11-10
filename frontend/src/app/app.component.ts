@@ -8,6 +8,7 @@ import { VINResearchComponent } from './vin-research.component';
 import { SearchAlertComponent } from './search-alert.component';
 import { UiPreferencesService } from './ui-preferences.service';
 import { IconComponent } from './icon.component';
+import { backendReachable, probeBackend, probingBackend } from './connection';
 
 @Component({
   selector: 'app-root',
@@ -19,6 +20,9 @@ import { IconComponent } from './icon.component';
 export class AppComponent {
   readonly toast = inject(ToastService).message;
   readonly pwa = inject(PwaService);
+  readonly reachable = backendReachable;
+  readonly probing = probingBackend;
+  readonly retry = probeBackend;
 
   constructor() {
     inject(UiPreferencesService);

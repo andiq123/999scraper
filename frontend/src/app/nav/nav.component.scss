@@ -1,71 +1,65 @@
+/* A floating capsule above the home indicator. */
 :host {
   position: fixed;
-  inset: auto 0 0;
+  inset: auto 0 calc(env(safe-area-inset-bottom) + 0.75rem);
   z-index: 1000;
-  display: block;
-  padding: 0.6rem max(1rem, env(safe-area-inset-right)) max(0.6rem, env(safe-area-inset-bottom))
-    max(1rem, env(safe-area-inset-left));
+  display: flex;
+  justify-content: center;
+  padding-inline: max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-right));
   pointer-events: none;
 }
 nav {
+  --count: 3;
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  width: min(100%, 360px);
-  margin: auto;
-  padding: 0.35rem;
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  background: var(--surface-solid);
+  grid-template-columns: repeat(var(--count), minmax(0, 1fr));
+  padding: 0.25rem;
+  border-radius: 999px;
+  background: var(--material-raised);
   pointer-events: auto;
+  -webkit-backdrop-filter: saturate(180%) blur(30px);
+  backdrop-filter: saturate(180%) blur(30px);
 }
 a {
+  position: relative;
   display: grid;
-  grid-template-rows: 25px auto;
-  place-items: center;
-  gap: 0.3rem;
-  min-height: 56px;
-  padding: 0.4rem;
-  border-radius: 18px;
-  color: var(--muted);
-  font-size: 0.75rem;
+  justify-items: center;
+  gap: 0.1rem;
+  min-width: 5.25rem;
+  padding: 0.4rem 0.75rem 0.3rem;
+  border-radius: 999px;
+  color: var(--label-2);
+  font-size: 0.6875rem;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.35;
   text-decoration: none;
+  transition: color var(--quick) var(--spring);
 }
 a.active {
-  color: var(--accent);
-  background: var(--accent-soft);
+  color: var(--tint);
+}
+a:active {
+  opacity: 0.6;
+}
+a:focus-visible {
+  outline-offset: -3px;
 }
 .tab-icon {
-  width: 24px;
-  height: 24px;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.8;
+  width: 1.45rem;
+  height: 1.45rem;
 }
-@media (max-width: 767px) {
-  :host {
-    padding: 0 max(1rem, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(1rem, env(safe-area-inset-left));
-    border-top: 1px solid var(--line);
-    background: var(--surface-solid);
-  }
-  nav {
-    width: min(100%, 480px);
-    padding: 0.35rem 0;
-    border: 0;
-    border-radius: 0;
-  }
-  a {
-    min-height: 58px;
-    margin-inline: 0.3rem;
-    border-radius: 14px;
-  }
+/* The highlight behind the current tab; it slides when the tab changes. */
+.thumb {
+  position: absolute;
+  inset: 0.25rem auto 0.25rem 0.25rem;
+  width: calc((100% - 0.5rem) / var(--count));
+  border-radius: 999px;
+  background: var(--fill);
+  translate: calc(var(--index) * 100%) 0;
+  transition: translate var(--quick) var(--spring);
 }
 @media (hover: hover) and (pointer: fine) {
   a:not(.active):hover {
-    color: var(--text);
-    background: var(--surface-soft);
+    color: var(--label);
   }
 }

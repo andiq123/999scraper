@@ -17,13 +17,13 @@
   place-items: center;
 }
 .vin-dialog::backdrop {
-  background: rgb(28 28 30 / 30%);
+  background: rgb(0 0 0 / 40%);
 }
 .vin-shell {
   width: min(880px, 100%);
   max-height: min(88dvh, 900px);
   overflow-y: auto;
-  border: 1px solid var(--glass-border);
+  border: 0;
   border-radius: var(--radius-lg);
   background: var(--glass-thick);
   overscroll-behavior: contain;
@@ -61,7 +61,7 @@
   color: var(--teal);
   font-size: var(--font-caption);
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 .vin-header h2 {
@@ -100,17 +100,16 @@
   gap: 0.45rem;
   margin: 0.85rem 1rem 0.2rem;
   padding: 0.3rem;
-  border: 1px solid var(--line);
-  border-radius: 15px;
-  background: var(--surface-solid);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--fill);
 }
 .vin-search > span {
   padding-left: 0.55rem;
   color: var(--teal);
   font-size: var(--font-caption);
   font-weight: 820;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
 }
 .vin-search input {
   width: 100%;
@@ -124,7 +123,7 @@
     SFMono-Regular,
     Menlo,
     monospace;
-  letter-spacing: 0.055em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 .vin-search input::placeholder {
@@ -147,7 +146,7 @@
   color: var(--on-accent);
   background: var(--teal);
   font-size: var(--font-meta);
-  font-weight: 740;
+  font-weight: 600;
   cursor: pointer;
 }
 .vin-search button:disabled {
@@ -173,9 +172,9 @@
   gap: 0.75rem;
   margin: 0.8rem 1rem 0.55rem;
   padding: 0.62rem 0.72rem;
-  border: 1px solid rgb(13 148 136 / 18%);
+  border: 1px solid rgb(var(--teal-rgb) / 18%);
   border-radius: 14px;
-  background: rgb(13 148 136 / 6%);
+  background: rgb(var(--teal-rgb) / 6%);
 }
 .vin-identity > div {
   display: grid;
@@ -185,7 +184,7 @@
 .vin-identity small {
   color: var(--teal);
   font-size: var(--font-caption);
-  font-weight: 750;
+  font-weight: 600;
 }
 .vin-identity code {
   overflow: hidden;
@@ -194,7 +193,7 @@
     SFMono-Regular,
     Menlo,
     monospace;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.04em;
   text-overflow: ellipsis;
 }
 .vin-identity button {
@@ -203,12 +202,12 @@
   gap: 0.28rem;
   min-height: 38px;
   padding: 0.35rem 0.55rem;
-  border: 1px solid rgb(13 148 136 / 16%);
+  border: 1px solid rgb(var(--teal-rgb) / 16%);
   border-radius: 10px;
   color: var(--teal);
   background: var(--surface-solid);
   font-size: var(--font-meta);
-  font-weight: 730;
+  font-weight: 600;
   cursor: copy;
 }
 .vin-identity button.copied {
@@ -248,7 +247,7 @@
 .research-spinner {
   width: 15px;
   height: 15px;
-  border: 2px solid rgb(13 148 136 / 20%);
+  border: 2px solid rgb(var(--teal-rgb) / 20%);
   border-top-color: var(--teal);
   border-radius: 50%;
   animation: vin-spin 0.7s linear infinite;
@@ -276,8 +275,8 @@
 .section-heading > small {
   color: var(--subtle);
   font-size: var(--font-caption);
-  font-weight: 750;
-  letter-spacing: 0.055em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 .section-heading h3 {
@@ -318,7 +317,7 @@
 .decode-warning,
 .source-warning {
   margin-top: 0.55rem;
-  color: #9a6512;
+  color: var(--warning);
   font-size: var(--font-caption);
   line-height: 1.4;
 }
@@ -328,9 +327,9 @@
   gap: 0.45rem;
   margin: 0.5rem 1rem;
   padding: 0.55rem 0.65rem;
-  border: 1px solid rgb(245 158 11 / 15%);
+  border: 1px solid rgb(var(--warning-rgb) / 15%);
   border-radius: 10px;
-  background: rgb(245 158 11 / 9%);
+  background: rgb(var(--warning-rgb) / 9%);
 }
 .source-warning svg {
   flex: none;
@@ -359,8 +358,8 @@
   background: var(--surface-solid);
 }
 .source-card.record {
-  border-color: rgb(13 148 136 / 18%);
-  background: color-mix(in srgb, var(--surface-solid) 95%, #0d9488);
+  border-color: rgb(var(--teal-rgb) / 18%);
+  background: color-mix(in srgb, var(--surface-solid) 95%, var(--teal));
 }
 .source-top {
   display: grid;
@@ -379,7 +378,7 @@
 }
 .record .source-icon {
   color: var(--teal);
-  background: rgb(13 148 136 / 10%);
+  background: rgb(var(--teal-rgb) / 10%);
 }
 .source-icon svg {
   width: 18px;
@@ -396,7 +395,7 @@
 .source-top > div span {
   color: var(--subtle);
   font-size: var(--font-caption);
-  font-weight: 760;
+  font-weight: 600;
   text-transform: uppercase;
 }
 .source-top strong {
@@ -412,7 +411,7 @@
   height: 21px;
   border-radius: 50%;
   color: var(--teal);
-  background: rgb(13 148 136 / 10%);
+  background: rgb(var(--teal-rgb) / 10%);
   font-size: var(--font-caption);
   font-weight: 800;
 }
@@ -446,7 +445,7 @@
   color: var(--accent);
   background: var(--accent-softer);
   font-size: var(--font-caption);
-  font-weight: 730;
+  font-weight: 600;
   text-decoration: none;
 }
 .source-footer a svg {
@@ -473,9 +472,9 @@
   align-items: baseline;
   gap: 0.25rem;
   padding: 0.3rem 0.42rem;
-  border: 1px solid rgb(13 148 136 / 12%);
+  border: 1px solid rgb(var(--teal-rgb) / 12%);
   border-radius: 8px;
-  background: rgb(13 148 136 / 5%);
+  background: rgb(var(--teal-rgb) / 5%);
 }
 .evidence-facts dt {
   color: var(--subtle);
@@ -484,7 +483,7 @@
 .evidence-facts dd {
   color: var(--text);
   font-size: var(--font-caption);
-  font-weight: 730;
+  font-weight: 600;
 }
 .evidence-empty {
   display: grid;
@@ -552,7 +551,7 @@
   margin-bottom: 0.7rem;
   border-radius: 17px;
   color: var(--teal);
-  background: rgb(13 148 136 / 9%);
+  background: rgb(var(--teal-rgb) / 9%);
 }
 .vin-welcome svg {
   width: 26px;
@@ -614,7 +613,7 @@
     border-color: rgb(var(--accent-rgb) / 18%);
   }
   .source-card.record:hover {
-    border-color: rgb(13 148 136 / 28%);
+    border-color: rgb(var(--teal-rgb) / 28%);
   }
   .source-footer a:hover {
     background: var(--accent-soft);
@@ -633,7 +632,7 @@
     width: 100%;
     max-height: calc(100dvh - max(1rem, env(safe-area-inset-top)));
     border-width: 1px 0 0;
-    border-radius: 28px 28px 0 0;
+    border-radius: 1.25rem 1.25rem 0 0;
     scrollbar-gutter: auto;
     animation-name: vin-sheet-enter;
   }

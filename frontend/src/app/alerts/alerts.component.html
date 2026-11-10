@@ -42,7 +42,12 @@
       </div>
     }
     <div class="alerts-summary" [class.paused]="alerts.available() === false" role="status">
-      <span aria-hidden="true"></span>
+      <span
+        class="beacon"
+        [class.tone--ok]="alerts.available() !== false"
+        [class.tone--down]="alerts.available() === false"
+        aria-hidden="true"
+      ></span>
       <strong>
         {{ alerts.items().length }} {{ alerts.available() === false ? 'paused' : 'active' }} alert{{
           alerts.items().length === 1 ? '' : 's'
@@ -56,7 +61,7 @@
             : 'Only these searches will run in the background.'
       }}</small>
     </div>
-    <section class="alerts-list" aria-label="Search alert subscriptions">
+    <section class="alerts-list stagger" aria-label="Search alert subscriptions">
       @for (item of alerts.items(); track item.id) {
         <article
           class="alert-item card bg-base-100 shadow-sm"
@@ -64,7 +69,7 @@
           animate.enter="reveal-enter"
           animate.leave="reveal-leave"
         >
-          <span class="bell"><app-icon name="bell" /></span>
+          <span class="bell glyph"><app-icon name="bell" /></span>
           <div class="alert-copy">
             <a [routerLink]="searchPath(item)"
               ><strong>{{ item.query }}</strong></a
@@ -203,8 +208,8 @@
       </div>
     </section>
   } @else {
-    <section class="empty-alerts card bg-base-100 shadow-sm">
-      <span><app-icon name="bell" /></span>
+    <section class="empty-alerts empty-state">
+      <app-icon name="bell" />
       <h2>No active alerts</h2>
       <p>Run a search, choose your filters, then press <strong>Email alerts</strong>.</p>
       <a class="btn btn-primary" routerLink="/">Start a search</a>

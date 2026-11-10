@@ -9,10 +9,9 @@
   gap: 0.7rem;
   padding: 0.7rem 0.8rem;
   overflow: hidden;
-  border: 1px solid rgb(var(--accent-rgb) / 14%);
   border-radius: var(--radius-md);
-  background: var(--surface-solid);
-  box-shadow: var(--shadow-sm);
+  background: var(--surface);
+  animation: rise var(--medium) var(--spring) backwards;
 }
 
 .activity {
@@ -20,9 +19,9 @@
   place-items: center;
   width: 40px;
   height: 40px;
-  border-radius: 13px;
-  color: var(--accent);
-  background: var(--accent-soft);
+  border-radius: 0.6rem;
+  color: var(--on-tint);
+  background: var(--tint);
 }
 .activity svg {
   width: 20px;
@@ -39,10 +38,10 @@
   line-height: 1.25;
 }
 .progress-copy > span {
-  color: var(--accent);
+  color: var(--label-2);
   font-size: var(--font-caption);
-  font-weight: 780;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 .progress-copy strong {
@@ -76,13 +75,13 @@ button {
   justify-content: center;
   gap: 0.35rem;
   min-height: 36px;
-  padding: 0.4rem 0.62rem;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  color: var(--muted);
-  background: var(--surface-solid);
+  padding: 0.4rem 0.9rem;
+  border: 0;
+  border-radius: 999px;
+  color: var(--danger);
+  background: var(--fill);
   font-size: var(--font-meta);
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 button > span {
@@ -98,7 +97,7 @@ button > span {
   height: 5px;
   overflow: hidden;
   border-radius: 999px;
-  background: rgb(var(--accent-rgb) / 10%);
+  background: var(--fill);
 }
 .progress-track i {
   position: absolute;
@@ -107,6 +106,7 @@ button > span {
   min-width: 8px;
   border-radius: inherit;
   background: var(--accent);
+  transition: width var(--medium) var(--spring);
 }
 .indeterminate .progress-track i {
   width: 34%;
@@ -115,9 +115,7 @@ button > span {
 
 @media (hover: hover) and (pointer: fine) {
   button:hover {
-    border-color: var(--line-strong);
-    color: var(--text);
-    background: var(--surface-raised);
+    background: var(--fill-pressed);
   }
 }
 
@@ -126,7 +124,6 @@ button > span {
     grid-template-columns: 36px minmax(0, 1fr) auto;
     gap: 0.55rem;
     padding: 0.62rem;
-    border-radius: 15px;
   }
   .activity {
     width: 36px;

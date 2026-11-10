@@ -56,24 +56,30 @@ h1 {
   gap: 0.4rem;
   flex: none;
   min-height: 44px;
-  padding: 0.38rem 0.65rem;
-  border: 1px solid var(--line);
+  padding: 0.38rem 0.9rem;
+  border: 0;
   border-radius: 999px;
-  color: var(--muted);
-  background: var(--surface-raised);
+  color: var(--label);
+  background: var(--surface);
   font: inherit;
-  font-size: var(--font-meta);
-  font-weight: 700;
+  font-size: 0.9375rem;
+  font-weight: 500;
   cursor: pointer;
+  transition:
+    background var(--quick) var(--spring),
+    color var(--quick) var(--spring),
+    scale var(--quick) var(--spring);
+}
+.saved-origin-filter [role='group'] button:active {
+  scale: 0.95;
 }
 .saved-origin-filter [role='group'] button small {
   color: var(--subtle);
   font-size: var(--font-meta);
 }
 .saved-origin-filter [role='group'] button.active {
-  border-color: rgb(var(--accent-rgb) / 14%);
-  color: var(--accent);
-  background: var(--surface-selected);
+  color: var(--on-tint);
+  background: var(--tint);
 }
 .saved-origin-filter [role='group'] button.active small {
   color: currentColor;
@@ -90,31 +96,6 @@ h1 {
 }
 .filtered-empty {
   grid-column: 1 / -1;
-  padding: 2rem 1rem;
-  border: 1px dashed var(--line);
-  border-radius: var(--radius-lg);
-  text-align: center;
-}
-.filtered-empty h2 {
-  margin-bottom: 0.25rem;
-  font-size: 1rem;
-}
-.filtered-empty p {
-  color: var(--muted);
-  font-size: var(--font-body);
-}
-.empty {
-  padding: 2.5rem 1rem;
-}
-.empty h2 {
-  margin-bottom: 0.3rem;
-}
-.empty p {
-  color: var(--muted);
-}
-.empty a,
-.empty button {
-  margin-top: 1rem;
 }
 @media (min-width: 768px) {
   .saved-page {
@@ -146,22 +127,9 @@ h1 {
   header {
     margin-bottom: 1.5rem;
   }
-  .saved-origin-filter {
-    padding: 1rem;
-    border: 1px solid var(--line);
-    border-radius: 20px;
-    background: var(--surface-solid);
-  }
   .saved-filter-heading {
     align-items: start;
     flex-wrap: wrap;
     gap: 0.75rem;
-  }
-  .empty {
-    padding: 3rem 1.25rem;
-  }
-  .empty p {
-    margin-top: 0.6rem;
-    line-height: 1.6;
   }
 }

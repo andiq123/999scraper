@@ -14,7 +14,8 @@
   place-items: center;
   width: 38px;
   height: 38px;
-  border-radius: 12px;
+  border-radius: 0.65rem;
+  letter-spacing: -0.03em;
   color: var(--on-accent);
   background: var(--accent);
   font-size: 0.875rem;
@@ -22,10 +23,10 @@
 }
 .search-heading h1 {
   max-width: 20ch;
-  font-size: clamp(1.75rem, 3.5vw, 2.25rem);
-  font-weight: 750;
-  line-height: 1.13;
-  letter-spacing: -0.045em;
+  font-size: clamp(2.125rem, 1.7rem + 2vw, 2.75rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.022em;
 }
 .search-heading p {
   margin-top: 0.4rem;
@@ -65,7 +66,6 @@
 .smart-prompt:not([open]),
 .filters:not([open]) {
   padding: 0;
-  border-color: var(--line);
   border-radius: var(--radius-md);
 }
 .smart-prompt:not([open]) > summary,
@@ -92,8 +92,9 @@
   width: 34px;
   height: 34px;
   padding: 7px;
-  border-radius: 10px;
-  background: var(--surface-soft);
+  border-radius: 0.5rem;
+  color: #fff;
+  background: var(--pending);
   opacity: 1;
 }
 @media (min-width: 900px) {
@@ -131,9 +132,9 @@
   align-items: center;
   gap: 0.15rem 0.625rem;
   padding: 0.75rem;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: var(--surface-solid);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--surface);
   text-align: left;
   cursor: pointer;
 }
@@ -144,9 +145,7 @@
   width: 36px;
   height: 36px;
   margin: 0;
-  border-radius: 14px;
-  color: var(--accent);
-  background: var(--accent-soft);
+  border-radius: 0.6rem;
 }
 .quick-categories app-icon {
   width: 21px;
@@ -158,8 +157,9 @@
   stroke-linejoin: round;
 }
 .quick-categories strong {
+  color: var(--label);
   font-size: 0.9375rem;
-  font-weight: 650;
+  font-weight: 600;
 }
 .quick-categories small {
   color: var(--muted);
@@ -190,7 +190,10 @@
   .search-form {
     min-height: 58px;
     padding: 0.3rem;
-    border-radius: 18px;
+    border-radius: 999px;
+  }
+  .search-form input {
+    padding-left: 1rem;
   }
   .search-form input {
     min-height: 48px;
@@ -318,20 +321,24 @@
 }
 
 .category-car {
-  --category-color: var(--teal);
+  --category-color: #30b0c7;
 }
 .category-phone {
-  --category-color: var(--accent);
+  --category-color: var(--tint);
 }
 .category-laptop {
-  --category-color: var(--warning);
+  --category-color: var(--caution);
 }
 .category-home {
-  --category-color: var(--accent);
+  --category-color: var(--ok);
 }
+/* Settings-style glyphs: a white symbol on a tinted rounded square. */
 .quick-categories button > span {
-  color: var(--category-color);
-  background: color-mix(in srgb, var(--category-color) 9%, transparent);
+  color: #fff;
+  background: var(--category-color);
+}
+.category-phone > span {
+  color: var(--on-tint);
 }
 @media (max-width: 359px) {
   .quick-categories small {

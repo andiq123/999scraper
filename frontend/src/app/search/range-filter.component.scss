@@ -7,9 +7,9 @@ fieldset {
   gap: 0.42rem;
   min-width: 0;
   padding: 0.85rem;
-  border: 1px solid var(--line);
-  border-radius: 13px;
-  background: var(--surface-solid);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--fill);
 }
 legend {
   display: flex;
@@ -40,19 +40,22 @@ output {
 .presets button {
   flex: 1 0 auto;
   min-height: 44px;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.8rem;
   border: 0;
-  border-radius: 9px;
-  color: var(--muted);
-  background: var(--surface-soft);
+  border-radius: 999px;
+  color: var(--label);
+  background: var(--fill);
   font-size: 0.8125rem;
-  font-weight: 680;
+  font-weight: 500;
+  transition:
+    background var(--quick) var(--spring),
+    color var(--quick) var(--spring),
+    scale var(--quick) var(--spring);
   cursor: pointer;
 }
 .presets button.active {
-  color: var(--accent);
-  background: var(--surface-selected);
-  box-shadow: inset 0 0 0 1px rgb(var(--accent-rgb) / 12%);
+  color: var(--on-tint);
+  background: var(--tint);
 }
 .dual-range {
   --from: 0%;
@@ -88,11 +91,13 @@ output {
   width: 20px;
   height: 20px;
   margin-top: -8px;
-  border: 3px solid white;
+  border: 0;
   border-radius: 50%;
   appearance: none;
-  background: var(--accent);
-  box-shadow: var(--shadow-sm);
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 6%),
+    0 2px 6px rgb(0 0 0 / 24%);
   pointer-events: auto;
   cursor: grab;
 }
@@ -120,11 +125,11 @@ output {
   width: 100%;
   min-width: 0;
   min-height: 40px;
-  padding: 0.42rem 0.5rem;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  padding: 0.42rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs);
   outline: 0;
-  background: var(--surface-solid);
+  background: var(--surface);
   font-size: 0.8125rem;
 }
 .inputs input:focus {
@@ -136,11 +141,9 @@ output {
 }
 @media (hover: hover) and (pointer: fine) {
   .presets button:hover {
-    color: var(--text);
-    background: var(--accent-soft);
+    background: var(--fill-pressed);
   }
   .presets button.active:hover {
-    color: var(--accent-hover);
-    background: rgb(var(--accent-rgb) / 14%);
+    background: var(--accent-hover);
   }
 }

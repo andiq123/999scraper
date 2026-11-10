@@ -60,7 +60,7 @@ export class UiPreferencesService {
     const dark = this.appearance() === 'dark' || (this.appearance() === 'system' && this.deviceTheme.matches);
     const root = document.documentElement;
     root.dataset['colorMode'] = dark ? 'dark' : 'light';
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#12171f' : '#f3f5f7');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#000000' : '#f2f2f7');
   }
 }
 

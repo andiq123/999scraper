@@ -5,6 +5,7 @@ import { environment } from '../../environments/environment';
 import { AlertsComponent } from '../alerts/alerts.component';
 import { UiPreferencesService } from '../ui-preferences.service';
 import { IconComponent } from '../icon.component';
+import { reportBackend } from '../connection';
 
 interface HealthStatus {
   status: 'ok' | 'degraded';
@@ -59,7 +60,11 @@ export class AccountComponent {
     this.request?.abort();
     const request = new AbortController();
     this.request = request;
-    const timeout = window.setTimeout(() => request.abort(), 5_000);
+    let timedOut = false;
+    const timeout = window.setTimeout(() => {
+      timedOut = true;
+      request.abort();
+    }, 5_000);
     const started = performance.now();
     try {
       const response = await fetch(environment.apiUrl + 'health', {
@@ -67,6 +72,7 @@ export class AccountComponent {
         cache: 'no-store',
         signal: request.signal,
       });
+      reportBackend(response.status);
       const body = (await response.json()) as HealthStatus;
       if (
         !body.services ||
@@ -81,7 +87,8 @@ export class AccountComponent {
       this.unavailable.set(false);
       this.latency.set(Math.max(1, Math.round(performance.now() - started)));
       this.lastChecked.set(new Date());
-    } catch {
+    } catch (error) {
+      if (error instanceof TypeError || timedOut) reportBackend();
       if (this.request === request) {
         this.unavailable.set(true);
         this.health.set(null);

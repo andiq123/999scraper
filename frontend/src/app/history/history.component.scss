@@ -9,55 +9,57 @@ h1 {
   margin: 0.2rem 0 0.35rem;
 }
 ol {
-  display: grid;
-  gap: 0.5rem;
+  overflow: hidden;
   padding: 0;
+  border-radius: var(--radius-md);
+  background: var(--surface);
   list-style: none;
 }
 li {
-  overflow: hidden;
-  border-radius: var(--radius-md);
+  position: relative;
+}
+li + li::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 1rem;
+  height: 1px;
+  background: var(--separator);
 }
 li a {
   display: grid;
-  gap: 0.4rem;
-  min-height: 88px;
-  padding: 1rem 1.25rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.15rem 0.75rem;
+  min-height: 3.75rem;
+  padding: 0.6rem 1rem;
   color: var(--text);
   text-decoration: none;
+  transition: background var(--quick) var(--spring);
+}
+li a:active {
+  background: var(--fill);
 }
 li strong {
-  font-weight: 650;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 time {
+  grid-column: 1;
   color: var(--muted);
   font-size: var(--font-meta);
 }
-.empty {
-  padding: 2.5rem 1.25rem;
-}
-.empty h2 {
-  margin-bottom: 0.3rem;
-  letter-spacing: -0.025em;
-}
-.empty p {
-  color: var(--muted);
+li app-icon {
+  grid-area: 1 / 2 / span 2;
+  width: 0.9rem;
+  height: 0.9rem;
+  color: var(--pending);
 }
 .button {
   margin-top: 1rem;
 }
 @media (hover: hover) and (pointer: fine) {
-  li:hover {
-    border-color: rgb(var(--accent-rgb) / 18%);
-    background: var(--surface-soft);
-  }
-}
-@media (prefers-reduced-motion: no-preference) {
-  li {
-    transition:
-      border-color var(--duration-fast) ease,
-      background-color var(--duration-fast) ease;
+  li a:hover {
+    background: var(--fill);
   }
 }
 @media (min-width: 600px) {
@@ -68,17 +70,14 @@ time {
     margin-bottom: 1.25rem;
   }
   li a {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 1rem;
-    min-height: 60px;
-    padding: 0.7rem 1rem;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    min-height: 3.25rem;
   }
   time {
+    grid-column: auto;
     white-space: nowrap;
-    font-size: var(--font-meta);
   }
-  .empty {
-    padding: 3.5rem 2rem;
+  li app-icon {
+    grid-area: auto;
   }
 }

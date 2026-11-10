@@ -1,4 +1,4 @@
-<main class="account-page page-shell route-page">
+<main class="account-page page-shell route-page stagger">
   <header class="account-heading">
     <h1>Account & settings</h1>
     <p>
@@ -15,17 +15,17 @@
   @if (auth.session()) {
     <section class="account-state card bg-base-100 shadow-sm">
       <div class="account-status">
-        <span><app-icon name="check" /></span>
+        <span class="glyph tone--ok"><app-icon name="check" /></span>
         <div><strong>Signed in</strong><small>Your saved listings and history are available.</small></div>
       </div>
       <nav class="account-list" aria-label="Account destinations">
         <a routerLink="/saved"
-          ><span><app-icon name="heart" /></span
+          ><span class="glyph tone--down"><app-icon name="heart" /></span
           ><span><strong>Saved listings</strong><small>Everything you kept</small></span
           ><app-icon name="chevronRight"
         /></a>
         <a routerLink="/history"
-          ><span><app-icon name="history" /></span
+          ><span class="glyph"><app-icon name="history" /></span
           ><span><strong>Search history</strong><small>Your previous searches</small></span
           ><app-icon name="chevronRight"
         /></a>
@@ -36,7 +36,9 @@
   } @else {
     <section class="account-state card bg-base-100 shadow-sm">
       <div class="account-status guest">
-        <span><app-icon [name]="auth.restoreError() ? 'refresh' : 'shield'" /></span>
+        <span class="glyph" [class.tone--caution]="auth.restoreError()"
+          ><app-icon [name]="auth.restoreError() ? 'refresh' : 'shield'"
+        /></span>
         <div>
           <strong>{{ auth.restoreError() ? 'Your login is saved' : 'One private code' }}</strong
           ><small>{{
@@ -66,7 +68,13 @@
       <strong id="appearance-heading">Appearance</strong>
       <small>Use your device setting or choose a theme.</small>
     </div>
-    <div class="appearance-options" role="group" aria-label="Color appearance">
+    <div
+      class="appearance-options"
+      role="group"
+      aria-label="Color appearance"
+      [style.--index]="['system', 'light', 'dark'].indexOf(preferences.appearance())"
+    >
+      <span class="thumb" aria-hidden="true"></span>
       <button
         type="button"
         [class.active]="preferences.appearance() === 'system'"
@@ -100,7 +108,14 @@
     [class.degraded]="unavailable() || health()?.status === 'degraded'"
   >
     <header>
-      <span class="status-light" aria-hidden="true"></span>
+      <span
+        class="beacon"
+        [class.beacon--busy]="checking()"
+        [class.tone--ok]="health()?.status === 'ok'"
+        [class.tone--caution]="health()?.status === 'degraded'"
+        [class.tone--down]="unavailable()"
+        aria-hidden="true"
+      ></span>
       <div>
         <strong>App status</strong>
         <small>
@@ -114,7 +129,13 @@
           }
         </small>
       </div>
-      <button class="btn btn-soft btn-primary btn-sm" type="button" (click)="refreshStatus()" [disabled]="checking()">
+      <button
+        class="btn btn-ghost btn-sm"
+        type="button"
+        (click)="refreshStatus()"
+        [disabled]="checking()"
+        [class.checking]="checking()"
+      >
         <app-icon name="refresh" />{{ checking() ? 'Checking…' : 'Refresh' }}
       </button>
     </header>
@@ -128,12 +149,18 @@
         track service.name
       ) {
         <div>
-          <span class="service-dot" [class.online]="service.online" aria-hidden="true"></span>
+          <span
+            class="beacon"
+            [class.beacon--busy]="checking() && !health()"
+            [class.tone--ok]="service.online"
+            [class.tone--down]="service.online === false || unavailable()"
+            aria-hidden="true"
+          ></span>
           <span
             ><strong>{{ service.name }}</strong
             ><small>{{ service.detail }}</small></span
           >
-          <b class="badge badge-sm" [class.online]="service.online">{{ statusLabel(service.online) }}</b>
+          <b [class.online]="service.online">{{ statusLabel(service.online) }}</b>
         </div>
       }
     </div>

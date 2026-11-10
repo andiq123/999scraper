@@ -1,6 +1,6 @@
 @if (toast(); as item) {
   <div
-    class="app-toast alert"
+    class="app-toast"
     animate.enter="toast-enter"
     animate.leave="toast-leave"
     [class.error]="item.kind === 'error'"
@@ -11,14 +11,27 @@
     {{ item.message }}
   </div>
 }
-@if (!pwa.online()) {
-  <div class="network-state alert" animate.enter="banner-enter" animate.leave="banner-leave" role="status">
-    <span aria-hidden="true"></span> Offline · reconnect to search or sync
+@if (!pwa.online() || !reachable()) {
+  <div class="connection-toast" animate.enter="toast-enter" animate.leave="toast-leave" role="alert">
+    <app-icon name="offline" />
+    <div>
+      <strong>{{ pwa.online() ? 'Can’t reach 999 Search' : 'You’re offline' }}</strong>
+      <span>{{ pwa.online() ? 'Results may be out of date. Retrying…' : 'Check your internet connection.' }}</span>
+    </div>
+    @if (pwa.online()) {
+      <button type="button" [disabled]="probing()" (click)="retry()">
+        @if (probing()) {
+          <span class="loading loading-spinner loading-xs" aria-label="Checking"></span>
+        } @else {
+          Retry
+        }
+      </button>
+    }
   </div>
 }
 @if (pwa.updateReady()) {
   <aside
-    class="update-card alert"
+    class="update-card"
     animate.enter="update-enter"
     animate.leave="update-leave"
     [class.applying]="pwa.applyingUpdate()"

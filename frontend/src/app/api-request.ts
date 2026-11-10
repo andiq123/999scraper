@@ -6,6 +6,14 @@ export class ApiError extends Error {
   }
 }
 
+let reportBackend: (status?: number) => void = () => undefined;
+
+/** Tells a listener how each request ended: an HTTP status, or none when the backend never answered.
+ *  This module stays free of imports so that scripts can load it outside the app. */
+export function watchRequests(listener: (status?: number) => void): void {
+  reportBackend = listener;
+}
+
 /** Bound ordinary API calls; streams use their own cancellation and completion checks. */
 export async function requestJson<T>(url: string, init: RequestInit = {}, timeoutMs = 15_000): Promise<T> {
   const controller = new AbortController();
@@ -20,6 +28,7 @@ export async function requestJson<T>(url: string, init: RequestInit = {}, timeou
   const signal = controller.signal;
   try {
     const response = await fetch(url, { ...init, signal });
+    reportBackend(response.status);
     if (!response.ok) {
       const body: unknown = await response.json().catch(() => null);
       const detail = body && typeof body === 'object' && 'error' in body ? body.error : null;
@@ -38,8 +47,14 @@ export async function requestJson<T>(url: string, init: RequestInit = {}, timeou
     }
   } catch (error) {
     if (init.signal?.aborted) throw error;
-    if (timedOut) throw new Error('The connection took too long. Please try again.');
-    if (error instanceof TypeError) throw new Error('Couldn’t reach the service. Check your connection and try again.');
+    if (timedOut) {
+      reportBackend();
+      throw new Error('The connection took too long. Please try again.');
+    }
+    if (error instanceof TypeError) {
+      reportBackend();
+      throw new Error('Couldn’t reach the service. Check your connection and try again.');
+    }
     throw error;
   } finally {
     clearTimeout(timer);

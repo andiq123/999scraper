@@ -1177,7 +1177,7 @@
             }
           </div>
         }
-        <div class="grid">
+        <div class="grid stagger">
           @for (item of visibleListings(); track item.key; let index = $index) {
             <app-product-card
               [product]="item.product"
@@ -1210,6 +1210,7 @@
         }
       } @else if (searched() && !loading() && !searchError()) {
         <div class="empty empty-state" animate.enter="reveal-enter" animate.leave="reveal-leave">
+          <app-icon name="search" />
           <h2>No products found</h2>
           <p>Try a broader search or fewer filters.</p>
           <div class="empty-actions">
